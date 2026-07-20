@@ -1,8 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { TrendPulseParams } from "@/lib/trading/strategy/trend-pulse";
+import { useToast } from "@/components/ui/Toast";
 
 export function StrategyEditor({
   initial,
@@ -12,10 +13,15 @@ export function StrategyEditor({
   canEdit: boolean;
 }) {
   const router = useRouter();
+  const { toast } = useToast();
   const [form, setForm] = useState(initial);
+  const [saved, setSaved] = useState(initial);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
+
+  const dirty = useMemo(
+    () => JSON.stringify(form) !== JSON.stringify(saved),
+    [form, saved],
+  );
 
   function setNum(key: keyof TrendPulseParams, raw: string) {
     const n = Number(raw);
@@ -23,9 +29,8 @@ export function StrategyEditor({
   }
 
   async function save() {
+    if (!dirty) return;
     setBusy(true);
-    setError(null);
-    setMessage(null);
     const res = await fetch("/api/admin/strategy", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -34,10 +39,19 @@ export function StrategyEditor({
     const data = await res.json().catch(() => ({}));
     setBusy(false);
     if (!res.ok) {
-      setError(data.error ?? "Error al guardar");
+      toast({
+        tone: "error",
+        title: "No se pudo guardar",
+        message: data.error ?? "Error al guardar la estrategia",
+      });
       return;
     }
-    setMessage("Estrategia actualizada. Los próximos ticks usarán estos valores.");
+    setSaved(form);
+    toast({
+      tone: "success",
+      title: "Información actualizada con éxito",
+      message: "Los próximos ticks usarán estos valores.",
+    });
     router.refresh();
   }
 
@@ -125,9 +139,13 @@ export function StrategyEditor({
       {canEdit && (
         <button
           type="button"
-          disabled={busy}
+          disabled={busy || !dirty}
           onClick={() => void save()}
-          className="rounded-lg bg-pulse px-4 py-2 text-sm font-semibold text-ink transition hover:bg-pulse/90 disabled:opacity-50"
+          className={`rounded-lg px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed ${
+            dirty
+              ? "bg-pulse text-ink hover:bg-pulse/90 disabled:opacity-50"
+              : "border border-snow/15 bg-snow/5 text-snow/40"
+          }`}
         >
           {busy ? "Guardando…" : "Guardar estrategia"}
         </button>
@@ -138,9 +156,6 @@ export function StrategyEditor({
           Solo administradores pueden editar estos parámetros.
         </p>
       )}
-
-      {error && <p className="text-sm text-red-300">{error}</p>}
-      {message && <p className="text-sm text-emerald-300">{message}</p>}
 
       <p className="text-xs text-snow/40">
         Paper · Cron externo cada 15 min · Riesgo diario máx. 3% en motor.

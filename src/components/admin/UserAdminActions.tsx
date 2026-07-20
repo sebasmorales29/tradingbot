@@ -1,9 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ROLES, roleLabel, type Role } from "@/lib/roles";
 import { isAdult, parseDateOfBirth } from "@/lib/identity";
+import { useToast } from "@/components/ui/Toast";
 
 type UserShape = {
   id: string;
@@ -28,13 +29,27 @@ export function UserAdminActions({
   isSelf: boolean;
 }) {
   const router = useRouter();
+  const { toast } = useToast();
   const [firstName, setFirstName] = useState(user.first_name ?? "");
   const [lastName, setLastName] = useState(user.last_name ?? "");
   const [dateOfBirth, setDateOfBirth] = useState(user.date_of_birth ?? "");
   const [role, setRole] = useState<Role>(user.role);
   const [busy, setBusy] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [savedSnapshot, setSavedSnapshot] = useState({
+    firstName: user.first_name ?? "",
+    lastName: user.last_name ?? "",
+    dateOfBirth: user.date_of_birth ?? "",
+    role: user.role,
+  });
+
+  const dirty = useMemo(() => {
+    return (
+      firstName.trim() !== savedSnapshot.firstName.trim() ||
+      lastName.trim() !== savedSnapshot.lastName.trim() ||
+      dateOfBirth !== savedSnapshot.dateOfBirth ||
+      role !== savedSnapshot.role
+    );
+  }, [firstName, lastName, dateOfBirth, role, savedSnapshot]);
 
   const inputClass =
     "mt-1 w-full rounded-md border border-snow/15 bg-ink px-3 py-2 text-snow outline-none ring-pulse focus:ring-2";
@@ -46,8 +61,6 @@ export function UserAdminActions({
     label?: string,
   ) {
     setBusy(label ?? method);
-    setError(null);
-    setMessage(null);
     const res = await fetch(path, {
       method,
       headers: body ? { "Content-Type": "application/json" } : undefined,
@@ -56,10 +69,21 @@ export function UserAdminActions({
     const data = await res.json().catch(() => ({}));
     setBusy(null);
     if (!res.ok) {
-      setError(data.error ?? "Error");
+      toast({
+        tone: "error",
+        title: "No se pudo completar la acción",
+        message: data.error ?? "Ocurrió un error inesperado",
+      });
       return false;
     }
-    setMessage(data.message ?? "Listo");
+    toast({
+      tone: "success",
+      title:
+        label === "save"
+          ? "Información actualizada con éxito"
+          : "Acción completada",
+      message: data.message,
+    });
     if (data.redirect) {
       router.push(data.redirect);
       return true;
@@ -69,19 +93,29 @@ export function UserAdminActions({
   }
 
   async function saveProfile() {
+    if (!dirty) return;
+
     if (canManage && dateOfBirth) {
       const dob = parseDateOfBirth(dateOfBirth);
       if (!dob) {
-        setError("Fecha de nacimiento inválida");
+        toast({
+          tone: "error",
+          title: "Datos inválidos",
+          message: "Fecha de nacimiento inválida",
+        });
         return;
       }
       if (!isAdult(dob)) {
-        setError("Debe ser mayor de 18 años");
+        toast({
+          tone: "error",
+          title: "Datos inválidos",
+          message: "Debe ser mayor de 18 años",
+        });
         return;
       }
     }
 
-    await call(
+    const ok = await call(
       "PATCH",
       `/api/admin/users/${user.id}`,
       {
@@ -96,6 +130,15 @@ export function UserAdminActions({
       },
       "save",
     );
+
+    if (ok) {
+      setSavedSnapshot({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        dateOfBirth,
+        role,
+      });
+    }
   }
 
   if (!canManage && !canRoles) {
@@ -162,9 +205,13 @@ export function UserAdminActions({
           </div>
           <button
             type="button"
-            disabled={busy === "save"}
+            disabled={busy === "save" || !dirty}
             onClick={() => void saveProfile()}
-            className="mt-4 rounded-lg bg-pulse px-4 py-2 text-sm font-semibold text-ink transition hover:bg-pulse/90 disabled:opacity-50"
+            className={`mt-4 rounded-lg px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed ${
+              dirty
+                ? "bg-pulse text-ink hover:bg-pulse/90 disabled:opacity-50"
+                : "border border-snow/15 bg-snow/5 text-snow/40"
+            }`}
           >
             {busy === "save" ? "Guardando…" : "Guardar cambios"}
           </button>
@@ -255,9 +302,6 @@ export function UserAdminActions({
           </ActionBtn>
         </div>
       )}
-
-      {error && <p className="text-sm text-red-300">{error}</p>}
-      {message && <p className="text-sm text-emerald-300">{message}</p>}
     </section>
   );
 }
