@@ -43,11 +43,11 @@ export function UserMenu({ email }: { email?: string }) {
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-haspopup="menu"
-        className="inline-flex max-w-[220px] items-center gap-2 rounded-lg border border-snow/15 bg-slate/40 px-3 py-2 text-sm text-snow/80 transition hover:border-snow/25 hover:bg-slate/60"
+        className="inline-flex max-w-[220px] items-center gap-1.5 text-sm text-snow/70 transition hover:text-snow"
       >
         <span className="truncate">{label}</span>
         <span
-          className={`text-[10px] text-snow/40 transition ${open ? "rotate-180" : ""}`}
+          className={`text-[9px] text-snow/45 transition ${open ? "rotate-180" : ""}`}
           aria-hidden
         >
           ▼
