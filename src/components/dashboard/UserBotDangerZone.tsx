@@ -60,7 +60,7 @@ export function UserBotDangerZone({
   }
 
   return (
-    <section className="mt-14 rounded-xl border border-red-500/40 bg-red-500/[0.07] p-5 sm:p-6">
+    <section className="mt-8 rounded-xl border border-red-500/40 bg-red-500/[0.07] p-5 sm:p-6">
       <div className="flex flex-wrap items-center gap-2">
         <span className="rounded-md border border-red-500/50 bg-red-500/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-red-300">
           Danger zone

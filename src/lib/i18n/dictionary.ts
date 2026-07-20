@@ -133,6 +133,10 @@ export const dictionaries = {
       engineOff: "Activa el bot para que Trend Pulse lea el mercado",
       lastSignals: "Últimas señales",
       noSignals: "Sin señales aún",
+      navOverview: "Resumen",
+      navBot: "Mi bot",
+      navActivity: "Actividad",
+      navControl: "Control",
       configTitle: "Tu bot — configuración",
       configLead:
         "Todo lo que el motor usa para operar tu cuenta. Tú decides cuándo cambia.",
@@ -312,6 +316,10 @@ export const dictionaries = {
       engineOff: "Activate the bot so Trend Pulse can read the market",
       lastSignals: "Latest signals",
       noSignals: "No signals yet",
+      navOverview: "Overview",
+      navBot: "My bot",
+      navActivity: "Activity",
+      navControl: "Control",
       configTitle: "Your bot — configuration",
       configLead:
         "Everything the engine uses to trade your account. You decide when it changes.",

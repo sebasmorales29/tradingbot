@@ -7,10 +7,6 @@ export default async function SettingsPage() {
   if (!access) redirect("/login");
 
   return (
-    <SettingsClient
-      email={access.user.email}
-      showAdmin={access.can("admin_console")}
-      role={access.role}
-    />
+    <SettingsClient email={access.user.email} role={access.role} />
   );
 }
