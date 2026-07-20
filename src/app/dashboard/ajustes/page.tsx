@@ -1,22 +1,16 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getSessionAccess } from "@/lib/auth/session";
 import { SettingsClient } from "@/components/dashboard/SettingsClient";
-import { isAdminEmail } from "@/lib/admin";
 
 export default async function SettingsPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/login");
-  }
+  const access = await getSessionAccess();
+  if (!access) redirect("/login");
 
   return (
     <SettingsClient
-      email={user.email}
-      showAdmin={isAdminEmail(user.email)}
+      email={access.user.email}
+      showAdmin={access.can("admin_console")}
+      role={access.role}
     />
   );
 }

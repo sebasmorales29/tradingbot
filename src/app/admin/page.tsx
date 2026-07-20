@@ -1,27 +1,60 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import { isAdminEmail } from "@/lib/admin";
+import { getSessionAccess } from "@/lib/auth/session";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { loadAdminTelemetry } from "@/lib/admin-telemetry";
+import { roleLabel, type Role } from "@/lib/roles";
 import { SignOutButton } from "@/components/dashboard/SignOutButton";
+import { RoleManager } from "@/components/admin/RoleManager";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const access = await getSessionAccess();
+  if (!access) redirect("/login?next=/admin");
+  if (!access.can("admin_console")) redirect("/dashboard");
 
-  if (!user) redirect("/login?next=/admin");
-  if (!isAdminEmail(user.email)) redirect("/dashboard");
+  const showTelemetry =
+    access.can("admin_telemetry") || access.can("admin_analytics");
+  const showSupport = access.can("admin_support_view");
+  const showRoles = access.can("admin_manage_roles");
 
   let data;
   let loadError: string | null = null;
-  try {
-    data = await loadAdminTelemetry();
-  } catch (e) {
-    loadError = e instanceof Error ? e.message : "Error cargando telemetría";
+  if (showTelemetry || showSupport) {
+    try {
+      data = await loadAdminTelemetry();
+    } catch (e) {
+      loadError = e instanceof Error ? e.message : "Error cargando telemetría";
+    }
+  }
+
+  let users: {
+    id: string;
+    email: string | null;
+    role: Role;
+    created_at: string;
+  }[] = [];
+
+  if (showRoles) {
+    try {
+      const admin = createAdminClient();
+      const { data: rows } = await admin
+        .from("profiles")
+        .select("id, email, role, created_at")
+        .order("created_at", { ascending: false })
+        .limit(100);
+      users = (rows ?? []).map((r) => ({
+        id: r.id,
+        email: r.email,
+        role: r.role as Role,
+        created_at: r.created_at,
+      }));
+    } catch (e) {
+      loadError =
+        loadError ??
+        (e instanceof Error ? e.message : "Error cargando usuarios");
+    }
   }
 
   return (
@@ -33,7 +66,7 @@ export default async function AdminPage() {
               Pulse<span className="text-pulse">Trade</span>
             </Link>
             <span className="rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-amber-300">
-              Admin
+              {roleLabel(access.role)}
             </span>
           </div>
           <div className="flex items-center gap-3">
@@ -44,7 +77,7 @@ export default async function AdminPage() {
               Ir al panel
             </Link>
             <span className="hidden text-sm text-snow/40 md:inline">
-              {user.email}
+              {access.user.email}
             </span>
             <SignOutButton />
           </div>
@@ -53,12 +86,12 @@ export default async function AdminPage() {
 
       <div className="mx-auto max-w-6xl px-6 py-10 md:px-8">
         <h1 className="font-display text-3xl font-bold text-snow md:text-4xl">
-          Consola de administración
+          Consola interna
         </h1>
         <p className="mt-2 max-w-2xl text-snow/60">
-          Solo visible para emails en{" "}
-          <code className="text-pulse">ADMIN_EMAILS</code>. Aquí ves salud del
-          sistema, telemetría del bot y parámetros de la estrategia.
+          Mismo inicio de sesión para todos. Tu rol (
+          <span className="text-pulse">{roleLabel(access.role)}</span>)
+          determina qué secciones ves aquí.
         </p>
 
         {loadError ? (
@@ -67,9 +100,13 @@ export default async function AdminPage() {
             <code className="text-snow/70">SUPABASE_SERVICE_ROLE_KEY</code> en
             Vercel.
           </p>
-        ) : data ? (
+        ) : null}
+
+        {showRoles && <RoleManager users={users} />}
+
+        {data && showTelemetry ? (
           <>
-            <p className="mt-4 text-xs text-snow/40">
+            <p className="mt-10 text-xs text-snow/40">
               Generado: {new Date(data.generatedAt).toLocaleString("es-CR")}
             </p>
 
@@ -89,10 +126,7 @@ export default async function AdminPage() {
                 label="Trades cerrados"
                 value={String(data.closedTrades)}
               />
-              <Stat
-                label="Señales 24h"
-                value={String(data.signals24h)}
-              />
+              <Stat label="Señales 24h" value={String(data.signals24h)} />
               <Stat label="Trades 24h" value={String(data.trades24h)} />
               <Stat
                 label="PnL cerrado total"
@@ -101,66 +135,66 @@ export default async function AdminPage() {
               />
             </div>
 
-            <section className="mt-12">
-              <h2 className="font-display text-xl font-bold text-snow">
-                Estrategia Trend Pulse
-              </h2>
-              <div className="mt-4 overflow-x-auto rounded-xl border border-snow/10">
-                <table className="w-full min-w-[480px] text-left text-sm">
-                  <tbody className="divide-y divide-snow/10">
-                    {Object.entries(data.strategy).map(([k, v]) => (
-                      <tr key={k}>
-                        <td className="px-4 py-3 text-snow/50">{k}</td>
-                        <td className="px-4 py-3 font-medium text-snow">
-                          {String(v)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <p className="mt-3 text-xs text-snow/40">
-                Paper · Binance Vision (datos públicos) · Cron externo cada 15
-                min · Riesgo diario máx. 3% en motor
-              </p>
-            </section>
+            {access.can("admin_analytics") && (
+              <section className="mt-12">
+                <h2 className="font-display text-xl font-bold text-snow">
+                  Estrategia Trend Pulse
+                </h2>
+                <div className="mt-4 overflow-x-auto rounded-xl border border-snow/10">
+                  <table className="w-full min-w-[480px] text-left text-sm">
+                    <tbody className="divide-y divide-snow/10">
+                      {Object.entries(data.strategy).map(([k, v]) => (
+                        <tr key={k}>
+                          <td className="px-4 py-3 text-snow/50">{k}</td>
+                          <td className="px-4 py-3 font-medium text-snow">
+                            {String(v)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            )}
 
-            <section className="mt-12">
-              <h2 className="font-display text-xl font-bold text-snow">
-                Bots por usuario
-              </h2>
-              {!data.bots.length ? (
-                <p className="mt-4 text-sm text-snow/50">Sin configs aún.</p>
-              ) : (
-                <ul className="mt-4 divide-y divide-snow/10 rounded-xl border border-snow/10">
-                  {data.bots.map((b) => (
-                    <li
-                      key={b.user_id}
-                      className="flex flex-col gap-1 px-5 py-4 text-sm sm:flex-row sm:items-center sm:justify-between"
-                    >
-                      <span className="font-mono text-xs text-snow/70">
-                        {b.user_id.slice(0, 8)}…
-                      </span>
-                      <span className="text-snow">
-                        {b.is_active ? (
-                          <span className="text-emerald-300">Activo</span>
-                        ) : (
-                          <span className="text-snow/50">Pausa</span>
-                        )}
-                        {" · "}
-                        {b.mode}
-                        {" · "}
-                        riesgo {b.risk_percent}%
-                        {b.kill_switch ? " · KILL" : ""}
-                      </span>
-                      <span className="text-xs text-snow/40">
-                        {b.pairs.join(", ")}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
+            {showSupport && (
+              <section className="mt-12">
+                <h2 className="font-display text-xl font-bold text-snow">
+                  Bots por usuario
+                </h2>
+                {!data.bots.length ? (
+                  <p className="mt-4 text-sm text-snow/50">Sin configs aún.</p>
+                ) : (
+                  <ul className="mt-4 divide-y divide-snow/10 rounded-xl border border-snow/10">
+                    {data.bots.map((b) => (
+                      <li
+                        key={b.user_id}
+                        className="flex flex-col gap-1 px-5 py-4 text-sm sm:flex-row sm:items-center sm:justify-between"
+                      >
+                        <span className="font-mono text-xs text-snow/70">
+                          {b.user_id.slice(0, 8)}…
+                        </span>
+                        <span className="text-snow">
+                          {b.is_active ? (
+                            <span className="text-emerald-300">Activo</span>
+                          ) : (
+                            <span className="text-snow/50">Pausa</span>
+                          )}
+                          {" · "}
+                          {b.mode}
+                          {" · "}
+                          riesgo {b.risk_percent}%
+                          {b.kill_switch ? " · KILL" : ""}
+                        </span>
+                        <span className="text-xs text-snow/40">
+                          {b.pairs.join(", ")}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+            )}
 
             <section className="mt-12 grid gap-10 lg:grid-cols-2">
               <div>
@@ -169,7 +203,7 @@ export default async function AdminPage() {
                 </h2>
                 {!data.recentSignals.length ? (
                   <p className="mt-4 text-sm text-snow/50">
-                    Ninguna aún (sin cruces EMA). El cron puede estar OK igual.
+                    Ninguna aún (sin cruces EMA).
                   </p>
                 ) : (
                   <ul className="mt-4 max-h-80 space-y-2 overflow-y-auto text-sm">
@@ -210,26 +244,6 @@ export default async function AdminPage() {
                   </ul>
                 )}
               </div>
-            </section>
-
-            <section className="mt-12 rounded-xl border border-snow/10 bg-slate/30 p-6">
-              <h2 className="font-display text-lg font-bold text-snow">
-                Cómo leer “¿está vivo?”
-              </h2>
-              <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-snow/65">
-                <li>
-                  Cron-job.org con historial <strong className="text-snow">200 OK</strong>{" "}
-                  = el motor se ejecuta en la nube.
-                </li>
-                <li>
-                  Panel de usuario vacío de trades = no hubo cruce EMA (normal),
-                  no significa caída del sistema.
-                </li>
-                <li>
-                  Equity paper arranca en $10,000 reales en DB (no es un número
-                  inventado en el HTML).
-                </li>
-              </ul>
             </section>
           </>
         ) : null}

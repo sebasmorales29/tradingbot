@@ -3,19 +3,22 @@
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { LanguageToggle } from "@/components/i18n/LanguageToggle";
 import { useT } from "@/components/i18n/T";
+import { roleLabel, type Role } from "@/lib/roles";
 
 export function SettingsClient({
   email,
   showAdmin,
+  role,
 }: {
   email?: string;
   showAdmin?: boolean;
+  role?: Role;
 }) {
   const t = useT();
 
   return (
     <main className="min-h-[100svh] bg-ink">
-      <DashboardHeader email={email} showAdmin={showAdmin} />
+      <DashboardHeader email={email} showAdmin={showAdmin} role={role} />
 
       <div className="mx-auto max-w-6xl px-6 py-10 md:px-8">
         <h1 className="font-display text-3xl font-bold text-snow md:text-4xl">
@@ -39,6 +42,11 @@ export function SettingsClient({
               {t.dash.accountTitle}
             </h2>
             <p className="mt-2 text-sm text-snow/70">{email}</p>
+            {role && (
+              <p className="mt-2 text-sm text-snow/50">
+                Rol: <span className="text-pulse">{roleLabel(role)}</span>
+              </p>
+            )}
             <p className="mt-4 text-sm text-snow/45">{t.dash.comingSoon}</p>
           </section>
         </div>

@@ -1,42 +1,39 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getSessionAccess } from "@/lib/auth/session";
 import { DashboardClient } from "@/components/dashboard/DashboardClient";
-import { isAdminEmail } from "@/lib/admin";
 
 export default async function DashboardPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const access = await getSessionAccess();
+  if (!access) redirect("/login");
 
-  if (!user) {
-    redirect("/login");
-  }
+  const supabase = await createClient();
+  const userId = access.user.id;
 
   const { data: bot } = await supabase
     .from("bot_configs")
     .select("*")
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .maybeSingle();
 
   const { data: trades } = await supabase
     .from("trades")
     .select("*")
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .order("opened_at", { ascending: false })
     .limit(12);
 
   const { data: signals } = await supabase
     .from("signals")
     .select("*")
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(8);
 
   const { data: equityRows } = await supabase
     .from("equity_snapshots")
     .select("equity")
-    .eq("user_id", user.id)
+    .eq("user_id", userId)
     .order("recorded_at", { ascending: false })
     .limit(1);
 
@@ -48,8 +45,10 @@ export default async function DashboardPage() {
 
   return (
     <DashboardClient
-      email={user.email}
-      showAdmin={isAdminEmail(user.email)}
+      email={access.user.email}
+      showAdmin={access.can("admin_console")}
+      canControlBot={access.can("bot_control")}
+      role={access.role}
       bot={bot}
       trades={tradeList}
       signals={signals ?? []}

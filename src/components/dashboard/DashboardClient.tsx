@@ -37,6 +37,8 @@ type Signal = {
 export function DashboardClient({
   email,
   showAdmin,
+  canControlBot = true,
+  role,
   bot,
   trades,
   signals,
@@ -46,6 +48,8 @@ export function DashboardClient({
 }: {
   email: string | undefined;
   showAdmin?: boolean;
+  canControlBot?: boolean;
+  role?: string;
   bot: Bot | null;
   trades: Trade[];
   signals: Signal[];
@@ -58,7 +62,7 @@ export function DashboardClient({
 
   return (
     <main className="min-h-[100svh] bg-ink">
-      <DashboardHeader email={email} showAdmin={showAdmin} />
+      <DashboardHeader email={email} showAdmin={showAdmin} role={role} />
 
       <div className="mx-auto max-w-6xl px-6 py-10 md:px-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
@@ -71,12 +75,14 @@ export function DashboardClient({
               {isActive ? t.dash.engineOn : t.dash.engineOff}
             </p>
           </div>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-            <BotAutoTick isActive={isActive} />
-            {bot && (
-              <ToggleBotButton botId={bot.id} isActive={bot.is_active} />
-            )}
-          </div>
+          {canControlBot && (
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+              <BotAutoTick isActive={isActive} />
+              {bot && (
+                <ToggleBotButton botId={bot.id} isActive={bot.is_active} />
+              )}
+            </div>
+          )}
         </div>
 
         <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

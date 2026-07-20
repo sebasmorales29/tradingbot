@@ -8,9 +8,11 @@ import { SignOutButton } from "@/components/dashboard/SignOutButton";
 export function DashboardHeader({
   email,
   showAdmin,
+  role,
 }: {
   email?: string;
   showAdmin?: boolean;
+  role?: string;
 }) {
   const t = useT();
   const pathname = usePathname();
@@ -46,7 +48,11 @@ export function DashboardHeader({
                 href="/admin"
                 className="text-amber-300/90 transition hover:text-amber-200"
               >
-                Admin
+                {role === "support"
+                  ? "Soporte"
+                  : role === "analyst"
+                    ? "Analítica"
+                    : "Admin"}
               </Link>
             )}
           </nav>

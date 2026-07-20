@@ -30,8 +30,24 @@ En Vercel → Project → **Settings → Environment Variables**, añade:
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | anon key |
 | `SUPABASE_SERVICE_ROLE_KEY` | service_role |
 | `CRON_SECRET` | el mismo de arriba |
+| `ADMIN_EMAILS` | `moralesvega2909@hotmail.com` (bootstrap admin) |
 
 Redeploy después de guardar las variables.
+
+## Roles (mismo login)
+
+Todos entran por `/login`. El rol en `profiles.role` decide el menú:
+
+| Rol | Panel | Bot on/off | Consola `/admin` | Cambiar roles |
+|-----|-------|------------|------------------|---------------|
+| `user` | sí | sí | no | no |
+| `support` | sí | sí | telemetría / bots | no |
+| `analyst` | sí | no | métricas / estrategia | no |
+| `admin` | sí | sí | todo | sí |
+
+1. Ejecuta en Supabase → **SQL Editor** el archivo `supabase/migrations/20260720120000_roles.sql`.
+2. Registra o inicia sesión con `moralesvega2909@hotmail.com` (queda admin por SQL + `ADMIN_EMAILS`).
+3. Desde `/admin` puedes asignar `support` / `analyst` / `admin` a otros usuarios.
 
 ## 3. Cron cada 15 min (gratis, recomendado)
 
