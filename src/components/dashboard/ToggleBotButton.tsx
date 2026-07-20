@@ -32,17 +32,13 @@ export function ToggleBotButton({
       type="button"
       onClick={toggle}
       disabled={loading}
-      className={`rounded-md px-5 py-2.5 text-sm font-bold transition disabled:opacity-60 ${
+      className={`inline-flex h-11 min-w-[148px] items-center justify-center rounded-lg px-5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
         isActive
-          ? "border border-snow/25 text-snow hover:border-red-400/50 hover:text-red-300"
-          : "bg-pulse text-ink hover:bg-pulse-dim hover:text-snow"
+          ? "border border-snow/20 bg-slate text-snow hover:border-red-400/60 hover:bg-red-500/10 hover:text-red-300"
+          : "bg-pulse text-ink shadow-[0_0_0_1px_rgba(0,173,181,0.35)] hover:bg-pulse-dim hover:text-snow"
       }`}
     >
-      {loading
-        ? t.dash.saving
-        : isActive
-          ? t.dash.pause
-          : t.dash.activate}
+      {loading ? t.dash.saving : isActive ? t.dash.pause : t.dash.activate}
     </button>
   );
 }

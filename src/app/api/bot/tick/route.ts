@@ -21,6 +21,12 @@ export async function POST() {
   } catch (err) {
     const message = err instanceof Error ? err.message : "Error en tick";
     console.error("[bot/tick]", err);
-    return NextResponse.json({ ok: false, message }, { status: 500 });
+    const safe =
+      message.includes("451") || message.toLowerCase().includes("restricted")
+        ? "Mercado no disponible desde esta región del servidor"
+        : message.length > 120
+          ? "Error al escanear el mercado"
+          : message;
+    return NextResponse.json({ ok: false, message: safe }, { status: 500 });
   }
 }

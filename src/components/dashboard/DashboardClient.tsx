@@ -69,7 +69,7 @@ export function DashboardClient({
               {isActive ? t.dash.engineOn : t.dash.engineOff}
             </p>
           </div>
-          <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
             <BotAutoTick isActive={isActive} />
             {bot && (
               <ToggleBotButton botId={bot.id} isActive={bot.is_active} />

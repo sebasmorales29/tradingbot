@@ -4,12 +4,26 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useT } from "@/components/i18n/T";
 
-const INTERVAL_MS = 60_000; // every 60s while active
+const INTERVAL_MS = 60_000;
+
+function friendlyMessage(raw: string | undefined, ok: boolean): string {
+  if (!raw) return ok ? "Listo" : "Error";
+  const lower = raw.toLowerCase();
+  if (lower.includes("451") || lower.includes("restricted")) {
+    return "Mercado temporalmente no disponible desde el servidor. Reintenta.";
+  }
+  if (lower.includes("binance") || lower.includes("fetch failed")) {
+    return "No se pudo conectar al mercado. Reintenta en un momento.";
+  }
+  if (raw.length > 80) return ok ? "Escaneo listo" : "Error al escanear";
+  return raw;
+}
 
 export function BotAutoTick({ isActive }: { isActive: boolean }) {
   const router = useRouter();
   const t = useT();
   const [lastMsg, setLastMsg] = useState<string | null>(null);
+  const [isError, setIsError] = useState(false);
   const [running, setRunning] = useState(false);
   const busy = useRef(false);
 
@@ -20,9 +34,12 @@ export function BotAutoTick({ isActive }: { isActive: boolean }) {
     try {
       const res = await fetch("/api/bot/tick", { method: "POST" });
       const data = await res.json();
-      if (data.message) setLastMsg(data.message);
+      const ok = Boolean(data.ok ?? res.ok);
+      setIsError(!ok);
+      setLastMsg(friendlyMessage(data.message, ok));
       router.refresh();
     } catch {
+      setIsError(true);
       setLastMsg("Error de red");
     } finally {
       busy.current = false;
@@ -39,17 +56,23 @@ export function BotAutoTick({ isActive }: { isActive: boolean }) {
   }, [isActive]);
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
+    <div className="flex flex-col items-stretch gap-2 sm:items-end">
       <button
         type="button"
         onClick={() => void tick(true)}
-        disabled={running}
-        className="rounded-md border border-pulse/40 px-4 py-2 text-sm font-semibold text-pulse transition hover:bg-pulse/10 disabled:opacity-60"
+        disabled={running || !isActive}
+        className="inline-flex h-11 min-w-[148px] items-center justify-center rounded-lg border border-pulse/50 bg-pulse/10 px-5 text-sm font-semibold text-pulse transition hover:bg-pulse hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
       >
         {running ? t.dash.scanning : t.dash.scanNow}
       </button>
       {lastMsg && (
-        <span className="text-xs text-snow/45">{lastMsg}</span>
+        <span
+          className={`max-w-xs text-right text-xs ${
+            isError ? "text-red-300/90" : "text-snow/45"
+          }`}
+        >
+          {lastMsg}
+        </span>
       )}
     </div>
   );

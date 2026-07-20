@@ -1,28 +1,15 @@
 /**
- * Offline backtest for Trend Pulse on Binance public data.
+ * Offline backtest for Trend Pulse.
  * Run: npm run bot:backtest
  */
-import ccxt from "ccxt";
+import { fetchOHLCV } from "../src/lib/trading/market";
 import { evaluateTrendPulse } from "../src/lib/trading/strategy/trend-pulse";
 import { sizePosition } from "../src/lib/trading/risk";
-import type { Candle, Pair } from "../src/lib/trading/types";
+import type { Pair } from "../src/lib/trading/types";
 
 const PAIRS: Pair[] = ["BTC/USDT", "ETH/USDT"];
 const START_EQUITY = 10_000;
 const RISK = 0.75;
-
-async function loadCandles(pair: Pair): Promise<Candle[]> {
-  const ex = new ccxt.binance({ enableRateLimit: true });
-  const raw = await ex.fetchOHLCV(pair, "4h", undefined, 500);
-  return raw.map(([timestamp, open, high, low, close, volume]) => ({
-    timestamp: Number(timestamp),
-    open: Number(open),
-    high: Number(high),
-    low: Number(low),
-    close: Number(close),
-    volume: Number(volume),
-  }));
-}
 
 type Pos = {
   pair: Pair;
@@ -33,7 +20,7 @@ type Pos = {
 };
 
 async function backtestPair(pair: Pair) {
-  const candles = await loadCandles(pair);
+  const candles = await fetchOHLCV(pair, "4h", 500);
   let equity = START_EQUITY;
   let pos: Pos | null = null;
   let wins = 0;
@@ -93,9 +80,7 @@ async function backtestPair(pair: Pair) {
 
   const totalPnl = equity - START_EQUITY;
   const winRate = trades ? (wins / trades) * 100 : 0;
-  const avg = pnls.length
-    ? pnls.reduce((a, b) => a + b, 0) / pnls.length
-    : 0;
+  const avg = pnls.length ? pnls.reduce((a, b) => a + b, 0) / pnls.length : 0;
 
   console.log(`\n=== ${pair} (4h Trend Pulse) ===`);
   console.log(`Trades: ${trades} | Wins: ${wins} | Losses: ${losses}`);
@@ -106,7 +91,7 @@ async function backtestPair(pair: Pair) {
 }
 
 async function main() {
-  console.log("PulseTrade backtest — public Binance data (no guarantees)");
+  console.log("PulseTrade backtest — Binance Vision public data");
   for (const pair of PAIRS) {
     await backtestPair(pair);
   }
