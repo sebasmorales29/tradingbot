@@ -493,6 +493,11 @@ export function SandboxClient({
                         }`}
                       >
                         {c.label}
+                        {c.tier === "soft" && (
+                          <span className="ml-1.5 text-[10px] font-normal uppercase tracking-wide text-snow/30">
+                            calidad
+                          </span>
+                        )}
                       </span>
                       <p
                         className={`mt-0.5 text-xs leading-relaxed sm:mt-0 sm:max-w-[58%] sm:text-right ${
@@ -506,7 +511,8 @@ export function SandboxClient({
                 ))}
               </ul>
               <p className="mt-3 text-xs leading-relaxed text-snow/35">
-                Solo opera si todos pasan — menos ruido, más disciplina.
+                Entra si los filtros clave están OK y falla como máximo 1 de
+                calidad. No garantiza ganancias: reduce malas entradas.
               </p>
             </section>
           )}

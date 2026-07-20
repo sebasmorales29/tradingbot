@@ -65,6 +65,8 @@ export type DecisionCheck = {
   label: string;
   pass: boolean;
   detail: string;
+  /** hard = obligatorio para entrar; soft = calidad (se tolera 1 fallo) */
+  tier?: "hard" | "soft";
 };
 
 export type TrendPulseDecision = {
@@ -292,6 +294,7 @@ export function decideTrendPulse(
   checks.push({
     id: "trigger",
     label: "Disparador",
+    tier: "hard",
     pass: entryTrigger,
     detail: bullishCross
       ? "Cruce EMA alcista fresco"
@@ -303,6 +306,7 @@ export function decideTrendPulse(
   checks.push({
     id: "above_slow",
     label: "Sobre EMA lenta",
+    tier: "hard",
     pass: price > slow,
     detail:
       price > slow
@@ -316,6 +320,7 @@ export function decideTrendPulse(
   checks.push({
     id: "atr_regime",
     label: "Régimen volatilidad",
+    tier: "hard",
     pass: regimeOk,
     detail:
       atrPct == null
@@ -329,6 +334,7 @@ export function decideTrendPulse(
   checks.push({
     id: "rsi",
     label: "RSI sano",
+    tier: "soft",
     pass: rsiOk,
     detail: rsiOk
       ? `RSI ${lastRsi.toFixed(1)} — momentum sin agotar`
@@ -348,6 +354,7 @@ export function decideTrendPulse(
   checks.push({
     id: "volume",
     label: "Volumen",
+    tier: "soft",
     pass: volOk,
     detail: volOk
       ? `Vol. vela cerrada ${(closedVol / closedVolSma).toFixed(2)}× media`
@@ -359,6 +366,7 @@ export function decideTrendPulse(
   checks.push({
     id: "slope",
     label: "Pendiente tendencia",
+    tier: "soft",
     pass: slopeOk,
     detail:
       slowSlopePct == null
@@ -372,6 +380,7 @@ export function decideTrendPulse(
   checks.push({
     id: "extension",
     label: "No perseguir",
+    tier: "hard",
     pass: notChasing,
     detail: notChasing
       ? `Extensión ${extensionAtr.toFixed(2)} ATR — entrada limpia`
@@ -386,6 +395,7 @@ export function decideTrendPulse(
   checks.push({
     id: "candle",
     label: "Vela confirmación",
+    tier: "soft",
     pass: confirmCandle,
     detail: confirmCandle
       ? "Cierre alcista con fuerza razonable"
@@ -405,6 +415,7 @@ export function decideTrendPulse(
       checks.push({
         id: "htf",
         label: `Sesgo ${higherTimeframe(params.timeframe)}`,
+        tier: "hard",
         pass: htfOk,
         detail: htfOk
           ? "Timeframe superior alcista — confluencia"
@@ -415,18 +426,31 @@ export function decideTrendPulse(
     checks.push({
       id: "htf",
       label: "Sesgo HTF",
+      tier: "hard",
       pass: true,
       detail: "HTF no cargado — se evalúa solo TF operativo",
     });
   }
 
-  const allPass = checks.every((c) => c.pass);
   const score = scoreFromChecks(checks);
+  const hardChecks = checks.filter((c) => c.tier === "hard");
+  const softChecks = checks.filter((c) => c.tier !== "hard");
+  const hardOk = hardChecks.every((c) => c.pass);
+  const softFails = softChecks.filter((c) => !c.pass).length;
+  // Modo equilibrado: obligatorios OK + como máximo 1 fallo de calidad
+  const canEnter = hardOk && softFails <= 1;
 
-  if (allPass) {
+  if (canEnter) {
+    const softNote =
+      softFails === 0
+        ? "checklist completa"
+        : `1 filtro blando omitido (${softChecks
+            .filter((c) => !c.pass)
+            .map((c) => c.label)
+            .join(", ")})`;
     const reason = bullishCross
-      ? `Entrada experta — cruce EMA · RSI ${lastRsi.toFixed(0)} · ATR% ${atrPct!.toFixed(2)} · score ${score}`
-      : `Entrada experta — pullback EMA · RSI ${lastRsi.toFixed(0)} · score ${score}`;
+      ? `Entrada — cruce EMA · RSI ${lastRsi.toFixed(0)} · score ${score} · ${softNote}`
+      : `Entrada — pullback EMA · RSI ${lastRsi.toFixed(0)} · score ${score} · ${softNote}`;
 
     return {
       signal: {
@@ -446,15 +470,18 @@ export function decideTrendPulse(
     };
   }
 
-  const failed = checks.filter((c) => !c.pass).map((c) => c.label);
+  const failedHard = hardChecks.filter((c) => !c.pass).map((c) => c.label);
+  const failedSoft = softChecks.filter((c) => !c.pass).map((c) => c.label);
   return {
     signal: null,
     verdict: entryTrigger ? "skip" : "hold",
     score,
     checks,
-    summary: entryTrigger
-      ? `Señal cruda filtrada (${failed.join(", ")}) — score ${score}`
-      : `Sin disparador — mercado en observación · score ${score}`,
+    summary: !entryTrigger
+      ? `Sin disparador — mercado en observación · score ${score}`
+      : !hardOk
+        ? `Faltan filtros clave (${failedHard.join(", ")}) — score ${score}`
+        : `Calidad insuficiente (${failedSoft.join(", ")}; máx. 1 fallo blando) — score ${score}`,
   };
 }
 
