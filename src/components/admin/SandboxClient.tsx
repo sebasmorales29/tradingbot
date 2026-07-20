@@ -278,7 +278,7 @@ export function SandboxClient({
                       : "bg-pulse text-ink hover:bg-pulse/90"
                   }`}
                 >
-                  {liveOn ? "Pausar auto" : "Reanudar auto"}
+                  {liveOn ? "Pausar" : "Reanudar"}
                 </button>
                 <button
                   type="button"
