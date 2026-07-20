@@ -29,20 +29,36 @@ export const DEFAULT_TREND_PULSE: TrendPulseParams = {
   atrPeriod: 14,
   stopAtr: 1.5,
   tpAtr: 2.5,
-  minAtrPct: 0.4,
-  maxAtrPct: 6,
+  minAtrPct: 0.25,
+  maxAtrPct: 8,
 };
 
-/** Umbrales de calidad — estilo trader discrecional, no chase. */
+/**
+ * Umbrales de calidad — firmes, pero realistas en crypto.
+ * En TF cortos el ATR% natural es más bajo; el volumen se mide en la
+ * última vela CERRADA (la vela en curso casi siempre va "floja").
+ */
 const EXPERT = {
-  rsiMin: 42,
-  rsiMax: 68,
-  rsiExitExhaustion: 78,
-  volumeMult: 1.15,
-  maxExtensionAtr: 1.35,
-  minSlowSlopePct: 0.015,
-  pullbackEntryMaxAtr: 0.85,
+  rsiMin: 40,
+  rsiMax: 72,
+  rsiExitExhaustion: 80,
+  volumeMult: 1.05,
+  maxExtensionAtr: 1.6,
+  minSlowSlopePct: 0.008,
+  pullbackEntryMaxAtr: 1.0,
+  candleCloseStrength: 0.45,
 } as const;
+
+/** Escala el mínimo de ATR% según timeframe (15m suele vivir bajo 0.4). */
+function effectiveMinAtrPct(timeframe: string, configuredMin: number): number {
+  const scale: Record<string, number> = {
+    "15m": 0.5,
+    "1h": 0.7,
+    "4h": 1,
+    "1d": 1.15,
+  };
+  return configuredMin * (scale[timeframe] ?? 1);
+}
 
 export type DecisionCheck = {
   id: string;
@@ -294,8 +310,9 @@ export function decideTrendPulse(
         : "Precio bajo EMA lenta — sesgo bajista/neutral",
   });
 
+  const minAtrEffective = effectiveMinAtrPct(params.timeframe, MIN_ATR_PCT);
   const regimeOk =
-    atrPct != null && atrPct >= MIN_ATR_PCT && atrPct <= MAX_ATR_PCT;
+    atrPct != null && atrPct >= minAtrEffective && atrPct <= MAX_ATR_PCT;
   checks.push({
     id: "atr_regime",
     label: "Régimen volatilidad",
@@ -304,8 +321,8 @@ export function decideTrendPulse(
       atrPct == null
         ? "ATR% no disponible"
         : regimeOk
-          ? `ATR% ${atrPct.toFixed(2)} — rango operable`
-          : `ATR% ${atrPct.toFixed(2)} fuera de ${MIN_ATR_PCT}–${MAX_ATR_PCT}`,
+          ? `ATR% ${atrPct.toFixed(2)} — rango operable (≥${minAtrEffective.toFixed(2)} en ${params.timeframe})`
+          : `ATR% ${atrPct.toFixed(2)} fuera de ${minAtrEffective.toFixed(2)}–${MAX_ATR_PCT} (${params.timeframe})`,
   });
 
   const rsiOk = lastRsi >= EXPERT.rsiMin && lastRsi <= EXPERT.rsiMax;
@@ -318,14 +335,23 @@ export function decideTrendPulse(
       : `RSI ${lastRsi.toFixed(1)} — ${lastRsi > EXPERT.rsiMax ? "sobrecompra / chase" : "demasiado débil"}`,
   });
 
-  const volOk = lastVolSma > 0 && lastVol >= lastVolSma * EXPERT.volumeMult;
+  // Volumen de la última vela CERRADA (la en curso suele ir incompleta en live)
+  const closedIdx = candles.length >= 2 ? candles.length - 2 : candles.length - 1;
+  const closedVol = candles[closedIdx].volume;
+  const volBasis = candles.slice(0, closedIdx + 1);
+  const volSmaClosed = volumeSma(volBasis, 20);
+  const closedVolSma = volSmaClosed.length
+    ? volSmaClosed[volSmaClosed.length - 1]
+    : lastVolSma;
+  const volOk =
+    closedVolSma > 0 && closedVol >= closedVolSma * EXPERT.volumeMult;
   checks.push({
     id: "volume",
     label: "Volumen",
     pass: volOk,
     detail: volOk
-      ? `Volumen ${(lastVol / lastVolSma).toFixed(2)}× media`
-      : "Volumen flojo — señal sin participación",
+      ? `Vol. vela cerrada ${(closedVol / closedVolSma).toFixed(2)}× media`
+      : `Vol. vela cerrada flojo (${closedVolSma > 0 ? (closedVol / closedVolSma).toFixed(2) : "—"}×) — sin participación`,
   });
 
   const slopeOk =
@@ -354,13 +380,15 @@ export function decideTrendPulse(
 
   const range = last.high - last.low || 1;
   const closeStrength = (last.close - last.low) / range;
-  const confirmCandle = last.close >= last.open && closeStrength >= 0.55;
+  const confirmCandle =
+    last.close >= last.open &&
+    closeStrength >= EXPERT.candleCloseStrength;
   checks.push({
     id: "candle",
     label: "Vela confirmación",
     pass: confirmCandle,
     detail: confirmCandle
-      ? "Cierre alcista en mitad alta del rango"
+      ? "Cierre alcista con fuerza razonable"
       : "Vela débil / indecisa — esperar confirmación",
   });
 
