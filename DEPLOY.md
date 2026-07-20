@@ -45,9 +45,11 @@ Todos entran por `/login`. El rol en `profiles.role` decide el menú:
 | `analyst` | sí | no | métricas / estrategia | no |
 | `admin` | sí | sí | todo | sí |
 
-1. Ejecuta en Supabase → **SQL Editor** el archivo `supabase/migrations/20260720120000_roles.sql`.
+1. Ejecuta en Supabase → **SQL Editor**:
+   - `supabase/migrations/20260720120000_roles.sql`
+   - `supabase/migrations/20260720130000_profile_status.sql` (suspender cuentas)
 2. Registra o inicia sesión con `moralesvega2909@hotmail.com` (queda admin por SQL + `ADMIN_EMAILS`).
-3. Desde `/admin` puedes asignar `support` / `analyst` / `admin` a otros usuarios.
+3. Consola en `/admin` con vistas: Resumen, Usuarios, Bots, Actividad, Estrategia.
 
 ## 3. Cron cada 15 min (gratis, recomendado)
 

@@ -12,6 +12,7 @@ import {
 export type SessionAccess = {
   user: User;
   role: Role;
+  status: "active" | "suspended";
   can: (permission: Permission) => boolean;
 };
 
@@ -25,7 +26,9 @@ export async function getSessionAccess(): Promise<SessionAccess | null> {
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  let role = await readRole(user.id);
+  const profile = await readProfile(user.id);
+  let role = profile.role;
+  const status = profile.status;
 
   const boot = getBootstrapAdminEmails();
   if (
@@ -41,7 +44,6 @@ export async function getSessionAccess(): Promise<SessionAccess | null> {
         .eq("id", user.id);
       role = "admin";
     } catch {
-      // sin service role, al menos tratar como admin en esta request
       role = "admin";
     }
   }
@@ -49,22 +51,29 @@ export async function getSessionAccess(): Promise<SessionAccess | null> {
   return {
     user,
     role,
+    status,
     can: (permission) => can(role, permission),
   };
 }
 
-async function readRole(userId: string): Promise<Role> {
+async function readProfile(
+  userId: string,
+): Promise<{ role: Role; status: "active" | "suspended" }> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, status")
     .eq("id", userId)
     .maybeSingle();
 
-  if (data && "role" in data && isRole(data.role)) {
-    return data.role;
-  }
-  return "user";
+  const role =
+    data && "role" in data && isRole(data.role) ? data.role : ("user" as Role);
+  const status =
+    data && "status" in data && data.status === "suspended"
+      ? ("suspended" as const)
+      : ("active" as const);
+
+  return { role, status };
 }
 
 /** @deprecated usar getSessionAccess().can('admin_console') */

@@ -2,28 +2,31 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSessionAccess } from "@/lib/auth/session";
 import { isRole, type Role } from "@/lib/roles";
+import { listAdminUsers } from "@/lib/admin-users";
 
 export async function GET() {
   const access = await getSessionAccess();
-  if (!access?.can("admin_manage_roles")) {
+  if (
+    !access?.can("admin_manage_users") &&
+    !access?.can("admin_support_view") &&
+    !access?.can("admin_manage_roles")
+  ) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const admin = createAdminClient();
-  const { data, error } = await admin
-    .from("profiles")
-    .select("id, email, role, created_at, updated_at")
-    .order("created_at", { ascending: false })
-    .limit(100);
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  try {
+    const users = await listAdminUsers();
+    return NextResponse.json({ users });
+  } catch (e) {
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "Error" },
+      { status: 500 },
+    );
   }
-
-  return NextResponse.json({ users: data ?? [] });
 }
 
 export async function PATCH(request: Request) {
+  // Legacy: body { userId, role } — prefer /api/admin/users/[id]
   const access = await getSessionAccess();
   if (!access?.can("admin_manage_roles")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -34,7 +37,6 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
   }
 
-  // No te quites el admin a ti mismo por accidente
   if (body.userId === access.user.id && body.role !== "admin") {
     return NextResponse.json(
       { error: "No puedes quitarte el rol admin a ti mismo" },

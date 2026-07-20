@@ -6,6 +6,9 @@ import { DashboardClient } from "@/components/dashboard/DashboardClient";
 export default async function DashboardPage() {
   const access = await getSessionAccess();
   if (!access) redirect("/login");
+  if (access.status === "suspended") {
+    redirect("/login?error=suspended");
+  }
 
   const supabase = await createClient();
   const userId = access.user.id;
