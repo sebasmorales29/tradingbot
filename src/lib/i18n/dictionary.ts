@@ -125,13 +125,54 @@ export const dictionaries = {
       languageTitle: "Idioma",
       languageHelp: "Elige el idioma de la interfaz. Se guarda en este dispositivo.",
       accountTitle: "Cuenta",
-      comingSoon: "Más opciones de riesgo, pares y API keys llegarán con el motor del bot.",
+      comingSoon:
+        "El control del bot (pausa, kill switch, riesgo y modo) está en el Panel, abajo en Danger zone.",
       scanNow: "Escanear mercado",
       scanning: "Escaneando…",
       engineOn: "Motor activo — escanea cada 60s",
       engineOff: "Activa el bot para que Trend Pulse lea el mercado",
       lastSignals: "Últimas señales",
       noSignals: "Sin señales aún",
+      configTitle: "Tu bot — configuración",
+      configLead:
+        "Todo lo que el motor usa para operar tu cuenta. Tú decides cuándo cambia.",
+      killSwitch: "Kill switch",
+      killOnLabel: "Activado",
+      killOffLabel: "Off",
+      botId: "Bot ID",
+      created: "Creado",
+      updated: "Actualizado",
+      winRate: "Win rate",
+      closedTrades: "Trades cerrados",
+      signalsCount: "Señales (vista)",
+      openTradesTitle: "Trades abiertos",
+      noOpenTrades: "Ninguno abierto.",
+      stopLoss: "SL",
+      takeProfit: "TP",
+      dangerTitle: "Control total de tu bot",
+      dangerLead:
+        "Aquí mandas tú: pausa, freno de emergencia, modo y riesgo. Afecta tu capital simulado o real.",
+      killOn: "Activar kill switch",
+      killOff: "Desactivar kill switch",
+      toLive: "Cambiar a Live",
+      toPaper: "Cambiar a Paper",
+      saveRisk: "Guardar riesgo",
+      riskRange: "El riesgo debe estar entre 0.1% y 5%.",
+      liveConfirm:
+        "¿Pasar a Live? En live se usaría capital real cuando conectes API. En paper sigues en simulación. ¿Continuar?",
+      controlOk: "Bot actualizado",
+      controlOkHint: "Los cambios ya aplican a tu cuenta.",
+      controlError: "No se pudo actualizar",
+      hintPause:
+        "Pausar: el bot deja de buscar entradas/salidas hasta que lo actives.",
+      hintKill:
+        "Kill switch: freno de emergencia. Aunque esté “activo”, el motor no opera nada.",
+      hintLive:
+        "Paper = simulación. Live = modo real (cuando tengas API conectada).",
+      hintRisk:
+        "Riesgo %: cuánto del equity arriesgas por operación (0.1–5%).",
+      transparency:
+        "Transparencia: ves la misma configuración y métricas que usa el motor.",
     },
     lang: {
       es: "ES",
@@ -264,13 +305,53 @@ export const dictionaries = {
       languageHelp: "Choose the interface language. It’s saved on this device.",
       accountTitle: "Account",
       comingSoon:
-        "More risk, pairs, and API key options will arrive with the trading engine.",
+        "Bot controls (pause, kill switch, risk, and mode) live on the Dashboard, in the Danger zone below.",
       scanNow: "Scan market",
       scanning: "Scanning…",
       engineOn: "Engine on — scanning every 60s",
       engineOff: "Activate the bot so Trend Pulse can read the market",
       lastSignals: "Latest signals",
       noSignals: "No signals yet",
+      configTitle: "Your bot — configuration",
+      configLead:
+        "Everything the engine uses to trade your account. You decide when it changes.",
+      killSwitch: "Kill switch",
+      killOnLabel: "On",
+      killOffLabel: "Off",
+      botId: "Bot ID",
+      created: "Created",
+      updated: "Updated",
+      winRate: "Win rate",
+      closedTrades: "Closed trades",
+      signalsCount: "Signals (view)",
+      openTradesTitle: "Open trades",
+      noOpenTrades: "None open.",
+      stopLoss: "SL",
+      takeProfit: "TP",
+      dangerTitle: "Full control of your bot",
+      dangerLead:
+        "You’re in charge: pause, emergency stop, mode, and risk. This affects your paper or real capital.",
+      killOn: "Enable kill switch",
+      killOff: "Disable kill switch",
+      toLive: "Switch to Live",
+      toPaper: "Switch to Paper",
+      saveRisk: "Save risk",
+      riskRange: "Risk must be between 0.1% and 5%.",
+      liveConfirm:
+        "Switch to Live? Live would use real capital once an API is connected. Paper stays simulation. Continue?",
+      controlOk: "Bot updated",
+      controlOkHint: "Changes already apply to your account.",
+      controlError: "Could not update",
+      hintPause:
+        "Pause: the bot stops looking for entries/exits until you activate it.",
+      hintKill:
+        "Kill switch: emergency brake. Even if “active”, the engine won’t trade.",
+      hintLive:
+        "Paper = simulation. Live = real mode (once an API is connected).",
+      hintRisk:
+        "Risk %: how much equity you risk per trade (0.1–5%).",
+      transparency:
+        "Transparency: you see the same config and metrics the engine uses.",
     },
     lang: {
       es: "ES",

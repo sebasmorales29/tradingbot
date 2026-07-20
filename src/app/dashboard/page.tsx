@@ -24,27 +24,35 @@ export default async function DashboardPage() {
     .select("*")
     .eq("user_id", userId)
     .order("opened_at", { ascending: false })
-    .limit(12);
+    .limit(40);
 
   const { data: signals } = await supabase
     .from("signals")
     .select("*")
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
-    .limit(8);
+    .limit(20);
 
   const { data: equityRows } = await supabase
     .from("equity_snapshots")
-    .select("equity")
+    .select("equity, recorded_at")
     .eq("user_id", userId)
     .order("recorded_at", { ascending: false })
-    .limit(1);
+    .limit(20);
+
+  const { count: signalsTotal } = await supabase
+    .from("signals")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId);
 
   const equity = equityRows?.[0]?.equity ?? 10_000;
   const tradeList = trades ?? [];
-  const openTrades = tradeList.filter((t) => t.status === "open").length;
+  const openList = tradeList.filter((t) => t.status === "open");
   const closed = tradeList.filter((t) => t.status === "closed");
   const pnlTotal = closed.reduce((sum, t) => sum + Number(t.pnl ?? 0), 0);
+  const wins = closed.filter((t) => Number(t.pnl ?? 0) > 0).length;
+  const winRate =
+    closed.length > 0 ? Math.round((wins / closed.length) * 1000) / 10 : null;
 
   return (
     <DashboardClient
@@ -56,8 +64,15 @@ export default async function DashboardPage() {
       trades={tradeList}
       signals={signals ?? []}
       equity={Number(equity)}
-      openTrades={openTrades}
+      openTrades={openList.length}
+      closedTrades={closed.length}
       pnlTotal={pnlTotal}
+      winRate={winRate}
+      signalsTotal={signalsTotal ?? 0}
+      equityHistory={(equityRows ?? []).map((e) => ({
+        equity: Number(e.equity),
+        recorded_at: e.recorded_at,
+      }))}
     />
   );
 }
