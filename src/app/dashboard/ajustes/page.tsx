@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { SettingsClient } from "@/components/dashboard/SettingsClient";
+import { isAdminEmail } from "@/lib/admin";
 
 export default async function SettingsPage() {
   const supabase = await createClient();
@@ -12,5 +13,10 @@ export default async function SettingsPage() {
     redirect("/login");
   }
 
-  return <SettingsClient email={user.email} />;
+  return (
+    <SettingsClient
+      email={user.email}
+      showAdmin={isAdminEmail(user.email)}
+    />
+  );
 }

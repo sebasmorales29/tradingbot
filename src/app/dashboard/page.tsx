@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { DashboardClient } from "@/components/dashboard/DashboardClient";
+import { isAdminEmail } from "@/lib/admin";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -48,6 +49,7 @@ export default async function DashboardPage() {
   return (
     <DashboardClient
       email={user.email}
+      showAdmin={isAdminEmail(user.email)}
       bot={bot}
       trades={tradeList}
       signals={signals ?? []}

@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { isAdminEmail } from "@/lib/admin";
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -34,12 +35,19 @@ export async function updateSession(request: NextRequest) {
 
   const path = request.nextUrl.pathname;
   const isAuthPage = path.startsWith("/login") || path.startsWith("/registro");
-  const isProtected = path.startsWith("/dashboard");
+  const isDashboard = path.startsWith("/dashboard");
+  const isAdmin = path.startsWith("/admin");
 
-  if (!user && isProtected) {
+  if (!user && (isDashboard || isAdmin)) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/login";
     redirectUrl.searchParams.set("next", path);
+    return NextResponse.redirect(redirectUrl);
+  }
+
+  if (user && isAdmin && !isAdminEmail(user.email)) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/dashboard";
     return NextResponse.redirect(redirectUrl);
   }
 

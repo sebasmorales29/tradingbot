@@ -4,12 +4,18 @@ import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { LanguageToggle } from "@/components/i18n/LanguageToggle";
 import { useT } from "@/components/i18n/T";
 
-export function SettingsClient({ email }: { email?: string }) {
+export function SettingsClient({
+  email,
+  showAdmin,
+}: {
+  email?: string;
+  showAdmin?: boolean;
+}) {
   const t = useT();
 
   return (
     <main className="min-h-[100svh] bg-ink">
-      <DashboardHeader email={email} />
+      <DashboardHeader email={email} showAdmin={showAdmin} />
 
       <div className="mx-auto max-w-6xl px-6 py-10 md:px-8">
         <h1 className="font-display text-3xl font-bold text-snow md:text-4xl">

@@ -36,6 +36,7 @@ type Signal = {
 
 export function DashboardClient({
   email,
+  showAdmin,
   bot,
   trades,
   signals,
@@ -44,6 +45,7 @@ export function DashboardClient({
   pnlTotal,
 }: {
   email: string | undefined;
+  showAdmin?: boolean;
   bot: Bot | null;
   trades: Trade[];
   signals: Signal[];
@@ -56,7 +58,7 @@ export function DashboardClient({
 
   return (
     <main className="min-h-[100svh] bg-ink">
-      <DashboardHeader email={email} />
+      <DashboardHeader email={email} showAdmin={showAdmin} />
 
       <div className="mx-auto max-w-6xl px-6 py-10 md:px-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
