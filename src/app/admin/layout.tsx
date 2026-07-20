@@ -1,8 +1,6 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSessionAccess } from "@/lib/auth/session";
-import { roleLabel } from "@/lib/roles";
-import { SignOutButton } from "@/components/dashboard/SignOutButton";
+import { AppTopNav } from "@/components/AppTopNav";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { SandboxSessionProvider } from "@/components/admin/SandboxSessionProvider";
 
@@ -22,30 +20,11 @@ export default async function AdminLayout({
   return (
     <SandboxSessionProvider enabled={canSandbox}>
       <div className="min-h-[100svh] bg-ink">
-        <header className="border-b border-snow/10">
-          <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-5 md:px-8">
-            <div className="flex items-center gap-4">
-              <Link href="/" className="font-display text-lg font-bold text-snow">
-                Pulse<span className="text-pulse">Trade</span>
-              </Link>
-              <span className="rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-amber-300">
-                {roleLabel(access.role)}
-              </span>
-            </div>
-            <div className="flex items-center gap-3">
-              <Link
-                href="/dashboard"
-                className="inline-flex h-9 items-center rounded-lg border border-pulse/50 bg-pulse/15 px-3.5 text-sm font-semibold text-pulse transition hover:bg-pulse/25 hover:text-snow"
-              >
-                Ir al panel
-              </Link>
-              <span className="hidden max-w-[160px] truncate text-sm text-snow/40 md:inline">
-                {access.user.email}
-              </span>
-              <SignOutButton />
-            </div>
-          </div>
-        </header>
+        <AppTopNav
+          email={access.user.email}
+          showAdmin={access.can("admin_console")}
+          role={access.role}
+        />
 
         <div className="mx-auto flex max-w-6xl flex-col gap-8 px-6 py-8 md:flex-row md:px-8">
           <AdminNav

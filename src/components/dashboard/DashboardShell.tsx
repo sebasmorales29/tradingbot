@@ -1,10 +1,8 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useT } from "@/components/i18n/T";
-import { UserMenu } from "@/components/dashboard/UserMenu";
+import { AppTopNav } from "@/components/AppTopNav";
 import { DashboardNav } from "@/components/dashboard/DashboardNav";
+import { usePathname } from "next/navigation";
 
 export function DashboardShell({
   email,
@@ -19,49 +17,12 @@ export function DashboardShell({
   canControlBot: boolean;
   children: React.ReactNode;
 }) {
-  const t = useT();
   const pathname = usePathname();
   const isSettings = pathname.startsWith("/dashboard/ajustes");
 
-  const adminLabel =
-    role === "support"
-      ? "Soporte"
-      : role === "analyst"
-        ? "Analítica"
-        : "Admin";
-
   return (
     <div className="min-h-[100svh] bg-ink">
-      <header className="border-b border-snow/10">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-5 md:px-8">
-          <div className="flex items-center gap-6">
-            <Link href="/" className="font-display text-lg font-bold text-snow">
-              Pulse<span className="text-pulse">Trade</span>
-            </Link>
-            <nav className="hidden items-center gap-4 text-sm sm:flex">
-              <Link
-                href="/dashboard"
-                className={
-                  pathname.startsWith("/dashboard") && !isSettings
-                    ? "text-snow"
-                    : "text-snow/55 hover:text-snow"
-                }
-              >
-                {t.dash.panel}
-              </Link>
-              {showAdmin && (
-                <Link
-                  href="/admin"
-                  className="text-amber-300/90 transition hover:text-amber-200"
-                >
-                  {adminLabel}
-                </Link>
-              )}
-            </nav>
-          </div>
-          <UserMenu email={email} />
-        </div>
-      </header>
+      <AppTopNav email={email} showAdmin={showAdmin} role={role} />
 
       {isSettings ? (
         <div className="mx-auto max-w-6xl px-6 py-8 md:px-8">{children}</div>
