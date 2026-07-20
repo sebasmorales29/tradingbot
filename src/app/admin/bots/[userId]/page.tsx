@@ -118,7 +118,7 @@ export default async function AdminBotDetailPage({
             value={bot.kill_switch ? "Activado" : "Off"}
           />
           <Info label="Pares" value={bot.pairs.join(", ") || "—"} />
-          <Info label="Bot id" value={bot.id.slice(0, 8) + "…"} />
+          <Info label="Bot id" value={bot.id} mono />
           <Info
             label="Creado"
             value={new Date(bot.created_at).toLocaleString("es-CR")}
@@ -129,15 +129,6 @@ export default async function AdminBotDetailPage({
           />
         </dl>
       </section>
-
-      <BotAdminControls
-        userId={userId}
-        isActive={bot.is_active}
-        killSwitch={bot.kill_switch}
-        riskPercent={bot.risk_percent}
-        mode={bot.mode}
-        canEdit={access.can("admin_manage_users")}
-      />
 
       <section className="mt-10">
         <h2 className="font-display text-xl font-bold text-snow">
@@ -245,6 +236,15 @@ export default async function AdminBotDetailPage({
           </ul>
         </section>
       )}
+
+      <BotAdminControls
+        userId={userId}
+        isActive={bot.is_active}
+        killSwitch={bot.kill_switch}
+        riskPercent={bot.risk_percent}
+        mode={bot.mode}
+        canEdit={access.can("admin_manage_users")}
+      />
     </div>
   );
 }
@@ -253,10 +253,12 @@ function Info({
   label,
   value,
   tone,
+  mono,
 }: {
   label: string;
   value: string;
   tone?: "ok" | "warn";
+  mono?: boolean;
 }) {
   const valueClass =
     tone === "ok"
@@ -267,7 +269,11 @@ function Info({
   return (
     <div className="rounded-lg border border-snow/10 px-4 py-3">
       <dt className="text-xs uppercase tracking-wider text-snow/40">{label}</dt>
-      <dd className={`mt-1 ${valueClass}`}>{value}</dd>
+      <dd
+        className={`mt-1 break-all ${valueClass} ${mono ? "font-mono text-xs sm:text-sm" : ""}`}
+      >
+        {value}
+      </dd>
     </div>
   );
 }
