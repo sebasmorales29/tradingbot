@@ -406,37 +406,84 @@ export function SandboxClient({
 
           {state.lastChecks.length > 0 && (
             <section>
-              <h2 className="mb-3 font-display text-lg font-bold text-snow">
-                Checklist experta (este tick)
-              </h2>
-              <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
+                <div>
+                  <h2 className="font-display text-lg font-bold text-snow">
+                    Checklist experta
+                  </h2>
+                  <p className="mt-0.5 text-xs text-snow/40">
+                    Este tick ·{" "}
+                    {state.lastChecks.filter((c) => c.pass).length}/
+                    {state.lastChecks.length} listos
+                  </p>
+                </div>
+              </div>
+              <ul className="divide-y divide-snow/[0.06] border-y border-snow/[0.08]">
                 {state.lastChecks.map((c) => (
                   <li
                     key={c.id}
-                    className={`rounded-lg border px-3 py-2 text-sm ${
-                      c.pass
-                        ? "border-emerald-500/25 bg-emerald-500/5"
-                        : "border-snow/10 bg-slate/20"
-                    }`}
+                    className="flex items-start gap-3 py-2.5 sm:items-center"
                   >
-                    <div className="flex items-center gap-2">
+                    <span
+                      className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full sm:mt-0 ${
+                        c.pass
+                          ? "bg-emerald-500/15 text-emerald-400"
+                          : "bg-snow/[0.06] text-snow/35"
+                      }`}
+                      aria-label={c.pass ? "Cumple" : "No cumple"}
+                    >
+                      {c.pass ? (
+                        <svg
+                          viewBox="0 0 16 16"
+                          className="h-3 w-3"
+                          fill="none"
+                          aria-hidden
+                        >
+                          <path
+                            d="M3.5 8.2 6.4 11l6.1-7"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      ) : (
+                        <svg
+                          viewBox="0 0 16 16"
+                          className="h-2.5 w-2.5"
+                          fill="none"
+                          aria-hidden
+                        >
+                          <path
+                            d="M4 4l8 8M12 4l-8 8"
+                            stroke="currentColor"
+                            strokeWidth="1.75"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                      )}
+                    </span>
+                    <div className="min-w-0 flex-1 sm:flex sm:items-baseline sm:justify-between sm:gap-6">
                       <span
-                        className={`text-xs font-bold ${
-                          c.pass ? "text-emerald-300" : "text-snow/40"
+                        className={`text-sm font-medium ${
+                          c.pass ? "text-snow/90" : "text-snow/55"
                         }`}
                       >
-                        {c.pass ? "OK" : "NO"}
+                        {c.label}
                       </span>
-                      <span className="font-medium text-snow/90">{c.label}</span>
+                      <p
+                        className={`mt-0.5 text-xs leading-relaxed sm:mt-0 sm:max-w-[58%] sm:text-right ${
+                          c.pass ? "text-snow/45" : "text-snow/35"
+                        }`}
+                      >
+                        {c.detail}
+                      </p>
                     </div>
-                    <p className="mt-1 text-xs text-snow/50">{c.detail}</p>
                   </li>
                 ))}
               </ul>
-              <p className="mt-3 text-xs text-snow/40">
-                Solo opera si todos los checks pasan. Así evita chase, volumen
-                flojo y pelear la tendencia superior — como un trader
-                disciplinado, no como un indicador suelto.
+              <p className="mt-3 text-xs leading-relaxed text-snow/35">
+                Solo opera si todos pasan — menos ruido, más disciplina.
               </p>
             </section>
           )}
