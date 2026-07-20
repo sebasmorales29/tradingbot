@@ -3,40 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSandboxSessionOptional } from "@/components/admin/SandboxSessionProvider";
-
-const items = [
-  { href: "/admin", label: "Resumen", match: (p: string) => p === "/admin" },
-  {
-    href: "/admin/usuarios",
-    label: "Usuarios",
-    key: "users" as const,
-    match: (p: string) => p.startsWith("/admin/usuarios"),
-  },
-  {
-    href: "/admin/bots",
-    label: "Bots",
-    key: "bots" as const,
-    match: (p: string) => p.startsWith("/admin/bots"),
-  },
-  {
-    href: "/admin/actividad",
-    label: "Actividad",
-    key: "activity" as const,
-    match: (p: string) => p.startsWith("/admin/actividad"),
-  },
-  {
-    href: "/admin/sandbox",
-    label: "Sandbox",
-    key: "sandbox" as const,
-    match: (p: string) => p.startsWith("/admin/sandbox"),
-  },
-  {
-    href: "/admin/estrategia",
-    label: "Estrategia",
-    key: "strategy" as const,
-    match: (p: string) => p.startsWith("/admin/estrategia"),
-  },
-];
+import { useT } from "@/components/i18n/T";
 
 export function AdminNav({
   canUsers,
@@ -51,8 +18,47 @@ export function AdminNav({
   canStrategy: boolean;
   canSandbox: boolean;
 }) {
+  const t = useT();
   const pathname = usePathname();
   const sandbox = useSandboxSessionOptional();
+
+  const items = [
+    {
+      href: "/admin",
+      label: t.admin.navOverview,
+      match: (p: string) => p === "/admin",
+    },
+    {
+      href: "/admin/usuarios",
+      label: t.admin.navUsers,
+      key: "users" as const,
+      match: (p: string) => p.startsWith("/admin/usuarios"),
+    },
+    {
+      href: "/admin/bots",
+      label: t.admin.navBots,
+      key: "bots" as const,
+      match: (p: string) => p.startsWith("/admin/bots"),
+    },
+    {
+      href: "/admin/actividad",
+      label: t.admin.navActivity,
+      key: "activity" as const,
+      match: (p: string) => p.startsWith("/admin/actividad"),
+    },
+    {
+      href: "/admin/sandbox",
+      label: t.admin.navSandbox,
+      key: "sandbox" as const,
+      match: (p: string) => p.startsWith("/admin/sandbox"),
+    },
+    {
+      href: "/admin/estrategia",
+      label: t.admin.navStrategy,
+      key: "strategy" as const,
+      match: (p: string) => p.startsWith("/admin/estrategia"),
+    },
+  ];
 
   const visible = items.filter((item) => {
     if (!("key" in item)) return true;

@@ -6,6 +6,8 @@ import { AdminStat } from "@/components/admin/AdminStat";
 import { useSandboxSession } from "@/components/admin/SandboxSessionProvider";
 import { useToast } from "@/components/ui/Toast";
 import { Select } from "@/components/ui/Select";
+import { useT } from "@/components/i18n/T";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import type { TrendPulseParams } from "@/lib/trading/strategy/trend-pulse";
 import type { LiveEvent } from "@/lib/trading/live-sandbox";
 import type { Pair } from "@/lib/trading/types";
@@ -39,6 +41,8 @@ export function SandboxClient({
   canEdit: boolean;
 }) {
   const { toast } = useToast();
+  const t = useT();
+  const { locale } = useLanguage();
   const {
     ready,
     busy,
@@ -97,14 +101,17 @@ export function SandboxClient({
   const priceLabels = useMemo(
     () =>
       candles.map((c) =>
-        new Date(c.timestamp).toLocaleString("es-CR", {
-          day: "2-digit",
-          month: "short",
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
+        new Date(c.timestamp).toLocaleString(
+          locale === "en" ? "en-US" : "es-CR",
+          {
+            day: "2-digit",
+            month: "short",
+            hour: "2-digit",
+            minute: "2-digit",
+          },
+        ),
       ),
-    [candles],
+    [candles, locale],
   );
   const equitySeries = useMemo(
     () => state?.equityPoints.map((p) => p.equity) ?? [],
@@ -113,13 +120,13 @@ export function SandboxClient({
   const equityLabels = useMemo(
     () =>
       state?.equityPoints.map((p) =>
-        new Date(p.t).toLocaleString("es-CR", {
+        new Date(p.t).toLocaleString(locale === "en" ? "en-US" : "es-CR", {
           hour: "2-digit",
           minute: "2-digit",
           second: "2-digit",
         }),
       ) ?? [],
-    [state],
+    [state, locale],
   );
 
   const markers = useMemo(() => {
@@ -166,15 +173,18 @@ export function SandboxClient({
     if (!result.ok) {
       toast({
         tone: "error",
-        title: "No se pudo iniciar",
+        title: t.admin.startError,
         message: result.error ?? "Error",
       });
       return;
     }
     toast({
       tone: "success",
-      title: "Sesión paper activa",
-      message: `Persiste al refrescar o cambiar de vista. Tick cada ${formatTickLabel(tickMs)}.`,
+      title: t.admin.sessionStarted,
+      message: t.admin.sessionStartedHint.replace(
+        "{n}",
+        formatTickLabel(tickMs),
+      ),
     });
   }
 
@@ -186,7 +196,7 @@ export function SandboxClient({
     if (!result.ok) {
       toast({
         tone: "error",
-        title: "Tick falló",
+        title: t.admin.tickFailed,
         message: result.error ?? "Error",
       });
     }
@@ -195,38 +205,35 @@ export function SandboxClient({
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="font-display text-3xl font-bold text-snow">Sandbox</h1>
+        <h1 className="font-display text-3xl font-bold text-snow">
+          {t.admin.sandboxTitle}
+        </h1>
         <p className="mt-2 max-w-2xl text-sm text-snow/60">
-          Paper trading en vivo: el bot lee el mercado real, aplica una checklist
-          de calidad (tendencia HTF, RSI, volumen, no perseguir, confirmación) y
-          solo opera cuando el setup es limpio. Dinero ficticio — sin tocar
-          cuentas reales. La sesión queda guardada: puedes refrescar o ir a otra
-          vista y sigue operando.
+          {t.admin.sandboxLead}
         </p>
         {!canEdit && (
           <p className="mt-2 text-xs text-amber-300/80">
-            Tu rol puede operar el sandbox. Los parámetros de estrategia están
-            fijos a la configuración global.
+            {t.admin.sandboxRoleHint}
           </p>
         )}
       </div>
 
       {!ready && (
-        <p className="text-sm text-snow/45">Restaurando sesión paper…</p>
+        <p className="text-sm text-snow/45">{t.admin.sandboxRestoring}</p>
       )}
 
       <section className="rounded-xl border border-snow/10 bg-slate/30 p-5">
         <h2 className="font-display text-lg font-bold text-snow">
-          Sesión paper
+          {t.admin.sessionTitle}
         </h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <div className="block text-sm">
-            <span className="text-snow/50">Par</span>
+            <span className="text-snow/50">{t.admin.pair}</span>
             <Select
               className="mt-1"
               value={pair}
               onChange={(v) => setPair(v as Pair)}
-              aria-label="Par"
+              aria-label={t.admin.pair}
               disabled={Boolean(state)}
               options={[
                 { value: "BTC/USDT", label: "BTC/USDT" },
@@ -235,32 +242,32 @@ export function SandboxClient({
             />
           </div>
           <div className="block text-sm">
-            <span className="text-snow/50">Timeframe</span>
+            <span className="text-snow/50">{t.admin.timeframe}</span>
             <Select
               className="mt-1"
               value={timeframe}
               onChange={setTimeframe}
-              aria-label="Timeframe"
+              aria-label={t.admin.timeframe}
               disabled={Boolean(state)}
               options={[
-                { value: "15m", label: "15m (más señales)" },
-                { value: "1h", label: "1h" },
-                { value: "4h", label: "4h (como producción)" },
+                { value: "15m", label: t.admin.tf15m },
+                { value: "1h", label: t.admin.tf1h },
+                { value: "4h", label: t.admin.tf4h },
               ]}
             />
           </div>
           <div className="block text-sm">
-            <span className="text-snow/50">Intervalo de tick</span>
+            <span className="text-snow/50">{t.admin.tickInterval}</span>
             <Select
               className="mt-1"
               value={String(tickMs)}
               onChange={(v) => setTickMs(Number(v))}
-              aria-label="Intervalo de tick"
+              aria-label={t.admin.tickInterval}
               options={[...TICK_OPTIONS]}
             />
           </div>
           <label className="block text-sm">
-            <span className="text-snow/50">Equity inicial (paper)</span>
+            <span className="text-snow/50">{t.admin.startingEquity}</span>
             <input
               type="number"
               className={inputClass}
@@ -270,7 +277,7 @@ export function SandboxClient({
             />
           </label>
           <label className="block text-sm">
-            <span className="text-snow/50">Riesgo %</span>
+            <span className="text-snow/50">{t.admin.riskPct}</span>
             <input
               type="number"
               step="0.05"
@@ -287,7 +294,7 @@ export function SandboxClient({
                 onClick={() => void onStart()}
                 className="h-[42px] w-full rounded-lg bg-pulse px-4 text-sm font-semibold text-ink transition hover:bg-pulse/90 disabled:opacity-50"
               >
-                {busy ? "Conectando…" : "Iniciar bot en vivo"}
+                {busy ? t.admin.connecting : t.admin.startLive}
               </button>
             ) : (
               <>
@@ -301,7 +308,7 @@ export function SandboxClient({
                       : "bg-pulse text-ink hover:bg-pulse/90"
                   }`}
                 >
-                  {liveOn ? "Pausar" : "Reanudar"}
+                  {liveOn ? t.admin.pause : t.admin.resume}
                 </button>
                 <button
                   type="button"
@@ -309,7 +316,7 @@ export function SandboxClient({
                   onClick={() => void onTick()}
                   className="h-[42px] rounded-lg border border-snow/20 px-3 text-sm text-snow/85 transition hover:bg-snow/5 disabled:opacity-50"
                 >
-                  Tick
+                  {t.admin.tick}
                 </button>
               </>
             )}
@@ -362,18 +369,23 @@ export function SandboxClient({
                 }`}
               />
               {liveOn
-                ? `Sesión activa · tick cada ${formatTickLabel(tickMs)}`
-                : "Sesión en pausa (sigue guardada)"}
+                ? t.admin.sessionActive.replace(
+                    "{n}",
+                    formatTickLabel(tickMs),
+                  )
+                : t.admin.sessionPaused}
             </span>
             <button
               type="button"
               onClick={() => void stopSession()}
               className="rounded-md border border-red-400/30 px-2.5 py-1 text-red-300 transition hover:bg-red-500/10"
             >
-              Cerrar sesión
+              {t.admin.closeSession}
             </button>
             <span>
-              Sesión {state.sessionId.slice(-8)} · ticks {state.tickCount}
+              {t.admin.sessionMeta
+                .replace("{id}", state.sessionId.slice(-8))
+                .replace("{n}", String(state.tickCount))}
             </span>
           </div>
         )}
@@ -383,24 +395,24 @@ export function SandboxClient({
         <>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <AdminStat
-              label="Equity paper (mark)"
+              label={t.admin.equityMark}
               value={`$${markedEquity.toLocaleString("en-US", {
                 maximumFractionDigits: 2,
               })}`}
               accent
             />
             <AdminStat
-              label="PnL sesión"
+              label={t.admin.sessionPnl}
               value={`${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)}`}
             />
             <AdminStat
-              label="Trades"
-              value={`${closed}${state.position ? " +1 abierta" : ""} · WR ${
+              label={t.admin.trades}
+              value={`${closed}${state.position ? t.admin.oneOpen : ""} · WR ${
                 winRate != null ? `${winRate}%` : "—"
               }`}
             />
             <AdminStat
-              label="Precio mercado"
+              label={t.admin.marketPrice}
               value={`$${market.price.toLocaleString("en-US", {
                 maximumFractionDigits: 2,
               })}`}
@@ -409,7 +421,7 @@ export function SandboxClient({
 
           <div className="rounded-xl border border-pulse/25 bg-pulse/5 px-4 py-3 text-sm text-snow/80">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="font-semibold text-pulse">Decisión del bot</p>
+              <p className="font-semibold text-pulse">{t.admin.botDecision}</p>
               <span className="rounded-full bg-ink/40 px-2.5 py-0.5 text-xs font-bold text-pulse">
                 Score {market.score ?? state.lastScore}/100 ·{" "}
                 {(market.verdict ?? "hold").toUpperCase()}
@@ -432,12 +444,15 @@ export function SandboxClient({
               <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
                 <div>
                   <h2 className="font-display text-lg font-bold text-snow">
-                    Checklist experta
+                    {t.admin.checklistTitle}
                   </h2>
                   <p className="mt-0.5 text-xs text-snow/40">
-                    Este tick ·{" "}
-                    {state.lastChecks.filter((c) => c.pass).length}/
-                    {state.lastChecks.length} listos
+                    {t.admin.checklistReady
+                      .replace(
+                        "{ready}",
+                        String(state.lastChecks.filter((c) => c.pass).length),
+                      )
+                      .replace("{total}", String(state.lastChecks.length))}
                   </p>
                 </div>
               </div>
@@ -453,7 +468,7 @@ export function SandboxClient({
                           ? "bg-emerald-500/15 text-emerald-400"
                           : "bg-snow/[0.06] text-snow/35"
                       }`}
-                      aria-label={c.pass ? "Cumple" : "No cumple"}
+                      aria-label={c.pass ? t.admin.meets : t.admin.fails}
                     >
                       {c.pass ? (
                         <svg
@@ -495,7 +510,7 @@ export function SandboxClient({
                         {c.label}
                         {c.tier === "soft" && (
                           <span className="ml-1.5 text-[10px] font-normal uppercase tracking-wide text-snow/30">
-                            calidad
+                            {t.admin.quality}
                           </span>
                         )}
                       </span>
@@ -511,15 +526,14 @@ export function SandboxClient({
                 ))}
               </ul>
               <p className="mt-3 text-xs leading-relaxed text-snow/35">
-                Entra si los filtros clave están OK y falla como máximo 1 de
-                calidad. No garantiza ganancias: reduce malas entradas.
+                {t.admin.checklistFoot}
               </p>
             </section>
           )}
 
           <section>
             <h2 className="mb-3 font-display text-lg font-bold text-snow">
-              Precio real · entradas (verde) / salidas (rojo)
+              {t.admin.priceChart}
             </h2>
             <LineChart
               series={priceSeries}
@@ -528,18 +542,17 @@ export function SandboxClient({
               yFormat={(n) =>
                 `$${n.toLocaleString("en-US", { maximumFractionDigits: 2 })}`
               }
-              valueLabel="Precio"
+              valueLabel={t.admin.price}
               height={260}
             />
             <p className="mt-2 text-xs text-snow/40">
-              Datos reales de Binance Vision (velas {timeframe}). Pasa el cursor
-              para ver el precio. Equity abajo = paper sobre ese mercado.
+              {t.admin.priceChartHint.replace("{tf}", timeframe)}
             </p>
           </section>
 
           <section>
             <h2 className="mb-3 font-display text-lg font-bold text-snow">
-              Equity de esta sesión
+              {t.admin.equityChart}
             </h2>
             <LineChart
               series={equitySeries}
@@ -548,7 +561,7 @@ export function SandboxClient({
               yFormat={(n) =>
                 `$${n.toLocaleString("en-US", { maximumFractionDigits: 2 })}`
               }
-              valueLabel="Equity paper"
+              valueLabel={t.admin.equityPaper}
               height={180}
             />
           </section>
@@ -556,7 +569,7 @@ export function SandboxClient({
           <div className="grid gap-8 lg:grid-cols-2">
             <section>
               <h2 className="font-display text-lg font-bold text-snow">
-                Log de decisiones
+                {t.admin.decisionsLog}
               </h2>
               <ul
                 ref={logRef}
@@ -570,14 +583,21 @@ export function SandboxClient({
 
             <section>
               <h2 className="font-display text-lg font-bold text-snow">
-                Trades paper
+                {t.admin.paperTrades}
               </h2>
               <ul className="mt-3 max-h-80 space-y-2 overflow-y-auto rounded-xl border border-snow/10 p-3 text-sm">
                 {state.position && (
                   <li className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-3 py-2">
                     <p className="text-emerald-200">
-                      Abierta · entry {state.position.entry.toFixed(2)} · qty{" "}
-                      {state.position.qty.toFixed(6)}
+                      {t.admin.openPosition
+                        .replace(
+                          "{entry}",
+                          state.position.entry.toFixed(2),
+                        )
+                        .replace(
+                          "{qty}",
+                          state.position.qty.toFixed(6),
+                        )}
                     </p>
                     <p className="mt-1 text-xs text-snow/40">
                       {state.position.entryReason}
@@ -585,22 +605,20 @@ export function SandboxClient({
                   </li>
                 )}
                 {!state.closedTrades.length && !state.position ? (
-                  <li className="text-snow/45">
-                    Aún sin trades. El bot solo entra con checklist completa.
-                  </li>
+                  <li className="text-snow/45">{t.admin.noTradesYet}</li>
                 ) : (
-                  state.closedTrades.map((t) => (
+                  state.closedTrades.map((tr) => (
                     <li
-                      key={t.id}
+                      key={tr.id}
                       className="rounded-lg border border-snow/10 px-3 py-2"
                     >
                       <p className="text-snow">
-                        {t.entry.toFixed(2)} → {t.exit.toFixed(2)} · pnl{" "}
-                        {t.pnl >= 0 ? "+" : ""}
-                        {t.pnl.toFixed(2)}
+                        {tr.entry.toFixed(2)} → {tr.exit.toFixed(2)} · pnl{" "}
+                        {tr.pnl >= 0 ? "+" : ""}
+                        {tr.pnl.toFixed(2)}
                       </p>
                       <p className="mt-1 text-xs text-snow/40">
-                        {t.entryReason} → {t.exitReason}
+                        {tr.entryReason} → {tr.exitReason}
                       </p>
                     </li>
                   ))
@@ -608,7 +626,9 @@ export function SandboxClient({
               </ul>
               {(wins > 0 || losses > 0) && (
                 <p className="mt-2 text-xs text-snow/40">
-                  Cerrados: {wins} ganadores · {losses} perdedores
+                  {t.admin.closedWinsLosses
+                    .replace("{wins}", String(wins))
+                    .replace("{losses}", String(losses))}
                 </p>
               )}
             </section>

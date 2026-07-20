@@ -1,0 +1,24 @@
+---
+description: Toda UI nueva debe soportar i18n ES/EN via el diccionario compartido
+alwaysApply: true
+---
+
+# Internacionalización (ES / EN)
+
+PulseTrade es bilingüe. El idioma se elige en Ajustes y aplica a **toda** la app (landing, auth, panel y admin).
+
+## Obligatorio en código nuevo o editado
+
+1. **No hardcodear** texto de UI en español o inglés en componentes.
+2. Añadir claves en `src/lib/i18n/dictionary.ts` bajo `es` y `en` (mismas rutas).
+3. Leer con `useT()` / `useLanguage()` en client components.
+4. Páginas server: fetchear datos en el server y pasar props a un **view client** que use `useT()`.
+5. Fechas/`toLocaleString`: usar locale de `useLanguage()` (`en-US` / `es-CR`).
+6. Toasts, botones, títulos, empty states y labels de nav también van al diccionario.
+
+## Referencia
+
+- Provider: `LanguageProvider` (`pulsetrade-locale` en localStorage + cookie)
+- Toggle: `LanguageToggle`
+- Admin namespace: `t.admin.*`
+- Dashboard: `t.dash.*`

@@ -24,10 +24,10 @@ export function AppTopNav({
 
   const adminLabel =
     role === "support"
-      ? "Soporte"
+      ? t.admin.navSupport
       : role === "analyst"
-        ? "Analítica"
-        : "Admin";
+        ? t.admin.navAnalytics
+        : t.admin.navAdmin;
 
   return (
     <header className="border-b border-snow/10">

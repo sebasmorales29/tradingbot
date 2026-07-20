@@ -41,6 +41,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     if (!ready) return;
     document.documentElement.lang = locale;
     window.localStorage.setItem(STORAGE_KEY, locale);
+    document.cookie = `${STORAGE_KEY}=${locale};path=/;max-age=31536000;samesite=lax`;
   }, [locale, ready]);
 
   const setLocale = useCallback((next: Locale) => {

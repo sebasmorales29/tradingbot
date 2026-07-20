@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import type { TrendPulseParams } from "@/lib/trading/strategy/trend-pulse";
 import { useToast } from "@/components/ui/Toast";
+import { useT } from "@/components/i18n/T";
 
 export function StrategyEditor({
   initial,
@@ -12,6 +13,7 @@ export function StrategyEditor({
   initial: TrendPulseParams;
   canEdit: boolean;
 }) {
+  const t = useT();
   const router = useRouter();
   const { toast } = useToast();
   const [form, setForm] = useState(initial);
@@ -41,16 +43,16 @@ export function StrategyEditor({
     if (!res.ok) {
       toast({
         tone: "error",
-        title: "No se pudo guardar",
-        message: data.error ?? "Error al guardar la estrategia",
+        title: t.admin.strategySaveError,
+        message: data.error ?? t.admin.strategySaveErrorHint,
       });
       return;
     }
     setSaved(form);
     toast({
       tone: "success",
-      title: "Información actualizada con éxito",
-      message: "Los próximos ticks usarán estos valores.",
+      title: t.admin.strategySaved,
+      message: t.admin.strategySavedHint,
     });
     router.refresh();
   }
@@ -62,7 +64,7 @@ export function StrategyEditor({
     <div className="mt-8 space-y-6">
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block text-sm">
-          <span className="text-snow/50">Nombre</span>
+          <span className="text-snow/50">{t.admin.strategyName}</span>
           <input
             className={inputClass}
             disabled={!canEdit}
@@ -147,20 +149,15 @@ export function StrategyEditor({
               : "border border-snow/15 bg-snow/5 text-snow/40"
           }`}
         >
-          {busy ? "Guardando…" : "Guardar estrategia"}
+          {busy ? t.admin.strategySaving : t.admin.strategySave}
         </button>
       )}
 
       {!canEdit && (
-        <p className="text-sm text-snow/45">
-          Solo administradores pueden editar estos parámetros.
-        </p>
+        <p className="text-sm text-snow/45">{t.admin.strategyReadOnly}</p>
       )}
 
-      <p className="text-xs text-snow/40">
-        Paper · Cron externo cada 15 min · Riesgo diario máx. 3% en motor.
-        Cambia con cuidado: afecta a todos los bots.
-      </p>
+      <p className="text-xs text-snow/40">{t.admin.strategyNote}</p>
     </div>
   );
 }
