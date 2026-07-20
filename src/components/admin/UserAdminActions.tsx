@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { ROLES, roleLabel, type Role } from "@/lib/roles";
 import { isAdult, parseDateOfBirth } from "@/lib/identity";
 import { useToast } from "@/components/ui/Toast";
+import { Select } from "@/components/ui/Select";
 
 type UserShape = {
   id: string;
@@ -188,18 +189,17 @@ export function UserAdminActions({
             {canRoles && (
               <label className="block text-sm">
                 <span className="text-snow/50">Rol</span>
-                <select
-                  className={inputClass}
+                <Select
+                  className="mt-1"
                   value={role}
                   disabled={isSelf}
-                  onChange={(e) => setRole(e.target.value as Role)}
-                >
-                  {ROLES.map((r) => (
-                    <option key={r} value={r}>
-                      {roleLabel(r)}
-                    </option>
-                  ))}
-                </select>
+                  aria-label="Rol"
+                  onChange={(v) => setRole(v as Role)}
+                  options={ROLES.map((r) => ({
+                    value: r,
+                    label: roleLabel(r),
+                  }))}
+                />
               </label>
             )}
           </div>

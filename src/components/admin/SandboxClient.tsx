@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { LineChart } from "@/components/admin/SandboxCharts";
 import { AdminStat } from "@/components/admin/AdminStat";
 import { useToast } from "@/components/ui/Toast";
+import { Select } from "@/components/ui/Select";
 import type { TrendPulseParams } from "@/lib/trading/strategy/trend-pulse";
 import type { Pair } from "@/lib/trading/types";
 
@@ -188,14 +189,16 @@ export function SandboxClient({
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <label className="block text-sm">
             <span className="text-snow/50">Par</span>
-            <select
-              className={inputClass}
+            <Select
+              className="mt-1"
               value={pair}
-              onChange={(e) => setPair(e.target.value as Pair)}
-            >
-              <option value="BTC/USDT">BTC/USDT</option>
-              <option value="ETH/USDT">ETH/USDT</option>
-            </select>
+              onChange={(v) => setPair(v as Pair)}
+              aria-label="Par"
+              options={[
+                { value: "BTC/USDT", label: "BTC/USDT" },
+                { value: "ETH/USDT", label: "ETH/USDT" },
+              ]}
+            />
           </label>
           <label className="block text-sm">
             <span className="text-snow/50">Equity inicial (paper)</span>
@@ -328,15 +331,17 @@ export function SandboxClient({
             </button>
             <label className="flex items-center gap-2 text-xs text-snow/50">
               Velocidad
-              <select
-                className="rounded-md border border-snow/15 bg-ink px-2 py-1 text-snow"
-                value={speedMs}
-                onChange={(e) => setSpeedMs(Number(e.target.value))}
-              >
-                <option value={250}>Lenta</option>
-                <option value={120}>Normal</option>
-                <option value={50}>Rápida</option>
-              </select>
+              <Select
+                className="min-w-[7.5rem]"
+                value={String(speedMs)}
+                onChange={(v) => setSpeedMs(Number(v))}
+                aria-label="Velocidad"
+                options={[
+                  { value: "250", label: "Lenta" },
+                  { value: "120", label: "Normal" },
+                  { value: "50", label: "Rápida" },
+                ]}
+              />
             </label>
             <span className="text-xs text-snow/40">
               Vela {playhead + 1}/{result.candles.length} ·{" "}

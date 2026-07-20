@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ROLES, roleLabel, type Role } from "@/lib/roles";
 import { isAdult, parseDateOfBirth } from "@/lib/identity";
+import { Select } from "@/components/ui/Select";
 
 export function CreateUserForm() {
   const router = useRouter();
@@ -114,17 +115,16 @@ export function CreateUserForm() {
       </label>
       <label className="block text-sm">
         <span className="text-snow/50">Rol</span>
-        <select
-          className={inputClass}
+        <Select
+          className="mt-1"
           value={role}
-          onChange={(e) => setRole(e.target.value as Role)}
-        >
-          {ROLES.map((r) => (
-            <option key={r} value={r}>
-              {roleLabel(r)}
-            </option>
-          ))}
-        </select>
+          aria-label="Rol"
+          onChange={(v) => setRole(v as Role)}
+          options={ROLES.map((r) => ({
+            value: r,
+            label: roleLabel(r),
+          }))}
+        />
       </label>
 
       {error && <p className="text-sm text-red-300">{error}</p>}
