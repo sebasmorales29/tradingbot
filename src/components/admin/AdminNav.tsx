@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSandboxSessionOptional } from "@/components/admin/SandboxSessionProvider";
 
 const items = [
   { href: "/admin", label: "Resumen", match: (p: string) => p === "/admin" },
@@ -51,6 +52,7 @@ export function AdminNav({
   canSandbox: boolean;
 }) {
   const pathname = usePathname();
+  const sandbox = useSandboxSessionOptional();
 
   const visible = items.filter((item) => {
     if (!("key" in item)) return true;
@@ -66,17 +68,25 @@ export function AdminNav({
     <nav className="flex shrink-0 flex-row gap-1 overflow-x-auto md:w-44 md:flex-col md:gap-0.5">
       {visible.map((item) => {
         const active = item.match(pathname);
+        const showLive =
+          "key" in item &&
+          item.key === "sandbox" &&
+          Boolean(sandbox?.state) &&
+          Boolean(sandbox?.liveOn);
         return (
           <Link
             key={item.href}
             href={item.href}
-            className={`whitespace-nowrap rounded-lg px-3 py-2 text-sm transition ${
+            className={`flex items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm transition ${
               active
                 ? "bg-pulse/15 font-medium text-pulse"
                 : "text-snow/55 hover:bg-snow/5 hover:text-snow"
             }`}
           >
             {item.label}
+            {showLive && (
+              <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-emerald-400" />
+            )}
           </Link>
         );
       })}

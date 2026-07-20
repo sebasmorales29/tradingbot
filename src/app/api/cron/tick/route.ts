@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { runBotTick } from "@/lib/trading/engine";
+import { tickDueSandboxSessions } from "@/lib/trading/sandbox-session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -60,11 +61,15 @@ async function handleCron(request: NextRequest) {
       results.push({ userId: bot.user_id, ...tick });
     }
 
+    const sandbox = await tickDueSandboxSessions();
+
     return NextResponse.json({
       ok: true,
       processed: results.length,
+      sandboxProcessed: sandbox.length,
       at: new Date().toISOString(),
       results,
+      sandbox,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Error en cron";

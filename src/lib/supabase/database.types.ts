@@ -285,6 +285,48 @@ export type Database = {
         };
         Relationships: [];
       };
+      sandbox_sessions: {
+        Row: {
+          user_id: string;
+          session_id: string;
+          is_active: boolean;
+          live_on: boolean;
+          tick_interval_ms: number;
+          state: Json;
+          market: Json | null;
+          candles: Json | null;
+          last_tick_at: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          session_id: string;
+          is_active?: boolean;
+          live_on?: boolean;
+          tick_interval_ms?: number;
+          state: Json;
+          market?: Json | null;
+          candles?: Json | null;
+          last_tick_at?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          session_id?: string;
+          is_active?: boolean;
+          live_on?: boolean;
+          tick_interval_ms?: number;
+          state?: Json;
+          market?: Json | null;
+          candles?: Json | null;
+          last_tick_at?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

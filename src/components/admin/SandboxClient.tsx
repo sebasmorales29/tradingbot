@@ -1,32 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { LineChart } from "@/components/admin/SandboxCharts";
 import { AdminStat } from "@/components/admin/AdminStat";
+import { useSandboxSession } from "@/components/admin/SandboxSessionProvider";
 import { useToast } from "@/components/ui/Toast";
 import { Select } from "@/components/ui/Select";
 import type { TrendPulseParams } from "@/lib/trading/strategy/trend-pulse";
-import type {
-  LiveSandboxState,
-  LiveEvent,
-} from "@/lib/trading/live-sandbox";
+import type { LiveEvent } from "@/lib/trading/live-sandbox";
 import type { Pair } from "@/lib/trading/types";
-
-type MarketSnapshot = {
-  price: number;
-  candleTime: number;
-  atrPct: number | null;
-  emaCrossHint: string;
-  score?: number;
-  verdict?: string;
-};
-
-type CandlePoint = {
-  timestamp: number;
-  close: number;
-  high: number;
-  low: number;
-};
 
 type Defaults = {
   pair: Pair;
@@ -46,8 +28,7 @@ const TICK_OPTIONS = [
 ] as const;
 
 function formatTickLabel(ms: number): string {
-  const s = Math.round(ms / 1000);
-  return `${s}s`;
+  return `${Math.round(ms / 1000)}s`;
 }
 
 export function SandboxClient({
@@ -58,116 +39,39 @@ export function SandboxClient({
   canEdit: boolean;
 }) {
   const { toast } = useToast();
+  const {
+    ready,
+    busy,
+    state,
+    market,
+    candles,
+    liveOn,
+    tickMs,
+    setTickMs,
+    setLiveOn,
+    startSession,
+    tickOnce,
+    stopSession,
+  } = useSandboxSession();
+
   const [pair, setPair] = useState<Pair>(initialDefaults.pair);
   const [equity, setEquity] = useState(String(initialDefaults.startingEquity));
   const [risk, setRisk] = useState(String(initialDefaults.riskPercent));
   const [timeframe, setTimeframe] = useState(initialDefaults.timeframe);
-  const [tickMs, setTickMs] = useState(20_000);
   const [params, setParams] = useState(initialDefaults.params);
-  const [busy, setBusy] = useState(false);
-  const [liveOn, setLiveOn] = useState(false);
-  const [state, setState] = useState<LiveSandboxState | null>(null);
-  const [market, setMarket] = useState<MarketSnapshot | null>(null);
-  const [candles, setCandles] = useState<CandlePoint[]>([]);
   const logRef = useRef<HTMLUListElement>(null);
-  const stateRef = useRef<LiveSandboxState | null>(null);
+  const restoredRef = useRef(false);
 
+  // Hidratar formulario desde sesión persistida
   useEffect(() => {
-    stateRef.current = state;
-  }, [state]);
-
-  const applyTickResponse = useCallback(
-    (data: {
-      state: LiveSandboxState;
-      market: MarketSnapshot;
-      candles: CandlePoint[];
-    }) => {
-      setState(data.state);
-      setMarket(data.market);
-      setCandles(data.candles);
-    },
-    [],
-  );
-
-  const startSession = useCallback(async () => {
-    setBusy(true);
-    const res = await fetch("/api/admin/sandbox", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "start",
-        pair,
-        startingEquity: Number(equity),
-        riskPercent: Number(risk),
-        timeframe,
-        params: canEdit ? params : undefined,
-      }),
-    });
-    const data = await res.json().catch(() => ({}));
-    setBusy(false);
-    if (!res.ok) {
-      toast({
-        tone: "error",
-        title: "No se pudo iniciar",
-        message: data.error ?? "Error",
-      });
-      return;
-    }
-    applyTickResponse(data);
-    setLiveOn(true);
-    toast({
-      tone: "success",
-      title: "Bot en vivo (paper)",
-      message: `Evalúa el mercado real cada ${formatTickLabel(tickMs)} con tus parámetros. No es un replay fijo.`,
-    });
-  }, [
-    pair,
-    equity,
-    risk,
-    timeframe,
-    tickMs,
-    params,
-    canEdit,
-    toast,
-    applyTickResponse,
-  ]);
-
-  const tickOnce = useCallback(async () => {
-    const current = stateRef.current;
-    if (!current) return;
-    setBusy(true);
-    const res = await fetch("/api/admin/sandbox", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "tick",
-        state: current,
-        riskPercent: canEdit ? Number(risk) : undefined,
-        params: canEdit ? params : undefined,
-      }),
-    });
-    const data = await res.json().catch(() => ({}));
-    setBusy(false);
-    if (!res.ok) {
-      toast({
-        tone: "error",
-        title: "Tick falló",
-        message: data.error ?? "Error",
-      });
-      setLiveOn(false);
-      return;
-    }
-    applyTickResponse(data);
-  }, [canEdit, risk, params, toast, applyTickResponse]);
-
-  useEffect(() => {
-    if (!liveOn || !state?.sessionId) return;
-    const id = window.setInterval(() => {
-      if (!stateRef.current) return;
-      void tickOnce();
-    }, tickMs);
-    return () => window.clearInterval(id);
-  }, [liveOn, state?.sessionId, tickOnce, tickMs]);
+    if (!ready || !state || restoredRef.current) return;
+    restoredRef.current = true;
+    setPair(state.pair);
+    setEquity(String(state.startingEquity));
+    setRisk(String(state.riskPercent));
+    setTimeframe(state.timeframe);
+    setParams(state.params);
+  }, [ready, state]);
 
   useEffect(() => {
     const el = logRef.current;
@@ -189,11 +93,7 @@ export function SandboxClient({
   const closed = state?.closedTrades.length ?? 0;
   const winRate = closed ? Math.round((wins / closed) * 100) : null;
 
-  const priceSeries = useMemo(
-    () => candles.map((c) => c.close),
-    [candles],
-  );
-
+  const priceSeries = useMemo(() => candles.map((c) => c.close), [candles]);
   const equitySeries = useMemo(
     () => state?.equityPoints.map((p) => p.equity) ?? [],
     [state],
@@ -232,6 +132,43 @@ export function SandboxClient({
   const inputClass =
     "mt-1 w-full rounded-md border border-snow/15 bg-ink px-3 py-2 text-sm text-snow outline-none ring-pulse focus:ring-2 disabled:opacity-50";
 
+  async function onStart() {
+    const result = await startSession({
+      pair,
+      equity: Number(equity),
+      risk: Number(risk),
+      timeframe,
+      params: canEdit ? params : undefined,
+    });
+    if (!result.ok) {
+      toast({
+        tone: "error",
+        title: "No se pudo iniciar",
+        message: result.error ?? "Error",
+      });
+      return;
+    }
+    toast({
+      tone: "success",
+      title: "Sesión paper activa",
+      message: `Persiste al refrescar o cambiar de vista. Tick cada ${formatTickLabel(tickMs)}.`,
+    });
+  }
+
+  async function onTick() {
+    const result = await tickOnce({
+      risk: canEdit ? Number(risk) : undefined,
+      params: canEdit ? params : undefined,
+    });
+    if (!result.ok) {
+      toast({
+        tone: "error",
+        title: "Tick falló",
+        message: result.error ?? "Error",
+      });
+    }
+  }
+
   return (
     <div className="space-y-8">
       <div>
@@ -240,7 +177,8 @@ export function SandboxClient({
           Paper trading en vivo: el bot lee el mercado real, aplica una checklist
           de calidad (tendencia HTF, RSI, volumen, no perseguir, confirmación) y
           solo opera cuando el setup es limpio. Dinero ficticio — sin tocar
-          cuentas reales.
+          cuentas reales. La sesión queda guardada: puedes refrescar o ir a otra
+          vista y sigue operando.
         </p>
         {!canEdit && (
           <p className="mt-2 text-xs text-amber-300/80">
@@ -249,6 +187,10 @@ export function SandboxClient({
           </p>
         )}
       </div>
+
+      {!ready && (
+        <p className="text-sm text-snow/45">Restaurando sesión paper…</p>
+      )}
 
       <section className="rounded-xl border border-snow/10 bg-slate/30 p-5">
         <h2 className="font-display text-lg font-bold text-snow">
@@ -318,8 +260,8 @@ export function SandboxClient({
             {!state ? (
               <button
                 type="button"
-                disabled={busy}
-                onClick={() => void startSession()}
+                disabled={busy || !ready}
+                onClick={() => void onStart()}
                 className="h-[42px] w-full rounded-lg bg-pulse px-4 text-sm font-semibold text-ink transition hover:bg-pulse/90 disabled:opacity-50"
               >
                 {busy ? "Conectando…" : "Iniciar bot en vivo"}
@@ -329,7 +271,7 @@ export function SandboxClient({
                 <button
                   type="button"
                   disabled={busy}
-                  onClick={() => setLiveOn((v) => !v)}
+                  onClick={() => setLiveOn(!liveOn)}
                   className={`h-[42px] flex-1 rounded-lg px-3 text-sm font-semibold transition disabled:opacity-50 ${
                     liveOn
                       ? "border border-amber-400/40 bg-amber-400/15 text-amber-200"
@@ -341,7 +283,7 @@ export function SandboxClient({
                 <button
                   type="button"
                   disabled={busy}
-                  onClick={() => void tickOnce()}
+                  onClick={() => void onTick()}
                   className="h-[42px] rounded-lg border border-snow/20 px-3 text-sm text-snow/85 transition hover:bg-snow/5 disabled:opacity-50"
                 >
                   Tick
@@ -397,17 +339,12 @@ export function SandboxClient({
                 }`}
               />
               {liveOn
-                ? `Bot activo · tick cada ${formatTickLabel(tickMs)}`
-                : "Bot en pausa"}
+                ? `Sesión activa · tick cada ${formatTickLabel(tickMs)}`
+                : "Sesión en pausa (sigue guardada)"}
             </span>
             <button
               type="button"
-              onClick={() => {
-                setLiveOn(false);
-                setState(null);
-                setMarket(null);
-                setCandles([]);
-              }}
+              onClick={() => void stopSession()}
               className="rounded-md border border-red-400/30 px-2.5 py-1 text-red-300 transition hover:bg-red-500/10"
             >
               Cerrar sesión
@@ -514,10 +451,6 @@ export function SandboxClient({
               yFormat={(n) => n.toFixed(0)}
               height={260}
             />
-            <p className="mt-2 text-xs text-snow/40">
-              Velas {timeframe} actuales. Sin cruce EMA / régimen ATR, el bot
-              puede pasar muchos ticks en hold — eso es correcto.
-            </p>
           </section>
 
           <section>
@@ -565,8 +498,7 @@ export function SandboxClient({
                 )}
                 {!state.closedTrades.length && !state.position ? (
                   <li className="text-snow/45">
-                    Aún sin trades. El bot solo entra con cruce EMA alcista y
-                    ATR en rango — puede tardar (sobre todo en 4h).
+                    Aún sin trades. El bot solo entra con checklist completa.
                   </li>
                 ) : (
                   state.closedTrades.map((t) => (

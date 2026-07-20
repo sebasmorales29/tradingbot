@@ -8,6 +8,13 @@ import {
   type LiveSandboxState,
 } from "@/lib/trading/live-sandbox";
 import {
+  loadSandboxSession,
+  patchSandboxSession,
+  runPersistedSandboxTick,
+  saveSandboxSession,
+  stopSandboxSession,
+} from "@/lib/trading/sandbox-session";
+import {
   DEFAULT_TREND_PULSE,
   type TrendPulseParams,
 } from "@/lib/trading/strategy/trend-pulse";
@@ -47,6 +54,13 @@ export async function GET() {
   }
 
   const params = await loadTrendPulseParams();
+  let active = null;
+  try {
+    active = await loadSandboxSession(access.user.id);
+  } catch {
+    active = null;
+  }
+
   return NextResponse.json({
     defaults: {
       pair: "BTC/USDT" as Pair,
@@ -57,13 +71,22 @@ export async function GET() {
     },
     canEdit: access.can("admin_sandbox_edit"),
     timeframes: TIMEFRAMES,
+    active: active
+      ? {
+          state: active.state,
+          market: active.market,
+          candles: active.candles,
+          tickIntervalMs: active.tickIntervalMs,
+          liveOn: active.liveOn,
+          lastTickAt: active.lastTickAt,
+        }
+      : null,
   });
 }
 
 /**
  * POST actions:
- * - start: crea sesión en vivo
- * - tick: evalúa mercado real ahora con el estado paper enviado
+ * - start | tick | stop | patch (liveOn / tickIntervalMs)
  */
 export async function POST(request: Request) {
   const access = await getSessionAccess();
@@ -72,16 +95,44 @@ export async function POST(request: Request) {
   }
 
   const body = (await request.json()) as {
-    action?: "start" | "tick";
+    action?: "start" | "tick" | "stop" | "patch";
     pair?: string;
     startingEquity?: number;
     riskPercent?: number;
     timeframe?: string;
+    tickIntervalMs?: number;
+    liveOn?: boolean;
     params?: Partial<TrendPulseParams>;
     state?: LiveSandboxState;
   };
 
   try {
+    if (body.action === "stop") {
+      await stopSandboxSession(access.user.id);
+      return NextResponse.json({ ok: true, active: null });
+    }
+
+    if (body.action === "patch") {
+      const session = await patchSandboxSession(access.user.id, {
+        liveOn: body.liveOn,
+        tickIntervalMs: body.tickIntervalMs,
+      });
+      if (!session) {
+        return NextResponse.json(
+          { error: "No hay sesión activa" },
+          { status: 404 },
+        );
+      }
+      return NextResponse.json({
+        ok: true,
+        state: session.state,
+        market: session.market,
+        candles: session.candles,
+        tickIntervalMs: session.tickIntervalMs,
+        liveOn: session.liveOn,
+      });
+    }
+
     if (body.action === "start") {
       if (!isPair(body.pair)) {
         return NextResponse.json({ error: "Par inválido" }, { status: 400 });
@@ -93,6 +144,10 @@ export async function POST(request: Request) {
       )
         ? (body.timeframe as string)
         : "1h";
+      const tickIntervalMs = Math.min(
+        300_000,
+        Math.max(5_000, Number(body.tickIntervalMs ?? 20_000)),
+      );
 
       if (
         !Number.isFinite(startingEquity) ||
@@ -133,50 +188,53 @@ export async function POST(request: Request) {
       const ticker = await fetchTickerPrice(body.pair);
       const tick = liveSandboxTick(state, candles, ticker, htfCandles);
 
+      await saveSandboxSession({
+        userId: access.user.id,
+        state: tick.state,
+        market: tick.market,
+        candles: tick.candles,
+        tickIntervalMs,
+        liveOn: true,
+        isActive: true,
+      });
+
       return NextResponse.json({
         ok: true,
         mode: "live",
         canEdit: access.can("admin_sandbox_edit"),
+        tickIntervalMs,
+        liveOn: true,
         ...tick,
       });
     }
 
     if (body.action === "tick") {
-      if (!body.state?.sessionId || !isPair(body.state.pair)) {
-        return NextResponse.json(
-          { error: "Estado de sesión inválido" },
-          { status: 400 },
-        );
-      }
-
-      // Si puede editar, permite actualizar params/riesgo en caliente
-      const state: LiveSandboxState = {
-        ...body.state,
-        lastScore: body.state.lastScore ?? 0,
-        lastChecks: body.state.lastChecks ?? [],
-      };
+      let riskPercent: number | undefined;
+      let params: TrendPulseParams | undefined;
       if (access.can("admin_sandbox_edit")) {
         if (body.riskPercent != null) {
           const r = Number(body.riskPercent);
-          if (r >= 0.1 && r <= 5) state.riskPercent = r;
+          if (r >= 0.1 && r <= 5) riskPercent = r;
         }
         if (body.params) {
-          const validated = validateTrendPulseParams({
-            ...state.params,
-            ...body.params,
-          });
-          if (validated.ok) state.params = validated.value;
+          const existing =
+            body.state?.params ??
+            (await loadSandboxSession(access.user.id))?.state.params;
+          if (existing) {
+            const validated = validateTrendPulseParams({
+              ...existing,
+              ...body.params,
+            });
+            if (validated.ok) params = validated.value;
+          }
         }
       }
 
-      const candles = await fetchOHLCV(state.pair, state.timeframe, 150);
-      const htf = higherTimeframe(state.timeframe);
-      const htfCandles =
-        htf === state.timeframe
-          ? undefined
-          : await fetchOHLCV(state.pair, htf, 120);
-      const ticker = await fetchTickerPrice(state.pair);
-      const tick = liveSandboxTick(state, candles, ticker, htfCandles);
+      const tick = await runPersistedSandboxTick(access.user.id, {
+        state: body.state,
+        riskPercent,
+        params,
+      });
 
       return NextResponse.json({
         ok: true,
