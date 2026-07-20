@@ -11,7 +11,9 @@ export type Permission =
   | "admin_manage_users"
   | "admin_edit_strategy"
   | "admin_support_view"
-  | "admin_analytics";
+  | "admin_analytics"
+  | "admin_sandbox"
+  | "admin_sandbox_edit";
 
 const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   user: ["dashboard", "settings", "bot_control"],
@@ -22,6 +24,8 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "admin_console",
     "admin_support_view",
     "admin_telemetry",
+    "admin_sandbox",
+    "admin_sandbox_edit",
   ],
   analyst: [
     "dashboard",
@@ -29,6 +33,7 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "admin_console",
     "admin_analytics",
     "admin_telemetry",
+    "admin_sandbox",
   ],
   admin: [
     "dashboard",
@@ -41,6 +46,8 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "admin_edit_strategy",
     "admin_support_view",
     "admin_analytics",
+    "admin_sandbox",
+    "admin_sandbox_edit",
   ],
 };
 

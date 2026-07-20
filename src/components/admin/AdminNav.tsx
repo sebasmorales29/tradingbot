@@ -24,6 +24,12 @@ const items = [
     match: (p: string) => p.startsWith("/admin/actividad"),
   },
   {
+    href: "/admin/sandbox",
+    label: "Sandbox",
+    key: "sandbox" as const,
+    match: (p: string) => p.startsWith("/admin/sandbox"),
+  },
+  {
     href: "/admin/estrategia",
     label: "Estrategia",
     key: "strategy" as const,
@@ -36,11 +42,13 @@ export function AdminNav({
   canBots,
   canActivity,
   canStrategy,
+  canSandbox,
 }: {
   canUsers: boolean;
   canBots: boolean;
   canActivity: boolean;
   canStrategy: boolean;
+  canSandbox: boolean;
 }) {
   const pathname = usePathname();
 
@@ -50,6 +58,7 @@ export function AdminNav({
     if (item.key === "bots") return canBots;
     if (item.key === "activity") return canActivity;
     if (item.key === "strategy") return canStrategy;
+    if (item.key === "sandbox") return canSandbox;
     return true;
   });
 
