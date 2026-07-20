@@ -6,44 +6,26 @@ import { AdminStat } from "@/components/admin/AdminStat";
 import { useToast } from "@/components/ui/Toast";
 import { Select } from "@/components/ui/Select";
 import type { TrendPulseParams } from "@/lib/trading/strategy/trend-pulse";
+import type {
+  LiveSandboxState,
+  LiveEvent,
+} from "@/lib/trading/live-sandbox";
 import type { Pair } from "@/lib/trading/types";
 
-type SandboxPayload = {
-  pair: Pair;
-  candles: { timestamp: number; close: number; high: number; low: number }[];
-  emaFast: (number | null)[];
-  emaSlow: (number | null)[];
-  equityCurve: number[];
-  decisions: {
-    index: number;
-    time: number;
-    kind: string;
-    message: string;
-    price: number;
-    equity: number;
-  }[];
-  trades: {
-    id: string;
-    entry: number;
-    exit: number | null;
-    qty: number;
-    pnl: number | null;
-    entryIndex: number;
-    exitIndex: number | null;
-    entryReason: string;
-    exitReason: string | null;
-  }[];
-  markers: { index: number; type: "entry" | "exit"; price: number }[];
-  finalEquity: number;
-  startingEquity: number;
-  stats: {
-    trades: number;
-    wins: number;
-    losses: number;
-    winRate: number | null;
-    pnl: number;
-    maxDrawdownPct: number;
-  };
+type MarketSnapshot = {
+  price: number;
+  candleTime: number;
+  atrPct: number | null;
+  emaCrossHint: string;
+  score?: number;
+  verdict?: string;
+};
+
+type CandlePoint = {
+  timestamp: number;
+  close: number;
+  high: number;
+  low: number;
 };
 
 type Defaults = {
@@ -51,9 +33,10 @@ type Defaults = {
   startingEquity: number;
   riskPercent: number;
   timeframe: string;
-  limit: number;
   params: TrendPulseParams;
 };
+
+const TICK_INTERVAL_MS = 20_000;
 
 export function SandboxClient({
   initialDefaults,
@@ -66,26 +49,44 @@ export function SandboxClient({
   const [pair, setPair] = useState<Pair>(initialDefaults.pair);
   const [equity, setEquity] = useState(String(initialDefaults.startingEquity));
   const [risk, setRisk] = useState(String(initialDefaults.riskPercent));
+  const [timeframe, setTimeframe] = useState(initialDefaults.timeframe);
   const [params, setParams] = useState(initialDefaults.params);
   const [busy, setBusy] = useState(false);
-  const [result, setResult] = useState<SandboxPayload | null>(null);
-  const [playhead, setPlayhead] = useState(0);
-  const [playing, setPlaying] = useState(false);
-  const [speedMs, setSpeedMs] = useState(120);
+  const [liveOn, setLiveOn] = useState(false);
+  const [state, setState] = useState<LiveSandboxState | null>(null);
+  const [market, setMarket] = useState<MarketSnapshot | null>(null);
+  const [candles, setCandles] = useState<CandlePoint[]>([]);
   const logRef = useRef<HTMLUListElement>(null);
+  const stateRef = useRef<LiveSandboxState | null>(null);
 
-  const run = useCallback(async () => {
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+
+  const applyTickResponse = useCallback(
+    (data: {
+      state: LiveSandboxState;
+      market: MarketSnapshot;
+      candles: CandlePoint[];
+    }) => {
+      setState(data.state);
+      setMarket(data.market);
+      setCandles(data.candles);
+    },
+    [],
+  );
+
+  const startSession = useCallback(async () => {
     setBusy(true);
-    setPlaying(false);
     const res = await fetch("/api/admin/sandbox", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        action: "start",
         pair,
         startingEquity: Number(equity),
         riskPercent: Number(risk),
-        timeframe: initialDefaults.timeframe,
-        limit: initialDefaults.limit,
+        timeframe,
         params: canEdit ? params : undefined,
       }),
     });
@@ -94,73 +95,126 @@ export function SandboxClient({
     if (!res.ok) {
       toast({
         tone: "error",
-        title: "Sandbox falló",
+        title: "No se pudo iniciar",
         message: data.error ?? "Error",
       });
       return;
     }
-    setResult(data.result as SandboxPayload);
-    setPlayhead(0);
+    applyTickResponse(data);
+    setLiveOn(true);
     toast({
       tone: "success",
-      title: "Simulación lista",
-      message: "Pulsa Play para ver al bot operar vela a vela.",
+      title: "Bot en vivo (paper)",
+      message:
+        "Evalúa el mercado real cada 20s con tus parámetros. No es un replay fijo.",
     });
-  }, [pair, equity, risk, params, canEdit, initialDefaults, toast]);
+  }, [
+    pair,
+    equity,
+    risk,
+    timeframe,
+    params,
+    canEdit,
+    toast,
+    applyTickResponse,
+  ]);
+
+  const tickOnce = useCallback(async () => {
+    const current = stateRef.current;
+    if (!current) return;
+    setBusy(true);
+    const res = await fetch("/api/admin/sandbox", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "tick",
+        state: current,
+        riskPercent: canEdit ? Number(risk) : undefined,
+        params: canEdit ? params : undefined,
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setBusy(false);
+    if (!res.ok) {
+      toast({
+        tone: "error",
+        title: "Tick falló",
+        message: data.error ?? "Error",
+      });
+      setLiveOn(false);
+      return;
+    }
+    applyTickResponse(data);
+  }, [canEdit, risk, params, toast, applyTickResponse]);
 
   useEffect(() => {
-    if (!playing || !result) return;
+    if (!liveOn || !state?.sessionId) return;
     const id = window.setInterval(() => {
-      setPlayhead((p) => {
-        if (p >= result.candles.length - 1) {
-          setPlaying(false);
-          return p;
-        }
-        return p + 1;
-      });
-    }, speedMs);
+      if (!stateRef.current) return;
+      void tickOnce();
+    }, TICK_INTERVAL_MS);
     return () => window.clearInterval(id);
-  }, [playing, result, speedMs]);
-
-  const visibleDecisions = useMemo(() => {
-    if (!result) return [];
-    return result.decisions.filter((d) => d.index <= playhead).slice(-40);
-  }, [result, playhead]);
+  }, [liveOn, state?.sessionId, tickOnce]);
 
   useEffect(() => {
     const el = logRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [visibleDecisions.length, playhead]);
+  }, [state?.events.length]);
 
-  const visibleMarkers = useMemo(() => {
-    if (!result) return [];
-    return result.markers.filter((m) => m.index <= playhead);
-  }, [result, playhead]);
+  const markedEquity = useMemo(() => {
+    if (!state || !market) return Number(equity);
+    if (!state.position) return state.equity;
+    return (
+      state.equity +
+      (market.price - state.position.entry) * state.position.qty
+    );
+  }, [state, market, equity]);
 
-  const equitySlice = useMemo(() => {
-    if (!result) return [];
-    return result.equityCurve.map((v, i) => (i <= playhead ? v : null));
-  }, [result, playhead]);
+  const pnl = state ? markedEquity - state.startingEquity : 0;
+  const wins = state?.closedTrades.filter((t) => t.pnl > 0).length ?? 0;
+  const losses = state?.closedTrades.filter((t) => t.pnl <= 0).length ?? 0;
+  const closed = state?.closedTrades.length ?? 0;
+  const winRate = closed ? Math.round((wins / closed) * 100) : null;
 
-  const priceSlice = useMemo(() => {
-    if (!result) return [];
-    return result.candles.map((c, i) => (i <= playhead ? c.close : null));
-  }, [result, playhead]);
+  const priceSeries = useMemo(
+    () => candles.map((c) => c.close),
+    [candles],
+  );
 
-  const emaFastSlice = useMemo(() => {
-    if (!result) return [];
-    return result.emaFast.map((v, i) => (i <= playhead ? v : null));
-  }, [result, playhead]);
+  const equitySeries = useMemo(
+    () => state?.equityPoints.map((p) => p.equity) ?? [],
+    [state],
+  );
 
-  const emaSlowSlice = useMemo(() => {
-    if (!result) return [];
-    return result.emaSlow.map((v, i) => (i <= playhead ? v : null));
-  }, [result, playhead]);
-
-  const liveEquity =
-    result && playhead >= 0
-      ? (result.equityCurve[playhead] ?? result.startingEquity)
-      : Number(equity);
+  const markers = useMemo(() => {
+    if (!state || !candles.length) return [];
+    const out: { index: number; type: "entry" | "exit"; price: number }[] = [];
+    const nearest = (iso: string) => {
+      const t = new Date(iso).getTime();
+      let best = 0;
+      let dist = Infinity;
+      candles.forEach((c, i) => {
+        const d = Math.abs(c.timestamp - t);
+        if (d < dist) {
+          dist = d;
+          best = i;
+        }
+      });
+      return best;
+    };
+    for (const t of state.closedTrades) {
+      out.push({ index: nearest(t.openedAt), type: "entry", price: t.entry });
+      out.push({ index: nearest(t.closedAt), type: "exit", price: t.exit });
+    }
+    if (state.position) {
+      out.push({
+        index: nearest(state.position.openedAt),
+        type: "entry",
+        price: state.position.entry,
+      });
+    }
+    return out;
+  }, [state, candles]);
 
   const inputClass =
     "mt-1 w-full rounded-md border border-snow/15 bg-ink px-3 py-2 text-sm text-snow outline-none ring-pulse focus:ring-2 disabled:opacity-50";
@@ -170,13 +224,14 @@ export function SandboxClient({
       <div>
         <h1 className="font-display text-3xl font-bold text-snow">Sandbox</h1>
         <p className="mt-2 max-w-2xl text-sm text-snow/60">
-          Ambiente de prueba con dinero ficticio y velas reales de Binance
-          Vision. Ves cómo Trend Pulse decide entradas/salidas, el equity y cada
-          motivo — sin tocar cuentas de usuarios.
+          Paper trading en vivo: el bot lee el mercado real, aplica una checklist
+          de calidad (tendencia HTF, RSI, volumen, no perseguir, confirmación) y
+          solo opera cuando el setup es limpio. Dinero ficticio — sin tocar
+          cuentas reales.
         </p>
         {!canEdit && (
           <p className="mt-2 text-xs text-amber-300/80">
-            Tu rol puede simular y analizar. Los parámetros de estrategia están
+            Tu rol puede operar el sandbox. Los parámetros de estrategia están
             fijos a la configuración global.
           </p>
         )}
@@ -184,9 +239,9 @@ export function SandboxClient({
 
       <section className="rounded-xl border border-snow/10 bg-slate/30 p-5">
         <h2 className="font-display text-lg font-bold text-snow">
-          Parámetros de prueba
+          Sesión paper
         </h2>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <div className="block text-sm">
             <span className="text-snow/50">Par</span>
             <Select
@@ -194,9 +249,25 @@ export function SandboxClient({
               value={pair}
               onChange={(v) => setPair(v as Pair)}
               aria-label="Par"
+              disabled={Boolean(state)}
               options={[
                 { value: "BTC/USDT", label: "BTC/USDT" },
                 { value: "ETH/USDT", label: "ETH/USDT" },
+              ]}
+            />
+          </div>
+          <div className="block text-sm">
+            <span className="text-snow/50">Timeframe</span>
+            <Select
+              className="mt-1"
+              value={timeframe}
+              onChange={setTimeframe}
+              aria-label="Timeframe"
+              disabled={Boolean(state)}
+              options={[
+                { value: "15m", label: "15m (más señales)" },
+                { value: "1h", label: "1h" },
+                { value: "4h", label: "4h (como producción)" },
               ]}
             />
           </div>
@@ -206,6 +277,7 @@ export function SandboxClient({
               type="number"
               className={inputClass}
               value={equity}
+              disabled={Boolean(state)}
               onChange={(e) => setEquity(e.target.value)}
             />
           </label>
@@ -219,15 +291,40 @@ export function SandboxClient({
               onChange={(e) => setRisk(e.target.value)}
             />
           </label>
-          <div className="flex items-end">
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => void run()}
-              className="h-[42px] w-full rounded-lg bg-pulse px-4 text-sm font-semibold text-ink transition hover:bg-pulse/90 disabled:opacity-50"
-            >
-              {busy ? "Simulando…" : "Correr simulación"}
-            </button>
+          <div className="flex items-end gap-2">
+            {!state ? (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void startSession()}
+                className="h-[42px] w-full rounded-lg bg-pulse px-4 text-sm font-semibold text-ink transition hover:bg-pulse/90 disabled:opacity-50"
+              >
+                {busy ? "Conectando…" : "Iniciar bot en vivo"}
+              </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => setLiveOn((v) => !v)}
+                  className={`h-[42px] flex-1 rounded-lg px-3 text-sm font-semibold transition disabled:opacity-50 ${
+                    liveOn
+                      ? "border border-amber-400/40 bg-amber-400/15 text-amber-200"
+                      : "bg-pulse text-ink hover:bg-pulse/90"
+                  }`}
+                >
+                  {liveOn ? "Pausar auto" : "Reanudar auto"}
+                </button>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void tickOnce()}
+                  className="h-[42px] rounded-lg border border-snow/20 px-3 text-sm text-snow/85 transition hover:bg-snow/5 disabled:opacity-50"
+                >
+                  Tick
+                </button>
+              </>
+            )}
           </div>
         </div>
 
@@ -261,123 +358,149 @@ export function SandboxClient({
             ))}
           </div>
         )}
+
+        {state && (
+          <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-snow/10 pt-4 text-xs text-snow/50">
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-semibold ${
+                liveOn
+                  ? "bg-emerald-500/15 text-emerald-300"
+                  : "bg-snow/10 text-snow/55"
+              }`}
+            >
+              <span
+                className={`h-1.5 w-1.5 rounded-full ${
+                  liveOn ? "animate-pulse bg-emerald-400" : "bg-snow/40"
+                }`}
+              />
+              {liveOn ? "Bot activo · tick cada 20s" : "Bot en pausa"}
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setLiveOn(false);
+                setState(null);
+                setMarket(null);
+                setCandles([]);
+              }}
+              className="rounded-md border border-red-400/30 px-2.5 py-1 text-red-300 transition hover:bg-red-500/10"
+            >
+              Cerrar sesión
+            </button>
+            <span>
+              Sesión {state.sessionId.slice(-8)} · ticks {state.tickCount}
+            </span>
+          </div>
+        )}
       </section>
 
-      {result && (
+      {state && market && (
         <>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <AdminStat
-              label="Equity vivo"
-              value={`$${liveEquity.toLocaleString("en-US", {
+              label="Equity paper (mark)"
+              value={`$${markedEquity.toLocaleString("en-US", {
                 maximumFractionDigits: 2,
               })}`}
               accent
             />
             <AdminStat
-              label="PnL simulado"
-              value={`${result.stats.pnl >= 0 ? "+" : ""}${result.stats.pnl.toFixed(2)}`}
+              label="PnL sesión"
+              value={`${pnl >= 0 ? "+" : ""}${pnl.toFixed(2)}`}
             />
             <AdminStat
               label="Trades"
-              value={`${result.stats.trades} · WR ${
-                result.stats.winRate != null
-                  ? `${result.stats.winRate}%`
-                  : "—"
+              value={`${closed}${state.position ? " +1 abierta" : ""} · WR ${
+                winRate != null ? `${winRate}%` : "—"
               }`}
             />
             <AdminStat
-              label="Max drawdown"
-              value={`${result.stats.maxDrawdownPct}%`}
+              label="Precio mercado"
+              value={`$${market.price.toLocaleString("en-US", {
+                maximumFractionDigits: 2,
+              })}`}
             />
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setPlaying((p) => !p)}
-              className="rounded-lg border border-pulse/50 bg-pulse/15 px-4 py-2 text-sm font-semibold text-pulse transition hover:bg-pulse/25"
-            >
-              {playing ? "Pausar" : "Play"}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setPlaying(false);
-                setPlayhead((p) => Math.min(p + 1, result.candles.length - 1));
-              }}
-              className="rounded-lg border border-snow/20 px-4 py-2 text-sm text-snow/80 transition hover:bg-snow/5"
-            >
-              Paso +1
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setPlaying(false);
-                setPlayhead(0);
-              }}
-              className="rounded-lg border border-snow/20 px-4 py-2 text-sm text-snow/80 transition hover:bg-snow/5"
-            >
-              Reiniciar
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setPlaying(false);
-                setPlayhead(result.candles.length - 1);
-              }}
-              className="rounded-lg border border-snow/20 px-4 py-2 text-sm text-snow/80 transition hover:bg-snow/5"
-            >
-              Ir al final
-            </button>
-            <div className="flex items-center gap-2 text-xs text-snow/50">
-              <span>Velocidad</span>
-              <Select
-                className="min-w-[8rem]"
-                value={String(speedMs)}
-                onChange={(v) => setSpeedMs(Number(v))}
-                aria-label="Velocidad"
-                options={[
-                  { value: "250", label: "Lenta" },
-                  { value: "120", label: "Normal" },
-                  { value: "50", label: "Rápida" },
-                ]}
-              />
+          <div className="rounded-xl border border-pulse/25 bg-pulse/5 px-4 py-3 text-sm text-snow/80">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="font-semibold text-pulse">Decisión del bot</p>
+              <span className="rounded-full bg-ink/40 px-2.5 py-0.5 text-xs font-bold text-pulse">
+                Score {market.score ?? state.lastScore}/100 ·{" "}
+                {(market.verdict ?? "hold").toUpperCase()}
+              </span>
             </div>
-            <span className="text-xs text-snow/40">
-              Vela {playhead + 1}/{result.candles.length} ·{" "}
-              {new Date(result.candles[playhead]?.timestamp ?? 0).toLocaleString(
-                "es-CR",
-              )}
-            </span>
+            <p className="mt-1">{state.lastAction}</p>
+            <p className="mt-2 text-xs text-snow/45">
+              {market.atrPct != null
+                ? `ATR% ${market.atrPct.toFixed(2)} · `
+                : ""}
+              vela {new Date(market.candleTime).toLocaleString("es-CR")}
+              {state.position
+                ? ` · LONG @ ${state.position.entry.toFixed(2)} · SL ${state.position.stopLoss.toFixed(2)}`
+                : " · flat"}
+            </p>
           </div>
+
+          {state.lastChecks.length > 0 && (
+            <section>
+              <h2 className="mb-3 font-display text-lg font-bold text-snow">
+                Checklist experta (este tick)
+              </h2>
+              <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {state.lastChecks.map((c) => (
+                  <li
+                    key={c.id}
+                    className={`rounded-lg border px-3 py-2 text-sm ${
+                      c.pass
+                        ? "border-emerald-500/25 bg-emerald-500/5"
+                        : "border-snow/10 bg-slate/20"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`text-xs font-bold ${
+                          c.pass ? "text-emerald-300" : "text-snow/40"
+                        }`}
+                      >
+                        {c.pass ? "OK" : "NO"}
+                      </span>
+                      <span className="font-medium text-snow/90">{c.label}</span>
+                    </div>
+                    <p className="mt-1 text-xs text-snow/50">{c.detail}</p>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-3 text-xs text-snow/40">
+                Solo opera si todos los checks pasan. Así evita chase, volumen
+                flojo y pelear la tendencia superior — como un trader
+                disciplinado, no como un indicador suelto.
+              </p>
+            </section>
+          )}
 
           <section>
             <h2 className="mb-3 font-display text-lg font-bold text-snow">
-              Precio + EMAs · entradas (verde) / salidas (rojo)
+              Precio real · entradas (verde) / salidas (rojo)
             </h2>
             <LineChart
-              series={priceSlice}
-              secondary={[
-                { values: emaFastSlice, color: "#67e8f9" },
-                { values: emaSlowSlice, color: "#fbbf24" },
-              ]}
-              markers={visibleMarkers}
-              playhead={playhead}
+              series={priceSeries}
+              markers={markers}
               yFormat={(n) => n.toFixed(0)}
               height={260}
             />
             <p className="mt-2 text-xs text-snow/40">
-              Cyan = EMA fast · Ámbar = EMA slow · Línea blanca = playhead
+              Velas {timeframe} actuales. Sin cruce EMA / régimen ATR, el bot
+              puede pasar muchos ticks en hold — eso es correcto.
             </p>
           </section>
 
           <section>
             <h2 className="mb-3 font-display text-lg font-bold text-snow">
-              Equity (paper)
+              Equity de esta sesión
             </h2>
             <LineChart
-              series={equitySlice}
-              playhead={playhead}
+              series={equitySeries}
               color="#34d399"
               yFormat={(n) => `$${n.toFixed(0)}`}
               height={180}
@@ -387,72 +510,86 @@ export function SandboxClient({
           <div className="grid gap-8 lg:grid-cols-2">
             <section>
               <h2 className="font-display text-lg font-bold text-snow">
-                Decisiones del bot
+                Log de decisiones
               </h2>
               <ul
                 ref={logRef}
                 className="mt-3 max-h-80 space-y-2 overflow-y-auto rounded-xl border border-snow/10 p-3 text-sm"
               >
-                {!visibleDecisions.length ? (
-                  <li className="text-snow/45">
-                    Dale a Play para ver las decisiones en tiempo real…
-                  </li>
-                ) : (
-                  visibleDecisions.map((d, i) => (
-                    <li
-                      key={`${d.index}-${i}`}
-                      className="rounded-lg border border-snow/10 px-3 py-2"
-                    >
-                      <div className="flex flex-wrap items-center gap-2">
-                        <KindBadge kind={d.kind} />
-                        <span className="text-xs text-snow/40">
-                          #{d.index + 1}
-                        </span>
-                      </div>
-                      <p className="mt-1 text-snow/85">{d.message}</p>
-                    </li>
-                  ))
-                )}
+                {state.events.map((d) => (
+                  <EventRow key={d.id} event={d} />
+                ))}
               </ul>
             </section>
 
             <section>
               <h2 className="font-display text-lg font-bold text-snow">
-                Trades de la simulación
+                Trades paper
               </h2>
               <ul className="mt-3 max-h-80 space-y-2 overflow-y-auto rounded-xl border border-snow/10 p-3 text-sm">
-                {!result.trades.length ? (
+                {state.position && (
+                  <li className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-3 py-2">
+                    <p className="text-emerald-200">
+                      Abierta · entry {state.position.entry.toFixed(2)} · qty{" "}
+                      {state.position.qty.toFixed(6)}
+                    </p>
+                    <p className="mt-1 text-xs text-snow/40">
+                      {state.position.entryReason}
+                    </p>
+                  </li>
+                )}
+                {!state.closedTrades.length && !state.position ? (
                   <li className="text-snow/45">
-                    Sin trades en este tramo (normal si no hubo cruce EMA).
+                    Aún sin trades. El bot solo entra con cruce EMA alcista y
+                    ATR en rango — puede tardar (sobre todo en 4h).
                   </li>
                 ) : (
-                  result.trades
-                    .filter((t) => t.entryIndex <= playhead)
-                    .map((t) => (
-                      <li
-                        key={t.id}
-                        className="rounded-lg border border-snow/10 px-3 py-2"
-                      >
-                        <p className="text-snow">
-                          Entry {t.entry.toFixed(2)}
-                          {t.exit != null ? ` → ${t.exit.toFixed(2)}` : " (abierto)"}
-                          {t.pnl != null
-                            ? ` · pnl ${t.pnl >= 0 ? "+" : ""}${t.pnl.toFixed(2)}`
-                            : ""}
-                        </p>
-                        <p className="mt-1 text-xs text-snow/40">
-                          {t.entryReason}
-                          {t.exitReason ? ` → ${t.exitReason}` : ""}
-                        </p>
-                      </li>
-                    ))
+                  state.closedTrades.map((t) => (
+                    <li
+                      key={t.id}
+                      className="rounded-lg border border-snow/10 px-3 py-2"
+                    >
+                      <p className="text-snow">
+                        {t.entry.toFixed(2)} → {t.exit.toFixed(2)} · pnl{" "}
+                        {t.pnl >= 0 ? "+" : ""}
+                        {t.pnl.toFixed(2)}
+                      </p>
+                      <p className="mt-1 text-xs text-snow/40">
+                        {t.entryReason} → {t.exitReason}
+                      </p>
+                    </li>
+                  ))
                 )}
               </ul>
+              {(wins > 0 || losses > 0) && (
+                <p className="mt-2 text-xs text-snow/40">
+                  Cerrados: {wins} ganadores · {losses} perdedores
+                </p>
+              )}
             </section>
           </div>
         </>
       )}
     </div>
+  );
+}
+
+function EventRow({ event }: { event: LiveEvent }) {
+  return (
+    <li className="rounded-lg border border-snow/10 px-3 py-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <KindBadge kind={event.kind} />
+        <span className="text-xs text-snow/40">
+          {new Date(event.at).toLocaleTimeString("es-CR")}
+        </span>
+        {event.price > 0 && (
+          <span className="text-xs text-snow/35">
+            @ {event.price.toFixed(2)}
+          </span>
+        )}
+      </div>
+      <p className="mt-1 text-snow/85">{event.message}</p>
+    </li>
   );
 }
 
@@ -464,6 +601,7 @@ function KindBadge({ kind }: { kind: string }) {
     tp: "bg-pulse/20 text-pulse",
     skip: "bg-amber-500/20 text-amber-300",
     hold: "bg-snow/10 text-snow/50",
+    tick: "bg-snow/10 text-snow/50",
     info: "bg-snow/10 text-snow/60",
   };
   return (

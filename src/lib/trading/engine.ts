@@ -1,7 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
 import { fetchOHLCV, fetchTickerPrice } from "./market";
-import { evaluateTrendPulse } from "./strategy/trend-pulse";
+import { atr, higherTimeframe } from "./indicators";
+import { decideTrendPulse } from "./strategy/trend-pulse";
 import { loadTrendPulseParams } from "./strategy/settings";
 import { sizePosition } from "./risk";
 import type { Pair } from "./types";
@@ -73,23 +74,52 @@ export async function runBotTick(
   let tradesOpened = 0;
   let tradesClosed = 0;
 
+  const strategyParams = await loadTrendPulseParams();
+  const htf = higherTimeframe(strategyParams.timeframe);
+
   const { data: openTrades } = await supabase
     .from("trades")
     .select("*")
     .eq("user_id", userId)
     .eq("status", "open");
 
-  // 1) Manage open positions: stop / take-profit
+  // 1) Manage open positions: stop / take-profit / trailing
   for (const trade of openTrades ?? []) {
     const pair = trade.pair as Pair;
     const price = await fetchTickerPrice(pair);
     const entry = Number(trade.entry_price);
-    const stop = trade.stop_loss != null ? Number(trade.stop_loss) : entry * 0.985;
+    let stop =
+      trade.stop_loss != null ? Number(trade.stop_loss) : entry * 0.985;
     const tp =
       trade.take_profit != null ? Number(trade.take_profit) : entry * 1.025;
 
+    // Trailing: después de 1R, subir stop a breakeven; luego trail con ATR
+    try {
+      const candles = await fetchOHLCV(pair, strategyParams.timeframe, 80);
+      const atrSeries = atr(candles, strategyParams.atrPeriod);
+      const lastAtr = atrSeries[atrSeries.length - 1];
+      if (lastAtr > 0) {
+        const risk = entry - stop;
+        const oneR = risk > 0 ? entry + risk : entry + lastAtr * strategyParams.stopAtr;
+        if (price >= oneR) {
+          const breakeven = entry * (1 + SLIPPAGE);
+          const trail = price - strategyParams.stopAtr * lastAtr;
+          const nextStop = Math.max(stop, breakeven, trail);
+          if (nextStop > stop + lastAtr * 0.05) {
+            stop = nextStop;
+            await supabase
+              .from("trades")
+              .update({ stop_loss: stop })
+              .eq("id", trade.id);
+          }
+        }
+      }
+    } catch {
+      // trailing best-effort
+    }
+
     let reason: string | null = null;
-    if (price <= stop) reason = "Stop loss";
+    if (price <= stop) reason = "Stop loss (protegido / trailing)";
     else if (price >= tp) reason = "Take profit";
     if (!reason) continue;
 
@@ -119,10 +149,13 @@ export async function runBotTick(
     signals += 1;
   }
 
-  // 2) Strategy evaluation
-  const strategyParams = await loadTrendPulseParams();
+  // 2) Strategy evaluation with HTF confluence
   for (const pair of pairs) {
-    const candles = await fetchOHLCV(pair, strategyParams.timeframe, 120);
+    const candles = await fetchOHLCV(pair, strategyParams.timeframe, 150);
+    const htfCandles =
+      htf === strategyParams.timeframe
+        ? undefined
+        : await fetchOHLCV(pair, htf, 120);
 
     const { count } = await supabase
       .from("trades")
@@ -132,12 +165,14 @@ export async function runBotTick(
       .eq("status", "open");
 
     const hasOpenLong = (count ?? 0) > 0;
-    const signal = evaluateTrendPulse(
+    const decision = decideTrendPulse(
       pair,
       candles,
       hasOpenLong,
       strategyParams,
+      { htfCandles },
     );
+    const signal = decision.signal;
     if (!signal) continue;
 
     signals += 1;
@@ -145,7 +180,7 @@ export async function runBotTick(
       user_id: userId,
       pair: signal.pair,
       side: signal.side,
-      reason: signal.reason,
+      reason: `${signal.reason} · score ${decision.score}`,
       price: signal.price,
     });
 

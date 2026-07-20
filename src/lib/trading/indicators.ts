@@ -72,3 +72,58 @@ export function trendSeparation(
   const slowVal = s[s.length - 1];
   return (Math.abs(fastVal - slowVal) / price) * 100;
 }
+
+/** Wilder RSI (0–100). */
+export function rsi(values: number[], period = 14): number[] {
+  if (values.length < period + 1) return [];
+  const gains: number[] = [];
+  const losses: number[] = [];
+  for (let i = 1; i < values.length; i++) {
+    const d = values[i] - values[i - 1];
+    gains.push(d > 0 ? d : 0);
+    losses.push(d < 0 ? -d : 0);
+  }
+  let avgGain = gains.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  let avgLoss = losses.slice(0, period).reduce((a, b) => a + b, 0) / period;
+  const out: number[] = [];
+  const push = () => {
+    if (avgLoss === 0) out.push(100);
+    else {
+      const rs = avgGain / avgLoss;
+      out.push(100 - 100 / (1 + rs));
+    }
+  };
+  push();
+  for (let i = period; i < gains.length; i++) {
+    avgGain = (avgGain * (period - 1) + gains[i]) / period;
+    avgLoss = (avgLoss * (period - 1) + losses[i]) / period;
+    push();
+  }
+  return out;
+}
+
+/** Slope of last `lookback` points of a series (absolute units per bar). */
+export function seriesSlope(series: number[], lookback = 5): number | null {
+  if (series.length < lookback + 1) return null;
+  const a = series[series.length - 1 - lookback];
+  const b = series[series.length - 1];
+  return (b - a) / lookback;
+}
+
+export function volumeSma(candles: Candle[], period: number): number[] {
+  return sma(
+    candles.map((c) => c.volume),
+    period,
+  );
+}
+
+/** Map primary TF → higher TF for bias (expert confluence). */
+export function higherTimeframe(tf: string): string {
+  const map: Record<string, string> = {
+    "15m": "1h",
+    "1h": "4h",
+    "4h": "1d",
+    "1d": "1d",
+  };
+  return map[tf] ?? "1d";
+}

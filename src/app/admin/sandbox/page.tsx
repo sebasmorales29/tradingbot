@@ -18,8 +18,7 @@ export default async function AdminSandboxPage() {
         pair: "BTC/USDT" as Pair,
         startingEquity: 10_000,
         riskPercent: 0.75,
-        timeframe: params.timeframe || "4h",
-        limit: 180,
+        timeframe: "1h",
         params,
       }}
     />
