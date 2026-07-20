@@ -33,15 +33,15 @@ En Vercel → Project → **Settings → Environment Variables**, añade:
 
 Redeploy después de guardar las variables.
 
-## 3. Cron gratis cada 15 min (recomendado)
+## 3. Cron cada 15 min (gratis, recomendado)
 
-El plan gratis de Vercel a veces limita el cron interno. Usa [cron-job.org](https://cron-job.org) (gratis):
+El plan **Hobby** de Vercel solo permite 1 cron al día. Para escanear cada 15 min usa [cron-job.org](https://cron-job.org) (gratis):
 
 - **URL:** `https://TU-APP.vercel.app/api/cron/tick`
 - **Schedule:** every 15 minutes
 - **Header:** `Authorization` = `Bearer TU_CRON_SECRET`
 
-Así el bot corre aunque apagues la computadora.
+El cron diario de Vercel queda como respaldo; cron-job.org es el que mantiene el bot activo de verdad.
 
 ## 4. Comprobar
 
