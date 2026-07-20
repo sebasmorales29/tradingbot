@@ -187,7 +187,7 @@ export function SandboxClient({
           Parámetros de prueba
         </h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <label className="block text-sm">
+          <div className="block text-sm">
             <span className="text-snow/50">Par</span>
             <Select
               className="mt-1"
@@ -199,7 +199,7 @@ export function SandboxClient({
                 { value: "ETH/USDT", label: "ETH/USDT" },
               ]}
             />
-          </label>
+          </div>
           <label className="block text-sm">
             <span className="text-snow/50">Equity inicial (paper)</span>
             <input
@@ -329,10 +329,10 @@ export function SandboxClient({
             >
               Ir al final
             </button>
-            <label className="flex items-center gap-2 text-xs text-snow/50">
-              Velocidad
+            <div className="flex items-center gap-2 text-xs text-snow/50">
+              <span>Velocidad</span>
               <Select
-                className="min-w-[7.5rem]"
+                className="min-w-[8rem]"
                 value={String(speedMs)}
                 onChange={(v) => setSpeedMs(Number(v))}
                 aria-label="Velocidad"
@@ -342,7 +342,7 @@ export function SandboxClient({
                   { value: "50", label: "Rápida" },
                 ]}
               />
-            </label>
+            </div>
             <span className="text-xs text-snow/40">
               Vela {playhead + 1}/{result.candles.length} ·{" "}
               {new Date(result.candles[playhead]?.timestamp ?? 0).toLocaleString(

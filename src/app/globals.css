@@ -46,6 +46,13 @@ body {
   color: var(--ink);
 }
 
+/* Nunca usar el aspecto nativo del sistema en selects */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
 @keyframes rise-in {
   from {
     opacity: 0;
