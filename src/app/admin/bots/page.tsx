@@ -66,7 +66,7 @@ export default async function AdminBotsPage() {
                 {b.is_active ? (
                   <span className="text-emerald-300">Activo</span>
                 ) : (
-                  <span className="text-snow/50">Pausa</span>
+                  <span className="text-amber-300">Pausa</span>
                 )}
                 {" · "}
                 {b.mode}

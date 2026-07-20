@@ -80,12 +80,16 @@ export default async function AdminUsersPage() {
                   )}
                 </td>
                 <td className="px-4 py-3 text-snow/70">
-                  {u.bot_active == null
-                    ? "—"
-                    : u.bot_active
-                      ? "Activo"
-                      : "Pausa"}
-                  {u.bot_mode ? ` · ${u.bot_mode}` : ""}
+                  {u.bot_active == null ? (
+                    "—"
+                  ) : u.bot_active ? (
+                    <span className="text-emerald-300">Activo</span>
+                  ) : (
+                    <span className="text-amber-300">Pausa</span>
+                  )}
+                  {u.bot_mode ? (
+                    <span className="text-snow/70"> · {u.bot_mode}</span>
+                  ) : null}
                 </td>
                 <td className="px-4 py-3 text-snow/70">
                   {u.open_trades} abiertos · {u.closed_trades} cerrados

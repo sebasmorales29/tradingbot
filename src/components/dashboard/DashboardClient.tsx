@@ -96,6 +96,7 @@ export function DashboardClient({
           <StatCard
             label={t.dash.status}
             value={bot?.is_active ? t.dash.active : t.dash.paused}
+            tone={bot?.is_active ? "ok" : "warn"}
           />
           <StatCard
             label={t.dash.mode}
@@ -194,20 +195,27 @@ function StatCard({
   value,
   accent,
   highlight,
+  tone,
 }: {
   label: string;
   value: string;
   accent?: boolean;
   highlight?: boolean;
+  tone?: "ok" | "warn";
 }) {
+  const valueClass =
+    tone === "ok"
+      ? "text-emerald-300"
+      : tone === "warn"
+        ? "text-amber-300"
+        : highlight || accent
+          ? "text-pulse"
+          : "text-snow";
+
   return (
     <div className="rounded-xl border border-snow/10 bg-slate/40 p-5">
       <p className="text-xs uppercase tracking-wider text-snow/45">{label}</p>
-      <p
-        className={`mt-2 font-display text-2xl font-bold ${
-          highlight || accent ? "text-pulse" : "text-snow"
-        }`}
-      >
+      <p className={`mt-2 font-display text-2xl font-bold ${valueClass}`}>
         {value}
       </p>
     </div>

@@ -65,8 +65,8 @@ export function BotAdminControls({
           }
           className={`rounded-lg border px-4 py-2 text-sm font-semibold transition disabled:opacity-50 ${
             isActive
-              ? "border-red-500/50 bg-red-500/10 text-red-300 hover:bg-red-500/20"
-              : "border-emerald-500/50 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20"
+              ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20"
+              : "border-amber-500/50 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20"
           }`}
         >
           {busy === "toggle"

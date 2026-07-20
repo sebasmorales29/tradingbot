@@ -154,6 +154,7 @@ export default async function AdminUserDetailPage({
             <Info
               label="Estado"
               value={user.bot.is_active ? "Activo" : "Pausado"}
+              tone={user.bot.is_active ? "ok" : "warn"}
             />
             <Info label="Modo" value={user.bot.mode} />
             <Info label="Riesgo %" value={String(user.bot.risk_percent)} />
@@ -220,11 +221,25 @@ export default async function AdminUserDetailPage({
   );
 }
 
-function Info({ label, value }: { label: string; value: string }) {
+function Info({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone?: "ok" | "warn";
+}) {
+  const valueClass =
+    tone === "ok"
+      ? "text-emerald-300"
+      : tone === "warn"
+        ? "text-amber-300"
+        : "text-snow";
   return (
     <div className="rounded-lg border border-snow/10 px-4 py-3">
       <dt className="text-xs uppercase tracking-wider text-snow/40">{label}</dt>
-      <dd className="mt-1 text-snow">{value}</dd>
+      <dd className={`mt-1 ${valueClass}`}>{value}</dd>
     </div>
   );
 }

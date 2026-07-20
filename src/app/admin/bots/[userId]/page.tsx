@@ -46,7 +46,11 @@ export default async function AdminBotDetailPage({
           </h1>
           <p className="mt-1 text-sm text-snow/55">{detail.email}</p>
           <p className="mt-1 text-xs text-snow/40">
-            {bot.is_active ? "Activo" : "Pausa"} · {bot.mode}
+            <span className={bot.is_active ? "text-emerald-300" : "text-amber-300"}>
+              {bot.is_active ? "Activo" : "Pausa"}
+            </span>
+            {" · "}
+            {bot.mode}
             {bot.kill_switch ? " · KILL SWITCH" : ""}
           </p>
         </div>
@@ -105,6 +109,7 @@ export default async function AdminBotDetailPage({
           <Info
             label="Estado"
             value={bot.is_active ? "Activo" : "Pausado"}
+            tone={bot.is_active ? "ok" : "warn"}
           />
           <Info label="Modo" value={bot.mode} />
           <Info label="Riesgo %" value={String(bot.risk_percent)} />
@@ -244,11 +249,25 @@ export default async function AdminBotDetailPage({
   );
 }
 
-function Info({ label, value }: { label: string; value: string }) {
+function Info({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone?: "ok" | "warn";
+}) {
+  const valueClass =
+    tone === "ok"
+      ? "text-emerald-300"
+      : tone === "warn"
+        ? "text-amber-300"
+        : "text-snow";
   return (
     <div className="rounded-lg border border-snow/10 px-4 py-3">
       <dt className="text-xs uppercase tracking-wider text-snow/40">{label}</dt>
-      <dd className="mt-1 text-snow">{value}</dd>
+      <dd className={`mt-1 ${valueClass}`}>{value}</dd>
     </div>
   );
 }
