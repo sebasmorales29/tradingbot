@@ -94,8 +94,31 @@ export function SandboxClient({
   const winRate = closed ? Math.round((wins / closed) * 100) : null;
 
   const priceSeries = useMemo(() => candles.map((c) => c.close), [candles]);
+  const priceLabels = useMemo(
+    () =>
+      candles.map((c) =>
+        new Date(c.timestamp).toLocaleString("es-CR", {
+          day: "2-digit",
+          month: "short",
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      ),
+    [candles],
+  );
   const equitySeries = useMemo(
     () => state?.equityPoints.map((p) => p.equity) ?? [],
+    [state],
+  );
+  const equityLabels = useMemo(
+    () =>
+      state?.equityPoints.map((p) =>
+        new Date(p.t).toLocaleString("es-CR", {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        }),
+      ) ?? [],
     [state],
   );
 
@@ -494,10 +517,18 @@ export function SandboxClient({
             </h2>
             <LineChart
               series={priceSeries}
+              labels={priceLabels}
               markers={markers}
-              yFormat={(n) => n.toFixed(0)}
+              yFormat={(n) =>
+                `$${n.toLocaleString("en-US", { maximumFractionDigits: 2 })}`
+              }
+              valueLabel="Precio"
               height={260}
             />
+            <p className="mt-2 text-xs text-snow/40">
+              Datos reales de Binance Vision (velas {timeframe}). Pasa el cursor
+              para ver el precio. Equity abajo = paper sobre ese mercado.
+            </p>
           </section>
 
           <section>
@@ -506,8 +537,12 @@ export function SandboxClient({
             </h2>
             <LineChart
               series={equitySeries}
+              labels={equityLabels}
               color="#34d399"
-              yFormat={(n) => `$${n.toFixed(0)}`}
+              yFormat={(n) =>
+                `$${n.toLocaleString("en-US", { maximumFractionDigits: 2 })}`
+              }
+              valueLabel="Equity paper"
               height={180}
             />
           </section>
