@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { TREND_PULSE_META } from "@/lib/trading/strategy/trend-pulse";
+import { loadTrendPulseParams } from "@/lib/trading/strategy/settings";
+import type { TrendPulseParams } from "@/lib/trading/strategy/trend-pulse";
 
 export type AdminTelemetry = {
   users: number;
@@ -39,7 +40,7 @@ export type AdminTelemetry = {
     kill_switch: boolean;
     updated_at: string;
   }[];
-  strategy: typeof TREND_PULSE_META;
+  strategy: TrendPulseParams;
   generatedAt: string;
 };
 
@@ -103,6 +104,7 @@ export async function loadAdminTelemetry(): Promise<AdminTelemetry> {
     (s, t) => s + Number(t.pnl ?? 0),
     0,
   );
+  const strategy = await loadTrendPulseParams();
 
   return {
     users: profiles.count ?? 0,
@@ -124,7 +126,7 @@ export async function loadAdminTelemetry(): Promise<AdminTelemetry> {
       kill_switch: b.kill_switch,
       updated_at: b.updated_at,
     })),
-    strategy: TREND_PULSE_META,
+    strategy,
     generatedAt: new Date().toISOString(),
   };
 }

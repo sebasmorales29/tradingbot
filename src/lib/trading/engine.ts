@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
 import { fetchOHLCV, fetchTickerPrice } from "./market";
 import { evaluateTrendPulse } from "./strategy/trend-pulse";
+import { loadTrendPulseParams } from "./strategy/settings";
 import { sizePosition } from "./risk";
 import type { Pair } from "./types";
 
@@ -119,8 +120,9 @@ export async function runBotTick(
   }
 
   // 2) Strategy evaluation
+  const strategyParams = await loadTrendPulseParams();
   for (const pair of pairs) {
-    const candles = await fetchOHLCV(pair, "4h", 120);
+    const candles = await fetchOHLCV(pair, strategyParams.timeframe, 120);
 
     const { count } = await supabase
       .from("trades")
@@ -130,7 +132,12 @@ export async function runBotTick(
       .eq("status", "open");
 
     const hasOpenLong = (count ?? 0) > 0;
-    const signal = evaluateTrendPulse(pair, candles, hasOpenLong);
+    const signal = evaluateTrendPulse(
+      pair,
+      candles,
+      hasOpenLong,
+      strategyParams,
+    );
     if (!signal) continue;
 
     signals += 1;

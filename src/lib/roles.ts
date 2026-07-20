@@ -9,6 +9,7 @@ export type Permission =
   | "admin_telemetry"
   | "admin_manage_roles"
   | "admin_manage_users"
+  | "admin_edit_strategy"
   | "admin_support_view"
   | "admin_analytics";
 
@@ -37,6 +38,7 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "admin_telemetry",
     "admin_manage_roles",
     "admin_manage_users",
+    "admin_edit_strategy",
     "admin_support_view",
     "admin_analytics",
   ],

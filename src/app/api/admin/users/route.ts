@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getSessionAccess } from "@/lib/auth/session";
 import { isRole, type Role } from "@/lib/roles";
 import { listAdminUsers } from "@/lib/admin-users";
+import { isAdult, parseDateOfBirth } from "@/lib/identity";
 
 export async function GET() {
   const access = await getSessionAccess();
@@ -25,8 +26,88 @@ export async function GET() {
   }
 }
 
+export async function POST(request: Request) {
+  const access = await getSessionAccess();
+  if (!access?.can("admin_manage_users")) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const body = (await request.json()) as {
+    email?: string;
+    password?: string;
+    first_name?: string;
+    last_name?: string;
+    date_of_birth?: string;
+    role?: string;
+  };
+
+  const email = body.email?.trim().toLowerCase();
+  const password = body.password ?? "";
+  const firstName = body.first_name?.trim() ?? "";
+  const lastName = body.last_name?.trim() ?? "";
+  const role: Role = isRole(body.role) ? body.role : "user";
+
+  if (!email || password.length < 6 || !firstName || !lastName) {
+    return NextResponse.json({ error: "Datos incompletos" }, { status: 400 });
+  }
+
+  const dob = body.date_of_birth
+    ? parseDateOfBirth(body.date_of_birth)
+    : null;
+  if (!dob || !isAdult(dob)) {
+    return NextResponse.json(
+      { error: "Fecha de nacimiento inválida o menor de 18" },
+      { status: 400 },
+    );
+  }
+
+  const admin = createAdminClient();
+  const fullName = `${firstName} ${lastName}`.trim();
+
+  const { data, error } = await admin.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+    user_metadata: {
+      first_name: firstName,
+      last_name: lastName,
+      date_of_birth: body.date_of_birth,
+      full_name: fullName,
+    },
+  });
+
+  if (error || !data.user) {
+    return NextResponse.json(
+      { error: error?.message ?? "No se pudo crear" },
+      { status: 500 },
+    );
+  }
+
+  // Trigger creates profile; ensure fields + role
+  const { error: profileErr } = await admin
+    .from("profiles")
+    .update({
+      first_name: firstName,
+      last_name: lastName,
+      date_of_birth: body.date_of_birth!,
+      full_name: fullName,
+      role,
+      email,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", data.user.id);
+
+  if (profileErr) {
+    return NextResponse.json(
+      { error: profileErr.message, id: data.user.id },
+      { status: 500 },
+    );
+  }
+
+  return NextResponse.json({ ok: true, id: data.user.id });
+}
+
 export async function PATCH(request: Request) {
-  // Legacy: body { userId, role } — prefer /api/admin/users/[id]
   const access = await getSessionAccess();
   if (!access?.can("admin_manage_roles")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });

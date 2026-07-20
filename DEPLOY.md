@@ -48,6 +48,7 @@ Todos entran por `/login`. El rol en `profiles.role` decide el menú:
 1. Ejecuta en Supabase → **SQL Editor**:
    - `supabase/migrations/20260720120000_roles.sql`
    - `supabase/migrations/20260720130000_profile_status.sql` (suspender cuentas)
+   - `supabase/migrations/20260720140000_profile_identity_strategy.sql` (nombre, DOB, estrategia editable)
 2. Registra o inicia sesión con `moralesvega2909@hotmail.com` (queda admin por SQL + `ADMIN_EMAILS`).
 3. Consola en `/admin` con vistas: Resumen, Usuarios, Bots, Actividad, Estrategia.
 

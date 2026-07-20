@@ -14,6 +14,9 @@ export type Database = {
           id: string;
           email: string | null;
           full_name: string | null;
+          first_name: string | null;
+          last_name: string | null;
+          date_of_birth: string | null;
           role: "user" | "admin" | "support" | "analyst";
           status: "active" | "suspended";
           created_at: string;
@@ -23,6 +26,9 @@ export type Database = {
           id: string;
           email?: string | null;
           full_name?: string | null;
+          first_name?: string | null;
+          last_name?: string | null;
+          date_of_birth?: string | null;
           role?: "user" | "admin" | "support" | "analyst";
           status?: "active" | "suspended";
           created_at?: string;
@@ -32,6 +38,9 @@ export type Database = {
           id?: string;
           email?: string | null;
           full_name?: string | null;
+          first_name?: string | null;
+          last_name?: string | null;
+          date_of_birth?: string | null;
           role?: "user" | "admin" | "support" | "analyst";
           status?: "active" | "suspended";
           created_at?: string;
@@ -228,6 +237,51 @@ export type Database = {
           equity?: number;
           mode?: "paper" | "live";
           recorded_at?: string;
+        };
+        Relationships: [];
+      };
+      strategy_settings: {
+        Row: {
+          id: string;
+          name: string;
+          timeframe: string;
+          fast: number;
+          slow: number;
+          atr_period: number;
+          stop_atr: number;
+          tp_atr: number;
+          min_atr_pct: number;
+          max_atr_pct: number;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          name?: string;
+          timeframe?: string;
+          fast?: number;
+          slow?: number;
+          atr_period?: number;
+          stop_atr?: number;
+          tp_atr?: number;
+          min_atr_pct?: number;
+          max_atr_pct?: number;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          timeframe?: string;
+          fast?: number;
+          slow?: number;
+          atr_period?: number;
+          stop_atr?: number;
+          tp_atr?: number;
+          min_atr_pct?: number;
+          max_atr_pct?: number;
+          updated_at?: string;
+          updated_by?: string | null;
         };
         Relationships: [];
       };

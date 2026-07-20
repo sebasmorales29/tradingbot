@@ -5,10 +5,14 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useT } from "@/components/i18n/T";
+import { isAdult, parseDateOfBirth } from "@/lib/identity";
 
 export function RegisterForm() {
   const t = useT();
   const router = useRouter();
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -19,12 +23,31 @@ export function RegisterForm() {
     e.preventDefault();
     setError(null);
     setInfo(false);
+
+    const dob = parseDateOfBirth(dateOfBirth);
+    if (!dob) {
+      setError(t.auth.dateOfBirth);
+      return;
+    }
+    if (!isAdult(dob)) {
+      setError(t.auth.underage);
+      return;
+    }
+
     setLoading(true);
 
     const supabase = createClient();
     const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        data: {
+          first_name: firstName.trim(),
+          last_name: lastName.trim(),
+          date_of_birth: dateOfBirth,
+          full_name: `${firstName.trim()} ${lastName.trim()}`.trim(),
+        },
+      },
     });
 
     setLoading(false);
@@ -43,8 +66,57 @@ export function RegisterForm() {
     setInfo(true);
   }
 
+  const inputClass =
+    "w-full rounded-md border border-snow/15 bg-ink/60 px-4 py-3 text-snow outline-none ring-pulse placeholder:text-snow/35 focus:ring-2";
+
   return (
     <form onSubmit={onSubmit} className="flex w-full max-w-sm flex-col gap-4">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label htmlFor="firstName" className="mb-1.5 block text-sm text-snow/70">
+            {t.auth.firstName}
+          </label>
+          <input
+            id="firstName"
+            type="text"
+            required
+            autoComplete="given-name"
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            className={inputClass}
+          />
+        </div>
+        <div>
+          <label htmlFor="lastName" className="mb-1.5 block text-sm text-snow/70">
+            {t.auth.lastName}
+          </label>
+          <input
+            id="lastName"
+            type="text"
+            required
+            autoComplete="family-name"
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            className={inputClass}
+          />
+        </div>
+      </div>
+
+      <div>
+        <label htmlFor="dob" className="mb-1.5 block text-sm text-snow/70">
+          {t.auth.dateOfBirth}
+        </label>
+        <input
+          id="dob"
+          type="date"
+          required
+          value={dateOfBirth}
+          onChange={(e) => setDateOfBirth(e.target.value)}
+          className={inputClass}
+        />
+        <p className="mt-1.5 text-xs text-snow/40">{t.auth.ageHint}</p>
+      </div>
+
       <div>
         <label htmlFor="email" className="mb-1.5 block text-sm text-snow/70">
           {t.auth.email}
@@ -53,9 +125,10 @@ export function RegisterForm() {
           id="email"
           type="email"
           required
+          autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full rounded-md border border-snow/15 bg-ink/60 px-4 py-3 text-snow outline-none ring-pulse placeholder:text-snow/35 focus:ring-2"
+          className={inputClass}
           placeholder="you@email.com"
         />
       </div>
@@ -68,9 +141,10 @@ export function RegisterForm() {
           type="password"
           required
           minLength={6}
+          autoComplete="new-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full rounded-md border border-snow/15 bg-ink/60 px-4 py-3 text-snow outline-none ring-pulse placeholder:text-snow/35 focus:ring-2"
+          className={inputClass}
           placeholder={t.auth.passwordPlaceholder}
         />
       </div>

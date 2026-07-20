@@ -31,11 +31,11 @@ export default async function AdminLayout({
           <div className="flex items-center gap-3">
             <Link
               href="/dashboard"
-              className="text-sm text-snow/55 transition hover:text-snow"
+              className="inline-flex h-9 items-center rounded-lg border border-pulse/50 bg-pulse/15 px-3.5 text-sm font-semibold text-pulse transition hover:bg-pulse/25 hover:text-snow"
             >
               Ir al panel
             </Link>
-            <span className="hidden max-w-[180px] truncate text-sm text-snow/40 md:inline">
+            <span className="hidden max-w-[160px] truncate text-sm text-snow/40 md:inline">
               {access.user.email}
             </span>
             <SignOutButton />
@@ -52,7 +52,9 @@ export default async function AdminLayout({
           }
           canBots={access.can("admin_support_view") || access.can("admin_telemetry")}
           canActivity={access.can("admin_telemetry")}
-          canStrategy={access.can("admin_analytics")}
+          canStrategy={
+            access.can("admin_analytics") || access.can("admin_edit_strategy")
+          }
         />
         <div className="min-w-0 flex-1">{children}</div>
       </div>

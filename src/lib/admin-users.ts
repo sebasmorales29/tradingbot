@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Role } from "@/lib/roles";
+import { displayName } from "@/lib/identity";
 
 export type ProfileStatus = "active" | "suspended";
 
@@ -7,6 +8,10 @@ export type AdminUserListItem = {
   id: string;
   email: string | null;
   full_name: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  date_of_birth: string | null;
+  display_name: string;
   role: Role;
   status: ProfileStatus;
   created_at: string;
@@ -59,12 +64,15 @@ function asStatus(v: unknown): ProfileStatus {
   return v === "suspended" ? "suspended" : "active";
 }
 
+const PROFILE_COLS =
+  "id, email, full_name, first_name, last_name, date_of_birth, role, status, created_at, updated_at";
+
 export async function listAdminUsers(): Promise<AdminUserListItem[]> {
   const admin = createAdminClient();
 
   const { data: profiles, error } = await admin
     .from("profiles")
-    .select("id, email, full_name, role, status, created_at, updated_at")
+    .select(PROFILE_COLS)
     .order("created_at", { ascending: false })
     .limit(200);
 
@@ -123,6 +131,10 @@ export async function listAdminUsers(): Promise<AdminUserListItem[]> {
       id: p.id,
       email: p.email,
       full_name: p.full_name,
+      first_name: p.first_name,
+      last_name: p.last_name,
+      date_of_birth: p.date_of_birth,
+      display_name: displayName(p.first_name, p.last_name, p.full_name),
       role: p.role as Role,
       status: asStatus(p.status),
       created_at: p.created_at,
@@ -146,42 +158,38 @@ export async function getAdminUserDetail(
 
   const { data: profile } = await admin
     .from("profiles")
-    .select("id, email, full_name, role, status, created_at, updated_at")
+    .select(PROFILE_COLS)
     .eq("id", userId)
     .maybeSingle();
 
   if (!profile) return null;
 
-  const [
-    botRes,
-    tradesRes,
-    signalsRes,
-    equityRes,
-    authRes,
-  ] = await Promise.all([
-    admin.from("bot_configs").select("*").eq("user_id", userId).maybeSingle(),
-    admin
-      .from("trades")
-      .select(
-        "id, pair, side, status, qty, entry_price, exit_price, pnl, opened_at",
-      )
-      .eq("user_id", userId)
-      .order("opened_at", { ascending: false })
-      .limit(40),
-    admin
-      .from("signals")
-      .select("id, pair, side, reason, price, created_at")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(20),
-    admin
-      .from("equity_snapshots")
-      .select("equity, recorded_at")
-      .eq("user_id", userId)
-      .order("recorded_at", { ascending: false })
-      .limit(30),
-    admin.auth.admin.getUserById(userId),
-  ]);
+  const [botRes, tradesRes, signalsRes, equityRes, authRes] = await Promise.all(
+    [
+      admin.from("bot_configs").select("*").eq("user_id", userId).maybeSingle(),
+      admin
+        .from("trades")
+        .select(
+          "id, pair, side, status, qty, entry_price, exit_price, pnl, opened_at",
+        )
+        .eq("user_id", userId)
+        .order("opened_at", { ascending: false })
+        .limit(40),
+      admin
+        .from("signals")
+        .select("id, pair, side, reason, price, created_at")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(20),
+      admin
+        .from("equity_snapshots")
+        .select("equity, recorded_at")
+        .eq("user_id", userId)
+        .order("recorded_at", { ascending: false })
+        .limit(30),
+      admin.auth.admin.getUserById(userId),
+    ],
+  );
 
   let factorsCount = 0;
   try {
@@ -204,6 +212,14 @@ export async function getAdminUserDetail(
     id: profile.id,
     email: profile.email,
     full_name: profile.full_name,
+    first_name: profile.first_name,
+    last_name: profile.last_name,
+    date_of_birth: profile.date_of_birth,
+    display_name: displayName(
+      profile.first_name,
+      profile.last_name,
+      profile.full_name,
+    ),
     role: profile.role as Role,
     status: asStatus(profile.status),
     created_at: profile.created_at,

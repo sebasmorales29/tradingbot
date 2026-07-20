@@ -23,13 +23,27 @@ export default async function AdminUsersPage() {
     error = e instanceof Error ? e.message : "Error cargando usuarios";
   }
 
+  const canCreate = access.can("admin_manage_users");
+
   return (
     <div>
-      <h1 className="font-display text-3xl font-bold text-snow">Usuarios</h1>
-      <p className="mt-2 text-snow/60">
-        Cuentas registradas, roles y métricas. Abre un usuario para editar,
-        resetear acceso o ver su bot y trades.
-      </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="font-display text-3xl font-bold text-snow">Usuarios</h1>
+          <p className="mt-2 text-snow/60">
+            Cuentas registradas, roles y métricas. Edita un usuario para
+            cambiar datos, acceso o ver su bot.
+          </p>
+        </div>
+        {canCreate && (
+          <Link
+            href="/admin/usuarios/nuevo"
+            className="inline-flex h-10 shrink-0 items-center justify-center rounded-lg bg-pulse px-4 text-sm font-semibold text-ink transition hover:bg-pulse/90"
+          >
+            Agregar usuario
+          </Link>
+        )}
+      </div>
 
       {error && (
         <p className="mt-6 rounded-xl border border-red-500/30 bg-red-500/10 px-5 py-4 text-sm text-red-300">
@@ -54,9 +68,7 @@ export default async function AdminUsersPage() {
             {users.map((u) => (
               <tr key={u.id} className="hover:bg-snow/[0.03]">
                 <td className="px-4 py-3">
-                  <p className="font-medium text-snow">
-                    {u.full_name || "—"}
-                  </p>
+                  <p className="font-medium text-snow">{u.display_name}</p>
                   <p className="text-xs text-snow/45">{u.email ?? "sin email"}</p>
                 </td>
                 <td className="px-4 py-3 text-snow/80">{roleLabel(u.role)}</td>
@@ -85,9 +97,9 @@ export default async function AdminUsersPage() {
                 <td className="px-4 py-3 text-right">
                   <Link
                     href={`/admin/usuarios/${u.id}`}
-                    className="text-pulse transition hover:text-pulse/80"
+                    className="inline-flex rounded-md border border-pulse/40 bg-pulse/10 px-3 py-1.5 text-xs font-semibold text-pulse transition hover:bg-pulse/20"
                   >
-                    Ver
+                    Editar
                   </Link>
                 </td>
               </tr>

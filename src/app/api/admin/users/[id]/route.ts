@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getSessionAccess } from "@/lib/auth/session";
 import { getAdminUserDetail } from "@/lib/admin-users";
 import { isRole, type Role } from "@/lib/roles";
+import { isAdult, parseDateOfBirth } from "@/lib/identity";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -45,18 +46,53 @@ export async function PATCH(request: Request, ctx: Ctx) {
   }
 
   const body = (await request.json()) as {
-    full_name?: string;
+    first_name?: string;
+    last_name?: string;
+    date_of_birth?: string | null;
     role?: string;
   };
 
   const patch: {
+    first_name?: string | null;
+    last_name?: string | null;
+    date_of_birth?: string | null;
     full_name?: string | null;
     role?: Role;
     updated_at: string;
   } = { updated_at: new Date().toISOString() };
 
-  if (canManage && "full_name" in body) {
-    patch.full_name = body.full_name?.trim() || null;
+  if (canManage) {
+    if ("first_name" in body) {
+      patch.first_name = body.first_name?.trim() || null;
+    }
+    if ("last_name" in body) {
+      patch.last_name = body.last_name?.trim() || null;
+    }
+    if ("date_of_birth" in body) {
+      if (body.date_of_birth) {
+        const dob = parseDateOfBirth(body.date_of_birth);
+        if (!dob || !isAdult(dob)) {
+          return NextResponse.json(
+            { error: "Fecha de nacimiento inválida o menor de 18" },
+            { status: 400 },
+          );
+        }
+        patch.date_of_birth = body.date_of_birth;
+      } else {
+        patch.date_of_birth = null;
+      }
+    }
+    if ("first_name" in body || "last_name" in body) {
+      const fn =
+        patch.first_name !== undefined
+          ? patch.first_name
+          : body.first_name?.trim() || null;
+      const ln =
+        patch.last_name !== undefined
+          ? patch.last_name
+          : body.last_name?.trim() || null;
+      patch.full_name = [fn, ln].filter(Boolean).join(" ") || null;
+    }
   }
 
   if (canRoles && body.role !== undefined) {

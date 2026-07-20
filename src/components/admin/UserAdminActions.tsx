@@ -3,11 +3,14 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { ROLES, roleLabel, type Role } from "@/lib/roles";
+import { isAdult, parseDateOfBirth } from "@/lib/identity";
 
 type UserShape = {
   id: string;
   email: string | null;
-  full_name: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  date_of_birth: string | null;
   role: Role;
   status: "active" | "suspended";
   factors_count: number;
@@ -25,11 +28,16 @@ export function UserAdminActions({
   isSelf: boolean;
 }) {
   const router = useRouter();
-  const [fullName, setFullName] = useState(user.full_name ?? "");
+  const [firstName, setFirstName] = useState(user.first_name ?? "");
+  const [lastName, setLastName] = useState(user.last_name ?? "");
+  const [dateOfBirth, setDateOfBirth] = useState(user.date_of_birth ?? "");
   const [role, setRole] = useState<Role>(user.role);
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const inputClass =
+    "mt-1 w-full rounded-md border border-snow/15 bg-ink px-3 py-2 text-snow outline-none ring-pulse focus:ring-2";
 
   async function call(
     method: string,
@@ -61,11 +69,29 @@ export function UserAdminActions({
   }
 
   async function saveProfile() {
+    if (canManage && dateOfBirth) {
+      const dob = parseDateOfBirth(dateOfBirth);
+      if (!dob) {
+        setError("Fecha de nacimiento inválida");
+        return;
+      }
+      if (!isAdult(dob)) {
+        setError("Debe ser mayor de 18 años");
+        return;
+      }
+    }
+
     await call(
       "PATCH",
       `/api/admin/users/${user.id}`,
       {
-        full_name: fullName,
+        ...(canManage
+          ? {
+              first_name: firstName,
+              last_name: lastName,
+              date_of_birth: dateOfBirth || null,
+            }
+          : {}),
         ...(canRoles ? { role } : {}),
       },
       "save",
@@ -82,27 +108,45 @@ export function UserAdminActions({
 
   return (
     <section className="mt-10 space-y-6">
-      <h2 className="font-display text-xl font-bold text-snow">Acciones</h2>
+      <h2 className="font-display text-xl font-bold text-snow">Editar</h2>
 
       {(canManage || canRoles) && (
         <div className="rounded-xl border border-snow/10 bg-slate/30 p-5">
-          <h3 className="text-sm font-semibold text-snow">Editar perfil</h3>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2">
             {canManage && (
-              <label className="block text-sm">
-                <span className="text-snow/50">Nombre</span>
-                <input
-                  className="mt-1 w-full rounded-md border border-snow/15 bg-ink px-3 py-2 text-snow outline-none ring-pulse focus:ring-2"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                />
-              </label>
+              <>
+                <label className="block text-sm">
+                  <span className="text-snow/50">Nombre</span>
+                  <input
+                    className={inputClass}
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                  />
+                </label>
+                <label className="block text-sm">
+                  <span className="text-snow/50">Apellidos</span>
+                  <input
+                    className={inputClass}
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                  />
+                </label>
+                <label className="block text-sm sm:col-span-2">
+                  <span className="text-snow/50">Fecha de nacimiento</span>
+                  <input
+                    type="date"
+                    className={inputClass}
+                    value={dateOfBirth}
+                    onChange={(e) => setDateOfBirth(e.target.value)}
+                  />
+                </label>
+              </>
             )}
             {canRoles && (
               <label className="block text-sm">
                 <span className="text-snow/50">Rol</span>
                 <select
-                  className="mt-1 w-full rounded-md border border-snow/15 bg-ink px-3 py-2 text-snow outline-none ring-pulse focus:ring-2"
+                  className={inputClass}
                   value={role}
                   disabled={isSelf}
                   onChange={(e) => setRole(e.target.value as Role)}

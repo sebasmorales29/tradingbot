@@ -45,7 +45,9 @@ export default async function AdminUserDetailPage({
       <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="font-display text-3xl font-bold text-snow">
-            {user.full_name || user.email || "Usuario"}
+            {user.display_name !== "—"
+              ? user.display_name
+              : user.email || "Usuario"}
           </h1>
           <p className="mt-1 text-sm text-snow/55">{user.email}</p>
           <p className="mt-1 text-xs text-snow/40">
@@ -86,7 +88,9 @@ export default async function AdminUserDetailPage({
         user={{
           id: user.id,
           email: user.email,
-          full_name: user.full_name,
+          first_name: user.first_name,
+          last_name: user.last_name,
+          date_of_birth: user.date_of_birth,
           role: user.role,
           status: user.status,
           factors_count: user.factors_count,
@@ -99,7 +103,12 @@ export default async function AdminUserDetailPage({
       <section className="mt-10">
         <h2 className="font-display text-xl font-bold text-snow">Cuenta</h2>
         <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
-          <Info label="Nombre" value={user.full_name || "—"} />
+          <Info label="Nombre" value={user.first_name || "—"} />
+          <Info label="Apellidos" value={user.last_name || "—"} />
+          <Info
+            label="Fecha de nacimiento"
+            value={user.date_of_birth || "—"}
+          />
           <Info label="Email" value={user.email || "—"} />
           <Info
             label="Email confirmado"

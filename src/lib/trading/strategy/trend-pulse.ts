@@ -1,25 +1,51 @@
 import { atr, atrPercent, ema } from "../indicators";
 import type { Candle, Pair, StrategySignal } from "../types";
 
-const FAST = 20;
-const SLOW = 50;
-const ATR_PERIOD = 14;
-const STOP_ATR = 1.5;
-const TP_ATR = 2.5;
-/** Avoid dead markets and extreme chaos */
-const MIN_ATR_PCT = 0.4;
-const MAX_ATR_PCT = 6;
+export type TrendPulseParams = {
+  name: string;
+  timeframe: string;
+  fast: number;
+  slow: number;
+  atrPeriod: number;
+  stopAtr: number;
+  tpAtr: number;
+  minAtrPct: number;
+  maxAtrPct: number;
+};
+
+export const DEFAULT_TREND_PULSE: TrendPulseParams = {
+  name: "Trend Pulse",
+  timeframe: "4h",
+  fast: 20,
+  slow: 50,
+  atrPeriod: 14,
+  stopAtr: 1.5,
+  tpAtr: 2.5,
+  minAtrPct: 0.4,
+  maxAtrPct: 6,
+};
 
 /**
  * Trend Pulse — swing long-only on 4h.
- * Entry: EMA20 crosses above EMA50, price above EMA50, ATR% regime OK.
+ * Entry: EMA fast crosses above EMA slow, price above slow, ATR% regime OK.
  * Exit signal: bearish EMA cross (stops/TP also managed by engine).
  */
 export function evaluateTrendPulse(
   pair: Pair,
   candles: Candle[],
   hasOpenLong: boolean,
+  params: TrendPulseParams = DEFAULT_TREND_PULSE,
 ): StrategySignal | null {
+  const {
+    fast: FAST,
+    slow: SLOW,
+    atrPeriod: ATR_PERIOD,
+    stopAtr: STOP_ATR,
+    tpAtr: TP_ATR,
+    minAtrPct: MIN_ATR_PCT,
+    maxAtrPct: MAX_ATR_PCT,
+  } = params;
+
   if (candles.length < SLOW + 5) return null;
 
   const closes = candles.map((c) => c.close);
@@ -77,14 +103,5 @@ export function evaluateTrendPulse(
   return null;
 }
 
-export const TREND_PULSE_META = {
-  name: "Trend Pulse",
-  timeframe: "4h",
-  fast: FAST,
-  slow: SLOW,
-  atrPeriod: ATR_PERIOD,
-  stopAtr: STOP_ATR,
-  tpAtr: TP_ATR,
-  minAtrPct: MIN_ATR_PCT,
-  maxAtrPct: MAX_ATR_PCT,
-} as const;
+/** @deprecated usar DEFAULT_TREND_PULSE / loadTrendPulseParams */
+export const TREND_PULSE_META = DEFAULT_TREND_PULSE;
