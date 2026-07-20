@@ -36,7 +36,19 @@ type Defaults = {
   params: TrendPulseParams;
 };
 
-const TICK_INTERVAL_MS = 20_000;
+const TICK_OPTIONS = [
+  { value: "5000", label: "5s" },
+  { value: "10000", label: "10s" },
+  { value: "15000", label: "15s" },
+  { value: "20000", label: "20s" },
+  { value: "30000", label: "30s" },
+  { value: "60000", label: "60s" },
+] as const;
+
+function formatTickLabel(ms: number): string {
+  const s = Math.round(ms / 1000);
+  return `${s}s`;
+}
 
 export function SandboxClient({
   initialDefaults,
@@ -50,6 +62,7 @@ export function SandboxClient({
   const [equity, setEquity] = useState(String(initialDefaults.startingEquity));
   const [risk, setRisk] = useState(String(initialDefaults.riskPercent));
   const [timeframe, setTimeframe] = useState(initialDefaults.timeframe);
+  const [tickMs, setTickMs] = useState(20_000);
   const [params, setParams] = useState(initialDefaults.params);
   const [busy, setBusy] = useState(false);
   const [liveOn, setLiveOn] = useState(false);
@@ -105,14 +118,14 @@ export function SandboxClient({
     toast({
       tone: "success",
       title: "Bot en vivo (paper)",
-      message:
-        "Evalúa el mercado real cada 20s con tus parámetros. No es un replay fijo.",
+      message: `Evalúa el mercado real cada ${formatTickLabel(tickMs)} con tus parámetros. No es un replay fijo.`,
     });
   }, [
     pair,
     equity,
     risk,
     timeframe,
+    tickMs,
     params,
     canEdit,
     toast,
@@ -152,9 +165,9 @@ export function SandboxClient({
     const id = window.setInterval(() => {
       if (!stateRef.current) return;
       void tickOnce();
-    }, TICK_INTERVAL_MS);
+    }, tickMs);
     return () => window.clearInterval(id);
-  }, [liveOn, state?.sessionId, tickOnce]);
+  }, [liveOn, state?.sessionId, tickOnce, tickMs]);
 
   useEffect(() => {
     const el = logRef.current;
@@ -241,7 +254,7 @@ export function SandboxClient({
         <h2 className="font-display text-lg font-bold text-snow">
           Sesión paper
         </h2>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <div className="block text-sm">
             <span className="text-snow/50">Par</span>
             <Select
@@ -269,6 +282,16 @@ export function SandboxClient({
                 { value: "1h", label: "1h" },
                 { value: "4h", label: "4h (como producción)" },
               ]}
+            />
+          </div>
+          <div className="block text-sm">
+            <span className="text-snow/50">Intervalo de tick</span>
+            <Select
+              className="mt-1"
+              value={String(tickMs)}
+              onChange={(v) => setTickMs(Number(v))}
+              aria-label="Intervalo de tick"
+              options={[...TICK_OPTIONS]}
             />
           </div>
           <label className="block text-sm">
@@ -373,7 +396,9 @@ export function SandboxClient({
                   liveOn ? "animate-pulse bg-emerald-400" : "bg-snow/40"
                 }`}
               />
-              {liveOn ? "Bot activo · tick cada 20s" : "Bot en pausa"}
+              {liveOn
+                ? `Bot activo · tick cada ${formatTickLabel(tickMs)}`
+                : "Bot en pausa"}
             </span>
             <button
               type="button"
