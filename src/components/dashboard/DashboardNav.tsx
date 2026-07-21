@@ -50,12 +50,12 @@ export function DashboardNav({ canControlBot }: { canControlBot: boolean }) {
           <Link
             key={item.href}
             href={item.href}
-            className={`whitespace-nowrap rounded-lg px-3 py-2 text-sm transition ${
+            className={`whitespace-nowrap rounded-md px-3 py-2 text-sm transition ${
               active
                 ? item.key === "control"
-                  ? "bg-red-500/15 font-medium text-red-300"
-                  : "bg-pulse/15 font-medium text-pulse"
-                : "text-snow/55 hover:bg-snow/5 hover:text-snow"
+                  ? "font-medium text-red-300"
+                  : "font-medium text-pulse"
+                : "text-snow/55 hover:text-snow"
             }`}
           >
             {labels[item.key]}

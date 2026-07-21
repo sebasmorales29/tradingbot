@@ -63,6 +63,7 @@ export function SandboxClient({
   const [risk, setRisk] = useState(String(initialDefaults.riskPercent));
   const [timeframe, setTimeframe] = useState(initialDefaults.timeframe);
   const [params, setParams] = useState(initialDefaults.params);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const logRef = useRef<HTMLUListElement>(null);
   const restoredRef = useRef(false);
 
@@ -160,7 +161,7 @@ export function SandboxClient({
   }, [state, candles]);
 
   const inputClass =
-    "mt-1 w-full rounded-md border border-snow/15 bg-ink px-3 py-2 text-sm text-snow outline-none ring-pulse focus:ring-2 disabled:opacity-50";
+    "h-11 w-full rounded-lg border border-snow/20 bg-[#2a3038] px-3 text-sm text-snow outline-none ring-pulse focus:ring-2 disabled:opacity-50";
 
   async function onStart() {
     const result = await startSession({
@@ -226,11 +227,12 @@ export function SandboxClient({
         <h2 className="font-display text-lg font-bold text-snow">
           {t.admin.sessionTitle}
         </h2>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-          <div className="block text-sm">
-            <span className="text-snow/50">{t.admin.pair}</span>
+        <div className="mt-4 grid items-end gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          <div className="min-w-0 text-sm">
+            <span className="mb-1.5 block min-h-[2.75rem] leading-snug text-snow/50">
+              {t.admin.pair}
+            </span>
             <Select
-              className="mt-1"
               value={pair}
               onChange={(v) => setPair(v as Pair)}
               aria-label={t.admin.pair}
@@ -241,10 +243,11 @@ export function SandboxClient({
               ]}
             />
           </div>
-          <div className="block text-sm">
-            <span className="text-snow/50">{t.admin.timeframe}</span>
+          <div className="min-w-0 text-sm">
+            <span className="mb-1.5 block min-h-[2.75rem] leading-snug text-snow/50">
+              {t.admin.timeframe}
+            </span>
             <Select
-              className="mt-1"
               value={timeframe}
               onChange={setTimeframe}
               aria-label={t.admin.timeframe}
@@ -256,18 +259,21 @@ export function SandboxClient({
               ]}
             />
           </div>
-          <div className="block text-sm">
-            <span className="text-snow/50">{t.admin.tickInterval}</span>
+          <div className="min-w-0 text-sm">
+            <span className="mb-1.5 block min-h-[2.75rem] leading-snug text-snow/50">
+              {t.admin.tickInterval}
+            </span>
             <Select
-              className="mt-1"
               value={String(tickMs)}
               onChange={(v) => setTickMs(Number(v))}
               aria-label={t.admin.tickInterval}
               options={[...TICK_OPTIONS]}
             />
           </div>
-          <label className="block text-sm">
-            <span className="text-snow/50">{t.admin.startingEquity}</span>
+          <label className="min-w-0 block text-sm">
+            <span className="mb-1.5 block min-h-[2.75rem] leading-snug text-snow/50">
+              {t.admin.startingEquity}
+            </span>
             <input
               type="number"
               className={inputClass}
@@ -276,8 +282,10 @@ export function SandboxClient({
               onChange={(e) => setEquity(e.target.value)}
             />
           </label>
-          <label className="block text-sm">
-            <span className="text-snow/50">{t.admin.riskPct}</span>
+          <label className="min-w-0 block text-sm">
+            <span className="mb-1.5 block min-h-[2.75rem] leading-snug text-snow/50">
+              {t.admin.riskPct}
+            </span>
             <input
               type="number"
               step="0.05"
@@ -286,13 +294,13 @@ export function SandboxClient({
               onChange={(e) => setRisk(e.target.value)}
             />
           </label>
-          <div className="flex items-end gap-2">
+          <div className="flex min-w-0 gap-2">
             {!state ? (
               <button
                 type="button"
                 disabled={busy || !ready}
                 onClick={() => void onStart()}
-                className="h-[42px] w-full rounded-lg bg-pulse px-4 text-sm font-semibold text-ink transition hover:bg-pulse/90 disabled:opacity-50"
+                className="h-11 w-full rounded-lg bg-pulse px-4 text-sm font-semibold text-ink transition hover:bg-pulse/90 disabled:opacity-50"
               >
                 {busy ? t.admin.connecting : t.admin.startLive}
               </button>
@@ -302,7 +310,7 @@ export function SandboxClient({
                   type="button"
                   disabled={busy}
                   onClick={() => setLiveOn(!liveOn)}
-                  className={`h-[42px] flex-1 rounded-lg px-3 text-sm font-semibold transition disabled:opacity-50 ${
+                  className={`h-11 flex-1 rounded-lg px-3 text-sm font-semibold transition disabled:opacity-50 ${
                     liveOn
                       ? "border border-amber-400/40 bg-amber-400/15 text-amber-200"
                       : "bg-pulse text-ink hover:bg-pulse/90"
@@ -314,7 +322,7 @@ export function SandboxClient({
                   type="button"
                   disabled={busy}
                   onClick={() => void onTick()}
-                  className="h-[42px] rounded-lg border border-snow/20 px-3 text-sm text-snow/85 transition hover:bg-snow/5 disabled:opacity-50"
+                  className="h-11 rounded-lg border border-snow/20 px-3 text-sm text-snow/85 transition hover:bg-snow/5 disabled:opacity-50"
                 >
                   {t.admin.tick}
                 </button>
@@ -324,33 +332,61 @@ export function SandboxClient({
         </div>
 
         {canEdit && (
-          <div className="mt-4 grid gap-3 border-t border-snow/10 pt-4 sm:grid-cols-3 lg:grid-cols-6">
-            {(
-              [
-                ["fast", "EMA fast"],
-                ["slow", "EMA slow"],
-                ["atrPeriod", "ATR period"],
-                ["stopAtr", "Stop ATR"],
-                ["tpAtr", "TP ATR"],
-                ["minAtrPct", "Min ATR%"],
-              ] as const
-            ).map(([key, label]) => (
-              <label key={key} className="block text-xs">
-                <span className="text-snow/45">{label}</span>
-                <input
-                  type="number"
-                  step="any"
-                  className={inputClass}
-                  value={params[key]}
-                  onChange={(e) =>
-                    setParams((p) => ({
-                      ...p,
-                      [key]: Number(e.target.value),
-                    }))
-                  }
+          <div className="mt-4 border-t border-snow/10 pt-3">
+            <button
+              type="button"
+              onClick={() => setAdvancedOpen((v) => !v)}
+              className="inline-flex items-center gap-1.5 text-sm text-snow/55 transition hover:text-snow"
+              aria-expanded={advancedOpen}
+            >
+              <svg
+                viewBox="0 0 16 16"
+                className={`h-3.5 w-3.5 transition ${
+                  advancedOpen ? "rotate-180" : ""
+                }`}
+                fill="none"
+                aria-hidden
+              >
+                <path
+                  d="M4 6l4 4 4-4"
+                  stroke="currentColor"
+                  strokeWidth="1.75"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                 />
-              </label>
-            ))}
+              </svg>
+              {t.admin.advancedOptions}
+            </button>
+            {advancedOpen && (
+              <div className="mt-3 grid items-end gap-3 sm:grid-cols-3 lg:grid-cols-6">
+                {(
+                  [
+                    ["fast", "EMA fast"],
+                    ["slow", "EMA slow"],
+                    ["atrPeriod", "ATR period"],
+                    ["stopAtr", "Stop ATR"],
+                    ["tpAtr", "TP ATR"],
+                    ["minAtrPct", "Min ATR%"],
+                  ] as const
+                ).map(([key, label]) => (
+                  <label key={key} className="min-w-0 block text-xs">
+                    <span className="mb-1.5 block text-snow/45">{label}</span>
+                    <input
+                      type="number"
+                      step="any"
+                      className={inputClass}
+                      value={params[key]}
+                      onChange={(e) =>
+                        setParams((p) => ({
+                          ...p,
+                          [key]: Number(e.target.value),
+                        }))
+                      }
+                    />
+                  </label>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

@@ -83,10 +83,10 @@ export function AdminNav({
           <Link
             key={item.href}
             href={item.href}
-            className={`flex items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 text-sm transition ${
+            className={`flex items-center gap-2 whitespace-nowrap rounded-md px-3 py-2 text-sm transition ${
               active
-                ? "bg-pulse/15 font-medium text-pulse"
-                : "text-snow/55 hover:bg-snow/5 hover:text-snow"
+                ? "font-medium text-pulse"
+                : "text-snow/55 hover:text-snow"
             }`}
           >
             {item.label}

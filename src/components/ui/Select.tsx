@@ -151,7 +151,7 @@ export function Select({
           if (disabled) return;
           setOpen((v) => !v);
         }}
-        className={`flex w-full items-center justify-between gap-2 rounded-lg border bg-[#2a3038] px-3 py-2.5 text-left text-sm outline-none transition disabled:cursor-not-allowed disabled:opacity-50 ${
+        className={`flex h-11 w-full items-center justify-between gap-2 rounded-lg border bg-[#2a3038] px-3 text-left text-sm outline-none transition disabled:cursor-not-allowed disabled:opacity-50 ${
           open
             ? "border-pulse ring-2 ring-pulse/30"
             : "border-snow/20 hover:border-snow/35"
