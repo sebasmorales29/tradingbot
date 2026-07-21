@@ -7,6 +7,9 @@ import { createClient } from "@/lib/supabase/client";
 import { useT } from "@/components/i18n/T";
 import { isAdult, parseDateOfBirth } from "@/lib/identity";
 
+const fieldClass =
+  "h-12 w-full rounded-lg border border-snow/12 bg-[#2a3038] px-4 text-sm text-snow outline-none transition placeholder:text-snow/30 focus:border-pulse/50 focus:ring-2 focus:ring-pulse/30";
+
 export function RegisterForm() {
   const t = useT();
   const router = useRouter();
@@ -66,14 +69,14 @@ export function RegisterForm() {
     setInfo(true);
   }
 
-  const inputClass =
-    "w-full rounded-md border border-snow/15 bg-ink/60 px-4 py-3 text-snow outline-none ring-pulse placeholder:text-snow/35 focus:ring-2";
-
   return (
-    <form onSubmit={onSubmit} className="flex w-full max-w-sm flex-col gap-4">
-      <div className="grid gap-4 sm:grid-cols-2">
+    <form onSubmit={onSubmit} className="flex w-full flex-col gap-5">
+      <div className="grid gap-5 sm:grid-cols-2">
         <div>
-          <label htmlFor="firstName" className="mb-1.5 block text-sm text-snow/70">
+          <label
+            htmlFor="firstName"
+            className="mb-2 block text-sm text-snow/65"
+          >
             {t.auth.firstName}
           </label>
           <input
@@ -83,11 +86,11 @@ export function RegisterForm() {
             autoComplete="given-name"
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
-            className={inputClass}
+            className={fieldClass}
           />
         </div>
         <div>
-          <label htmlFor="lastName" className="mb-1.5 block text-sm text-snow/70">
+          <label htmlFor="lastName" className="mb-2 block text-sm text-snow/65">
             {t.auth.lastName}
           </label>
           <input
@@ -97,13 +100,13 @@ export function RegisterForm() {
             autoComplete="family-name"
             value={lastName}
             onChange={(e) => setLastName(e.target.value)}
-            className={inputClass}
+            className={fieldClass}
           />
         </div>
       </div>
 
       <div>
-        <label htmlFor="dob" className="mb-1.5 block text-sm text-snow/70">
+        <label htmlFor="dob" className="mb-2 block text-sm text-snow/65">
           {t.auth.dateOfBirth}
         </label>
         <input
@@ -112,13 +115,13 @@ export function RegisterForm() {
           required
           value={dateOfBirth}
           onChange={(e) => setDateOfBirth(e.target.value)}
-          className={inputClass}
+          className={`${fieldClass} [color-scheme:dark]`}
         />
         <p className="mt-1.5 text-xs text-snow/40">{t.auth.ageHint}</p>
       </div>
 
       <div>
-        <label htmlFor="email" className="mb-1.5 block text-sm text-snow/70">
+        <label htmlFor="email" className="mb-2 block text-sm text-snow/65">
           {t.auth.email}
         </label>
         <input
@@ -128,12 +131,12 @@ export function RegisterForm() {
           autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className={inputClass}
+          className={fieldClass}
           placeholder="you@email.com"
         />
       </div>
       <div>
-        <label htmlFor="password" className="mb-1.5 block text-sm text-snow/70">
+        <label htmlFor="password" className="mb-2 block text-sm text-snow/65">
           {t.auth.password}
         </label>
         <input
@@ -144,18 +147,18 @@ export function RegisterForm() {
           autoComplete="new-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className={inputClass}
+          className={fieldClass}
           placeholder={t.auth.passwordPlaceholder}
         />
       </div>
 
       {error && (
-        <p className="rounded-md border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+        <p className="rounded-lg border border-red-400/25 bg-red-500/10 px-3 py-2.5 text-sm text-red-300">
           {error}
         </p>
       )}
       {info && (
-        <p className="rounded-md border border-pulse/40 bg-ink/50 px-3 py-2 text-sm text-pulse">
+        <p className="rounded-lg border border-pulse/30 bg-pulse/10 px-3 py-2.5 text-sm text-pulse">
           {t.auth.confirmEmail}
         </p>
       )}
@@ -163,14 +166,17 @@ export function RegisterForm() {
       <button
         type="submit"
         disabled={loading}
-        className="rounded-md bg-pulse px-5 py-3 text-sm font-bold text-ink transition hover:bg-pulse-dim hover:text-snow disabled:opacity-60"
+        className="mt-1 h-12 rounded-lg bg-pulse text-sm font-bold text-ink transition hover:bg-pulse-dim hover:text-snow disabled:opacity-60"
       >
         {loading ? t.auth.creating : t.auth.create}
       </button>
 
-      <p className="text-center text-sm text-snow/55">
+      <p className="text-center text-sm text-snow/50">
         {t.auth.hasAccount}{" "}
-        <Link href="/login" className="text-pulse hover:underline">
+        <Link
+          href="/login"
+          className="font-medium text-pulse transition hover:text-pulse-dim"
+        >
           {t.auth.loginLink}
         </Link>
       </p>

@@ -6,6 +6,9 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useT } from "@/components/i18n/T";
 
+const fieldClass =
+  "h-12 w-full rounded-lg border border-snow/12 bg-[#2a3038] px-4 text-sm text-snow outline-none transition placeholder:text-snow/30 focus:border-pulse/50 focus:ring-2 focus:ring-pulse/30";
+
 export function LoginForm() {
   const t = useT();
   const router = useRouter();
@@ -37,23 +40,24 @@ export function LoginForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="flex w-full max-w-sm flex-col gap-4">
+    <form onSubmit={onSubmit} className="flex w-full flex-col gap-5">
       <div>
-        <label htmlFor="email" className="mb-1.5 block text-sm text-snow/70">
+        <label htmlFor="email" className="mb-2 block text-sm text-snow/65">
           {t.auth.email}
         </label>
         <input
           id="email"
           type="email"
           required
+          autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full rounded-md border border-snow/15 bg-ink/60 px-4 py-3 text-snow outline-none ring-pulse placeholder:text-snow/35 focus:ring-2"
+          className={fieldClass}
           placeholder="you@email.com"
         />
       </div>
       <div>
-        <label htmlFor="password" className="mb-1.5 block text-sm text-snow/70">
+        <label htmlFor="password" className="mb-2 block text-sm text-snow/65">
           {t.auth.password}
         </label>
         <input
@@ -61,15 +65,16 @@ export function LoginForm() {
           type="password"
           required
           minLength={6}
+          autoComplete="current-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="w-full rounded-md border border-snow/15 bg-ink/60 px-4 py-3 text-snow outline-none ring-pulse placeholder:text-snow/35 focus:ring-2"
+          className={fieldClass}
           placeholder="••••••••"
         />
       </div>
 
       {error && (
-        <p className="rounded-md border border-red-400/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+        <p className="rounded-lg border border-red-400/25 bg-red-500/10 px-3 py-2.5 text-sm text-red-300">
           {error}
         </p>
       )}
@@ -77,14 +82,17 @@ export function LoginForm() {
       <button
         type="submit"
         disabled={loading}
-        className="rounded-md bg-pulse px-5 py-3 text-sm font-bold text-ink transition hover:bg-pulse-dim hover:text-snow disabled:opacity-60"
+        className="mt-1 h-12 rounded-lg bg-pulse text-sm font-bold text-ink transition hover:bg-pulse-dim hover:text-snow disabled:opacity-60"
       >
         {loading ? t.auth.entering : t.auth.enter}
       </button>
 
-      <p className="text-center text-sm text-snow/55">
+      <p className="text-center text-sm text-snow/50">
         {t.auth.noAccount}{" "}
-        <Link href="/registro" className="text-pulse hover:underline">
+        <Link
+          href="/registro"
+          className="font-medium text-pulse transition hover:text-pulse-dim"
+        >
           {t.auth.registerLink}
         </Link>
       </p>

@@ -75,6 +75,11 @@ export const dictionaries = {
       back: "Volver al inicio",
       lost: "¿Te perdiste?",
       home: "Ir a la página principal",
+      brandLine: "Opera con método, no con impulso.",
+      brandHint:
+        "Bot de Binance Spot con reglas claras, riesgo fijo y paper trading antes del capital real.",
+      loginBadge: "Acceso al panel",
+      registerBadge: "Empieza en paper",
       loginTitle: "Iniciar sesión",
       loginSub: "Entra a tu panel para controlar el bot.",
       registerTitle: "Crear cuenta",
@@ -486,6 +491,11 @@ export const dictionaries = {
       back: "Back to home",
       lost: "Lost?",
       home: "Go to homepage",
+      brandLine: "Trade with method, not impulse.",
+      brandHint:
+        "A Binance Spot bot with clear rules, fixed risk, and paper trading before real capital.",
+      loginBadge: "Dashboard access",
+      registerBadge: "Start on paper",
       loginTitle: "Log in",
       loginSub: "Enter your dashboard to control the bot.",
       registerTitle: "Create account",
