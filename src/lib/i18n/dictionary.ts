@@ -341,8 +341,7 @@ export const dictionaries = {
       exportLivePdf: "Descargar sesión actual",
       exportingPdf: "Descargando…",
       pdfExportError: "No se pudo exportar el PDF",
-      pdfPopupBlocked:
-        "Permite ventanas emergentes para abrir el reporte PDF.",
+      pdfPopupBlocked: "No se pudo descargar el PDF.",
       sandboxPdfTitle: "Informe de sesión Sandbox",
       sandboxPdfOverview: "Overview paper trading",
       sessionIdLabel: "ID de sesión",
