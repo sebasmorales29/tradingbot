@@ -98,10 +98,10 @@ export function AdminNav({
                 type="button"
                 onClick={() => setSandboxOpen((o) => !o)}
                 aria-expanded={sandboxOpen}
-                className={`flex items-center justify-between gap-2 whitespace-nowrap rounded-md px-3 py-2 text-left text-sm transition ${
+                className={`flex items-center justify-between gap-2 whitespace-nowrap rounded-md px-3 py-2 text-left text-sm transition md:rounded-none md:rounded-r-md ${
                   sandboxSectionActive
-                    ? "font-medium text-pulse"
-                    : "text-snow/55 hover:text-snow"
+                    ? "bg-pulse/10 font-medium text-pulse md:border-l-2 md:border-pulse md:pl-[10px]"
+                    : "text-snow/55 hover:bg-snow/[0.04] hover:text-snow md:border-l-2 md:border-transparent md:pl-[10px]"
                 }`}
               >
                 <span className="flex items-center gap-2">
@@ -157,10 +157,10 @@ export function AdminNav({
           <Link
             key={item.href}
             href={item.href}
-            className={`whitespace-nowrap rounded-md px-3 py-2 text-sm transition ${
+            className={`whitespace-nowrap rounded-md px-3 py-2 text-sm transition md:rounded-none md:rounded-r-md ${
               active
-                ? "font-medium text-pulse"
-                : "text-snow/55 hover:text-snow"
+                ? "bg-pulse/10 font-medium text-pulse md:border-l-2 md:border-pulse md:pl-[10px]"
+                : "text-snow/55 hover:bg-snow/[0.04] hover:text-snow md:border-l-2 md:border-transparent md:pl-[10px]"
             }`}
           >
             {item.label}
