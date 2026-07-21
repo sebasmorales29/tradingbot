@@ -103,7 +103,157 @@ export async function saveSandboxSession(input: {
   if (error) throw new Error(error.message);
 }
 
+export type SandboxSessionLogSummary = {
+  id: string;
+  sessionId: string;
+  pair: string;
+  timeframe: string;
+  startingEquity: number;
+  finalEquity: number;
+  pnl: number;
+  tradesCount: number;
+  wins: number;
+  losses: number;
+  ticks: number;
+  tickIntervalMs: number;
+  riskPercent: number;
+  startedAt: string;
+  endedAt: string;
+};
+
+export type SandboxSessionLogDetail = SandboxSessionLogSummary & {
+  state: LiveSandboxState;
+  market: SandboxMarket | null;
+};
+
+function markEquityFromState(
+  state: LiveSandboxState,
+  market: SandboxMarket | null,
+): number {
+  if (!state.position || !market) return state.equity;
+  return state.equity + (market.price - state.position.entry) * state.position.qty;
+}
+
+/** Guarda un snapshot en el historial de Logs (no borra la sesión activa). */
+export async function archiveSandboxSession(
+  userId: string,
+  session: PersistedSandboxSession,
+): Promise<string> {
+  const admin = createAdminClient();
+  const state = normalizeState(session.state);
+  const finalEquity = markEquityFromState(state, session.market);
+  const wins = state.closedTrades.filter((t) => t.pnl > 0).length;
+  const losses = state.closedTrades.filter((t) => t.pnl <= 0).length;
+  const now = new Date().toISOString();
+
+  const { data, error } = await admin
+    .from("sandbox_session_logs")
+    .insert({
+      user_id: userId,
+      session_id: state.sessionId,
+      pair: state.pair,
+      timeframe: state.timeframe,
+      starting_equity: state.startingEquity,
+      final_equity: finalEquity,
+      pnl: finalEquity - state.startingEquity,
+      trades_count: state.closedTrades.length,
+      wins,
+      losses,
+      ticks: state.tickCount,
+      tick_interval_ms: session.tickIntervalMs,
+      risk_percent: state.riskPercent,
+      state,
+      market: session.market,
+      started_at: state.startedAt,
+      ended_at: now,
+    })
+    .select("id")
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data.id as string;
+}
+
+export async function listSandboxSessionLogs(
+  userId: string,
+  limit = 50,
+): Promise<SandboxSessionLogSummary[]> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("sandbox_session_logs")
+    .select(
+      "id, session_id, pair, timeframe, starting_equity, final_equity, pnl, trades_count, wins, losses, ticks, tick_interval_ms, risk_percent, started_at, ended_at",
+    )
+    .eq("user_id", userId)
+    .order("ended_at", { ascending: false })
+    .limit(limit);
+
+  if (error) throw new Error(error.message);
+
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    sessionId: row.session_id,
+    pair: row.pair,
+    timeframe: row.timeframe,
+    startingEquity: Number(row.starting_equity),
+    finalEquity: Number(row.final_equity),
+    pnl: Number(row.pnl),
+    tradesCount: row.trades_count,
+    wins: row.wins,
+    losses: row.losses,
+    ticks: row.ticks,
+    tickIntervalMs: row.tick_interval_ms,
+    riskPercent: Number(row.risk_percent),
+    startedAt: row.started_at,
+    endedAt: row.ended_at,
+  }));
+}
+
+export async function getSandboxSessionLog(
+  userId: string,
+  logId: string,
+): Promise<SandboxSessionLogDetail | null> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("sandbox_session_logs")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("id", logId)
+    .maybeSingle();
+
+  if (error || !data) return null;
+
+  return {
+    id: data.id,
+    sessionId: data.session_id,
+    pair: data.pair,
+    timeframe: data.timeframe,
+    startingEquity: Number(data.starting_equity),
+    finalEquity: Number(data.final_equity),
+    pnl: Number(data.pnl),
+    tradesCount: data.trades_count,
+    wins: data.wins,
+    losses: data.losses,
+    ticks: data.ticks,
+    tickIntervalMs: data.tick_interval_ms,
+    riskPercent: Number(data.risk_percent),
+    startedAt: data.started_at,
+    endedAt: data.ended_at,
+    state: normalizeState(data.state as LiveSandboxState),
+    market: (data.market as SandboxMarket | null) ?? null,
+  };
+}
+
 export async function stopSandboxSession(userId: string): Promise<void> {
+  const existing = await loadSandboxSession(userId);
+  if (existing) {
+    try {
+      await archiveSandboxSession(userId, existing);
+    } catch (e) {
+      console.error("[sandbox-archive]", e);
+    }
+  }
+
   const admin = createAdminClient();
   await admin
     .from("sandbox_sessions")

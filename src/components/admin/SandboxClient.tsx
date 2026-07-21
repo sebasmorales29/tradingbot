@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { LineChart } from "@/components/admin/SandboxCharts";
 import { AdminStat } from "@/components/admin/AdminStat";
+import { SandboxSessionLogs } from "@/components/admin/SandboxSessionLogs";
 import { useSandboxSession } from "@/components/admin/SandboxSessionProvider";
 import { useToast } from "@/components/ui/Toast";
 import { Select } from "@/components/ui/Select";
@@ -64,6 +65,7 @@ export function SandboxClient({
   const [timeframe, setTimeframe] = useState(initialDefaults.timeframe);
   const [params, setParams] = useState(initialDefaults.params);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [logsRefreshKey, setLogsRefreshKey] = useState(0);
   const logRef = useRef<HTMLUListElement>(null);
   const restoredRef = useRef(false);
 
@@ -187,6 +189,7 @@ export function SandboxClient({
         formatTickLabel(tickMs),
       ),
     });
+    setLogsRefreshKey((k) => k + 1);
   }
 
   async function onTick() {
@@ -413,7 +416,12 @@ export function SandboxClient({
             </span>
             <button
               type="button"
-              onClick={() => void stopSession()}
+              onClick={() => {
+                void (async () => {
+                  await stopSession();
+                  setLogsRefreshKey((k) => k + 1);
+                })();
+              }}
               className="rounded-md border border-red-400/30 px-2.5 py-1 text-red-300 transition hover:bg-red-500/10"
             >
               {t.admin.closeSession}
@@ -671,6 +679,13 @@ export function SandboxClient({
           </div>
         </>
       )}
+
+      <SandboxSessionLogs
+        activeState={state}
+        activeMarket={market}
+        activeTickMs={tickMs}
+        refreshKey={logsRefreshKey}
+      />
     </div>
   );
 }

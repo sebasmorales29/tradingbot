@@ -9,6 +9,9 @@ import {
   type LiveSandboxState,
 } from "@/lib/trading/live-sandbox";
 import {
+  archiveSandboxSession,
+  getSandboxSessionLog,
+  listSandboxSessionLogs,
   loadSandboxSession,
   patchSandboxSession,
   runPersistedSandboxTick,
@@ -55,6 +58,37 @@ export async function GET(request: Request) {
   }
 
   localeFromCookieHeader(request.headers.get("cookie"));
+
+  const url = new URL(request.url);
+  const view = url.searchParams.get("view");
+  const logId = url.searchParams.get("logId");
+
+  if (view === "logs") {
+    try {
+      const logs = await listSandboxSessionLogs(access.user.id);
+      return NextResponse.json({ logs });
+    } catch (e) {
+      return NextResponse.json(
+        { error: e instanceof Error ? e.message : "Error listando logs" },
+        { status: 500 },
+      );
+    }
+  }
+
+  if (logId) {
+    try {
+      const log = await getSandboxSessionLog(access.user.id, logId);
+      if (!log) {
+        return NextResponse.json({ error: "Log no encontrado" }, { status: 404 });
+      }
+      return NextResponse.json({ log });
+    } catch (e) {
+      return NextResponse.json(
+        { error: e instanceof Error ? e.message : "Error cargando log" },
+        { status: 500 },
+      );
+    }
+  }
 
   const params = await loadTrendPulseParams();
   let active = null;
@@ -184,6 +218,17 @@ export async function POST(request: Request) {
       }
 
       const params = await resolveParams(access, body.params);
+
+      // Si ya hay sesión activa, archivar antes de reemplazar
+      const previous = await loadSandboxSession(access.user.id);
+      if (previous) {
+        try {
+          await archiveSandboxSession(access.user.id, previous);
+        } catch (e) {
+          console.error("[sandbox-archive-on-start]", e);
+        }
+      }
+
       const state = createLiveSession({
         pair: body.pair,
         timeframe,
