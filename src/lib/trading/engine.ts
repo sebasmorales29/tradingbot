@@ -1,4 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Locale } from "@/lib/i18n/dictionary";
+import { getStrategyCopy } from "@/lib/i18n/strategy-copy";
 import type { Database } from "@/lib/supabase/database.types";
 import { fetchOHLCV, fetchTickerPrice } from "./market";
 import { atr, higherTimeframe } from "./indicators";
@@ -31,7 +33,10 @@ function todayStartISO() {
 export async function runBotTick(
   supabase: Client,
   userId: string,
+  locale: Locale = "es",
 ): Promise<TickResult> {
+  const copy = getStrategyCopy(locale);
+
   const { data: bot, error: botErr } = await supabase
     .from("bot_configs")
     .select("*")
@@ -39,7 +44,7 @@ export async function runBotTick(
     .maybeSingle();
 
   if (botErr || !bot) {
-    return emptyFail("No hay configuración de bot");
+    return emptyFail(copy.noBotConfig);
   }
 
   let equity = await getEquity(supabase, userId, bot.mode);
@@ -47,7 +52,7 @@ export async function runBotTick(
   if (!bot.is_active) {
     return {
       ok: true,
-      message: "Bot en pausa",
+      message: copy.botPaused,
       signals: 0,
       tradesOpened: 0,
       tradesClosed: 0,
@@ -58,7 +63,7 @@ export async function runBotTick(
   if (bot.kill_switch) {
     return {
       ok: true,
-      message: "Kill-switch activo",
+      message: copy.killActive,
       signals: 0,
       tradesOpened: 0,
       tradesClosed: 0,
@@ -119,8 +124,8 @@ export async function runBotTick(
     }
 
     let reason: string | null = null;
-    if (price <= stop) reason = "Stop loss (protegido / trailing)";
-    else if (price >= tp) reason = "Take profit";
+    if (price <= stop) reason = copy.stopLossEngine;
+    else if (price >= tp) reason = copy.takeProfitEngine;
     if (!reason) continue;
 
     const fill = price * (1 - SLIPPAGE);
@@ -170,7 +175,7 @@ export async function runBotTick(
       candles,
       hasOpenLong,
       strategyParams,
-      { htfCandles },
+      { htfCandles, locale },
     );
     const signal = decision.signal;
     if (!signal) continue;
@@ -222,6 +227,7 @@ export async function runBotTick(
         killSwitch: bot.kill_switch,
         price: signal.price,
         stopLoss: signal.stopLoss,
+        locale,
       });
 
       if (!sized.allowed) continue;
@@ -250,7 +256,7 @@ export async function runBotTick(
 
   return {
     ok: true,
-    message: "Tick completado",
+    message: copy.tickDone,
     signals,
     tradesOpened,
     tradesClosed,

@@ -1,3 +1,5 @@
+import { getStrategyCopy } from "@/lib/i18n/strategy-copy";
+
 export type RiskConfig = {
   equity: number;
   riskPercent: number;
@@ -6,6 +8,7 @@ export type RiskConfig = {
   killSwitch: boolean;
   price: number;
   stopLoss: number;
+  locale?: "es" | "en";
 };
 
 export type PositionSizeResult = {
@@ -20,8 +23,10 @@ export type PositionSizeResult = {
  * Spot long only; qty in base asset.
  */
 export function sizePosition(cfg: RiskConfig): PositionSizeResult {
+  const copy = getStrategyCopy(cfg.locale ?? "es");
+
   if (cfg.killSwitch) {
-    return { allowed: false, qty: 0, riskAmount: 0, reason: "Kill-switch activo" };
+    return { allowed: false, qty: 0, riskAmount: 0, reason: copy.riskKill };
   }
 
   const maxDailyLoss = (cfg.equity * cfg.maxDailyLossPercent) / 100;
@@ -30,13 +35,13 @@ export function sizePosition(cfg: RiskConfig): PositionSizeResult {
       allowed: false,
       qty: 0,
       riskAmount: 0,
-      reason: "Tope de pérdida diaria alcanzado",
+      reason: copy.riskDaily,
     };
   }
 
   const stopDistance = cfg.price - cfg.stopLoss;
   if (stopDistance <= 0) {
-    return { allowed: false, qty: 0, riskAmount: 0, reason: "Stop inválido" };
+    return { allowed: false, qty: 0, riskAmount: 0, reason: copy.riskStop };
   }
 
   const riskAmount = (cfg.equity * cfg.riskPercent) / 100;
@@ -53,7 +58,7 @@ export function sizePosition(cfg: RiskConfig): PositionSizeResult {
   qty = Math.floor(qty * 1e6) / 1e6;
 
   if (qty <= 0) {
-    return { allowed: false, qty: 0, riskAmount: 0, reason: "Qty demasiado pequeña" };
+    return { allowed: false, qty: 0, riskAmount: 0, reason: copy.riskQty };
   }
 
   return { allowed: true, qty, riskAmount };

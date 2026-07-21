@@ -1,3 +1,5 @@
+import type { Locale } from "@/lib/i18n/dictionary";
+import { getStrategyCopy } from "@/lib/i18n/strategy-copy";
 import { atr, atrPercent, higherTimeframe } from "./indicators";
 import {
   decideTrendPulse,
@@ -108,7 +110,9 @@ export function createLiveSession(input: {
   startingEquity: number;
   riskPercent: number;
   params: TrendPulseParams;
+  locale?: Locale;
 }): LiveSandboxState {
+  const copy = getStrategyCopy(input.locale ?? "es");
   const now = new Date().toISOString();
   return {
     sessionId: `live-${Date.now()}`,
@@ -128,7 +132,13 @@ export function createLiveSession(input: {
         id: `start-${Date.now()}`,
         at: now,
         kind: "info",
-        message: `Sesión en vivo · ${input.pair} · ${input.timeframe} (+ sesgo ${higherTimeframe(input.timeframe)}) · equity $${input.startingEquity} · riesgo ${input.riskPercent}%`,
+        message: copy.sessionStart(
+          input.pair,
+          input.timeframe,
+          higherTimeframe(input.timeframe),
+          input.startingEquity,
+          input.riskPercent,
+        ),
         price: 0,
         equity: input.startingEquity,
       },
@@ -136,7 +146,7 @@ export function createLiveSession(input: {
     equityPoints: [],
     tickCount: 0,
     lastCandleOpenTime: null,
-    lastAction: "Sesión creada — esperando primer tick",
+    lastAction: copy.sessionCreated,
     lastScore: 0,
     lastChecks: [],
   };
@@ -150,7 +160,9 @@ export function liveSandboxTick(
   candles: Candle[],
   tickerPrice: number,
   htfCandles?: Candle[],
+  locale?: Locale,
 ): LiveTickResult {
+  const copy = getStrategyCopy(locale ?? "es");
   const next: LiveSandboxState = {
     ...state,
     position: state.position ? { ...state.position } : null,
@@ -211,9 +223,7 @@ export function liveSandboxTick(
       const pnl = (exitPrice - next.position.entry) * next.position.qty;
       next.equity += pnl;
       next.dayPnl += pnl;
-      const exitReason = hitStop
-        ? "Stop / trailing (mercado real)"
-        : "Take profit (mercado real)";
+      const exitReason = hitStop ? copy.stopTrail : copy.takeProfit;
       next.closedTrades.unshift({
         id: next.position.id,
         entry: next.position.entry,
@@ -243,7 +253,7 @@ export function liveSandboxTick(
     candles,
     hasOpen,
     next.params,
-    { htfCandles },
+    { htfCandles, locale },
   );
 
   next.lastScore = decision.score;
@@ -289,17 +299,18 @@ export function liveSandboxTick(
       killSwitch: false,
       price: signal.price,
       stopLoss: signal.stopLoss,
+      locale,
     });
 
     if (!sized.allowed) {
       pushEvent(next, {
         at: nowIso,
         kind: "skip",
-        message: `Checklist OK pero riesgo bloquea · ${sized.reason}`,
+        message: copy.riskBlocked(sized.reason ?? ""),
         price,
         equity: next.equity,
       });
-      next.lastAction = `Señal ignorada: ${sized.reason}`;
+      next.lastAction = copy.signalIgnored(sized.reason ?? "");
     } else {
       const entry = signal.price * (1 + SLIPPAGE);
       next.position = {

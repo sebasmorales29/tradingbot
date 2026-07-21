@@ -640,12 +640,15 @@ export function SandboxClient({
 }
 
 function EventRow({ event }: { event: LiveEvent }) {
+  const { locale } = useLanguage();
   return (
     <li className="rounded-lg border border-snow/10 px-3 py-2">
       <div className="flex flex-wrap items-center gap-2">
         <KindBadge kind={event.kind} />
         <span className="text-xs text-snow/40">
-          {new Date(event.at).toLocaleTimeString("es-CR")}
+          {new Date(event.at).toLocaleTimeString(
+            locale === "en" ? "en-US" : "es-CR",
+          )}
         </span>
         {event.price > 0 && (
           <span className="text-xs text-snow/35">

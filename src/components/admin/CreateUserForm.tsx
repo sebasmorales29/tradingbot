@@ -6,8 +6,12 @@ import Link from "next/link";
 import { ROLES, roleLabel, type Role } from "@/lib/roles";
 import { isAdult, parseDateOfBirth } from "@/lib/identity";
 import { Select } from "@/components/ui/Select";
+import { useT } from "@/components/i18n/T";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 export function CreateUserForm() {
+  const t = useT();
+  const { locale } = useLanguage();
   const router = useRouter();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -27,11 +31,11 @@ export function CreateUserForm() {
 
     const dob = parseDateOfBirth(dateOfBirth);
     if (!dob) {
-      setError("Fecha de nacimiento inválida");
+      setError(t.admin.invalidDob);
       return;
     }
     if (!isAdult(dob)) {
-      setError("El usuario debe ser mayor de 18 años");
+      setError(t.admin.mustBe18);
       return;
     }
 
@@ -52,7 +56,7 @@ export function CreateUserForm() {
     setBusy(false);
 
     if (!res.ok) {
-      setError(data.error ?? "Error al crear");
+      setError(data.error ?? t.admin.createError);
       return;
     }
 
@@ -64,7 +68,7 @@ export function CreateUserForm() {
     <form onSubmit={onSubmit} className="mt-8 max-w-lg space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block text-sm">
-          <span className="text-snow/50">Nombre</span>
+          <span className="text-snow/50">{t.auth.firstName}</span>
           <input
             required
             className={inputClass}
@@ -73,7 +77,7 @@ export function CreateUserForm() {
           />
         </label>
         <label className="block text-sm">
-          <span className="text-snow/50">Apellidos</span>
+          <span className="text-snow/50">{t.auth.lastName}</span>
           <input
             required
             className={inputClass}
@@ -83,7 +87,7 @@ export function CreateUserForm() {
         </label>
       </div>
       <label className="block text-sm">
-        <span className="text-snow/50">Fecha de nacimiento</span>
+        <span className="text-snow/50">{t.auth.dateOfBirth}</span>
         <input
           type="date"
           required
@@ -93,7 +97,7 @@ export function CreateUserForm() {
         />
       </label>
       <label className="block text-sm">
-        <span className="text-snow/50">Correo</span>
+        <span className="text-snow/50">{t.auth.email}</span>
         <input
           type="email"
           required
@@ -103,7 +107,7 @@ export function CreateUserForm() {
         />
       </label>
       <label className="block text-sm">
-        <span className="text-snow/50">Contraseña temporal</span>
+        <span className="text-snow/50">{t.admin.tempPassword}</span>
         <input
           type="password"
           required
@@ -114,15 +118,15 @@ export function CreateUserForm() {
         />
       </label>
       <label className="block text-sm">
-        <span className="text-snow/50">Rol</span>
+        <span className="text-snow/50">{t.admin.role}</span>
         <Select
           className="mt-1"
           value={role}
-          aria-label="Rol"
+          aria-label={t.admin.role}
           onChange={(v) => setRole(v as Role)}
           options={ROLES.map((r) => ({
             value: r,
-            label: roleLabel(r),
+            label: roleLabel(r, locale),
           }))}
         />
       </label>
@@ -135,13 +139,13 @@ export function CreateUserForm() {
           disabled={busy}
           className="rounded-lg bg-pulse px-4 py-2 text-sm font-semibold text-ink transition hover:bg-pulse/90 disabled:opacity-50"
         >
-          {busy ? "Creando…" : "Crear usuario"}
+          {busy ? t.admin.creating : t.admin.createUserBtn}
         </button>
         <Link
           href="/admin/usuarios"
           className="rounded-lg border border-snow/20 px-4 py-2 text-sm text-snow/70 transition hover:bg-snow/5"
         >
-          Cancelar
+          {t.admin.cancel}
         </Link>
       </div>
     </form>

@@ -13,6 +13,8 @@ import {
 import type { LiveSandboxState } from "@/lib/trading/live-sandbox";
 import type { TrendPulseParams } from "@/lib/trading/strategy/trend-pulse";
 import type { Pair } from "@/lib/trading/types";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
+import { useT } from "@/components/i18n/T";
 
 export type SandboxMarket = {
   price: number;
@@ -76,6 +78,8 @@ export function SandboxSessionProvider({
   enabled: boolean;
   children: ReactNode;
 }) {
+  const t = useT();
+  const { locale } = useLanguage();
   const [ready, setReady] = useState(!enabled);
   const [busy, setBusy] = useState(false);
   const [state, setState] = useState<LiveSandboxState | null>(null);
@@ -85,10 +89,15 @@ export function SandboxSessionProvider({
   const [tickMs, setTickMsState] = useState(20_000);
   const stateRef = useRef<LiveSandboxState | null>(null);
   const tickingRef = useRef(false);
+  const localeRef = useRef(locale);
 
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
+
+  useEffect(() => {
+    localeRef.current = locale;
+  }, [locale]);
 
   const applyPayload = useCallback(
     (data: {
@@ -140,7 +149,7 @@ export function SandboxSessionProvider({
   const tickOnce = useCallback(
     async (opts?: { risk?: number; params?: TrendPulseParams }) => {
       if (!stateRef.current || tickingRef.current) {
-        return { ok: false, error: "Sin sesión o tick en curso" };
+        return { ok: false, error: t.admin.tickFailed };
       }
       tickingRef.current = true;
       setBusy(true);
@@ -153,11 +162,12 @@ export function SandboxSessionProvider({
             state: stateRef.current,
             riskPercent: opts?.risk,
             params: opts?.params,
+            locale: localeRef.current,
           }),
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
-          return { ok: false, error: data.error ?? "Tick falló" };
+          return { ok: false, error: data.error ?? t.admin.tickFailed };
         }
         applyPayload(data);
         return { ok: true };
@@ -166,7 +176,7 @@ export function SandboxSessionProvider({
         setBusy(false);
       }
     },
-    [applyPayload],
+    [applyPayload, t.admin.tickFailed],
   );
 
   // Auto-tick mientras haya sesión y liveOn — vive en el layout admin
@@ -199,11 +209,12 @@ export function SandboxSessionProvider({
             timeframe: input.timeframe,
             tickIntervalMs: tickMs,
             params: input.params,
+            locale: localeRef.current,
           }),
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
-          return { ok: false, error: data.error ?? "No se pudo iniciar" };
+          return { ok: false, error: data.error ?? t.admin.startError };
         }
         applyPayload(data);
         return { ok: true };
@@ -211,7 +222,7 @@ export function SandboxSessionProvider({
         setBusy(false);
       }
     },
-    [applyPayload, tickMs],
+    [applyPayload, tickMs, t.admin.startError],
   );
 
   const stopSession = useCallback(async () => {

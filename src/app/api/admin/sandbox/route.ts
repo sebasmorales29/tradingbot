@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSessionAccess } from "@/lib/auth/session";
+import { localeFromCookieHeader } from "@/lib/i18n/strategy-copy";
 import { higherTimeframe } from "@/lib/trading/indicators";
 import { fetchOHLCV, fetchTickerPrice } from "@/lib/trading/market";
 import {
@@ -47,11 +48,13 @@ async function resolveParams(
   return params;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const access = await getSessionAccess();
   if (!access?.can("admin_sandbox")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
+
+  localeFromCookieHeader(request.headers.get("cookie"));
 
   const params = await loadTrendPulseParams();
   let active = null;
@@ -94,6 +97,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const localeFromCookie = localeFromCookieHeader(
+    request.headers.get("cookie"),
+  );
+
   const body = (await request.json()) as {
     action?: "start" | "tick" | "stop" | "patch";
     pair?: string;
@@ -102,9 +109,15 @@ export async function POST(request: Request) {
     timeframe?: string;
     tickIntervalMs?: number;
     liveOn?: boolean;
+    locale?: "es" | "en";
     params?: Partial<TrendPulseParams>;
     state?: LiveSandboxState;
   };
+
+  const locale =
+    body.locale === "en" || body.locale === "es"
+      ? body.locale
+      : localeFromCookie;
 
   try {
     if (body.action === "stop") {
@@ -177,6 +190,7 @@ export async function POST(request: Request) {
         startingEquity,
         riskPercent,
         params: { ...params, timeframe },
+        locale,
       });
 
       const candles = await fetchOHLCV(body.pair, timeframe, 150);
@@ -186,7 +200,7 @@ export async function POST(request: Request) {
           ? undefined
           : await fetchOHLCV(body.pair, htf, 120);
       const ticker = await fetchTickerPrice(body.pair);
-      const tick = liveSandboxTick(state, candles, ticker, htfCandles);
+      const tick = liveSandboxTick(state, candles, ticker, htfCandles, locale);
 
       await saveSandboxSession({
         userId: access.user.id,
@@ -234,6 +248,7 @@ export async function POST(request: Request) {
         state: body.state,
         riskPercent,
         params,
+        locale,
       });
 
       return NextResponse.json({

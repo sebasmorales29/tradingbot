@@ -1,3 +1,4 @@
+import type { Locale } from "@/lib/i18n/dictionary";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { higherTimeframe } from "@/lib/trading/indicators";
 import { fetchOHLCV, fetchTickerPrice } from "@/lib/trading/market";
@@ -149,6 +150,7 @@ export async function runPersistedSandboxTick(
     state?: LiveSandboxState;
     riskPercent?: number;
     params?: LiveSandboxState["params"];
+    locale?: Locale;
   },
 ): Promise<LiveTickResult & { tickIntervalMs: number; liveOn: boolean }> {
   const existing = await loadSandboxSession(userId);
@@ -165,7 +167,13 @@ export async function runPersistedSandboxTick(
   const htfCandles =
     htf === state.timeframe ? undefined : await fetchOHLCV(state.pair, htf, 120);
   const ticker = await fetchTickerPrice(state.pair);
-  const tick = liveSandboxTick(state, candles, ticker, htfCandles);
+  const tick = liveSandboxTick(
+    state,
+    candles,
+    ticker,
+    htfCandles,
+    overrides?.locale,
+  );
 
   const tickIntervalMs = existing?.tickIntervalMs ?? 20_000;
   const liveOn = existing?.liveOn ?? true;

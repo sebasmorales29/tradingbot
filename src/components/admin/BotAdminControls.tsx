@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useToast } from "@/components/ui/Toast";
+import { useT } from "@/components/i18n/T";
 
 export function BotAdminControls({
   userId,
@@ -19,6 +20,7 @@ export function BotAdminControls({
   mode: "paper" | "live";
   canEdit: boolean;
 }) {
+  const t = useT();
   const router = useRouter();
   const { toast } = useToast();
   const [risk, setRisk] = useState(String(riskPercent));
@@ -38,14 +40,14 @@ export function BotAdminControls({
     if (!res.ok) {
       toast({
         tone: "error",
-        title: "No se pudo actualizar el bot",
-        message: data.error ?? "Error",
+        title: t.admin.updateBotError,
+        message: data.error ?? t.admin.genericError,
       });
       return;
     }
     toast({
       tone: "success",
-      title: "Información actualizada con éxito",
+      title: t.admin.updatedOk,
       message: data.message,
     });
     router.refresh();
@@ -58,12 +60,11 @@ export function BotAdminControls({
           Danger zone
         </span>
         <h2 className="font-display text-lg font-bold text-red-200">
-          Controles del bot
+          {t.admin.botControls}
         </h2>
       </div>
       <p className="mt-2 max-w-2xl text-sm text-red-200/60">
-        Acciones sensibles. Pausar, kill switch, cambiar a live o el riesgo
-        afectan cómo opera este bot. Úsalas con cuidado.
+        {t.admin.botControlsLead}
       </p>
 
       <div className="mt-5 flex flex-wrap gap-3">
@@ -76,8 +77,8 @@ export function BotAdminControls({
           {busy === "toggle"
             ? "…"
             : isActive
-              ? "Pausar bot"
-              : "Activar bot"}
+              ? t.dash.pause
+              : t.dash.activate}
         </button>
         <button
           type="button"
@@ -92,8 +93,8 @@ export function BotAdminControls({
           {busy === "kill"
             ? "…"
             : killSwitch
-              ? "Desactivar kill switch"
-              : "Activar kill switch"}
+              ? t.dash.killOff
+              : t.dash.killOn}
         </button>
         <button
           type="button"
@@ -109,14 +110,14 @@ export function BotAdminControls({
           {busy === "mode"
             ? "…"
             : mode === "paper"
-              ? "Cambiar a Live"
-              : "Cambiar a Paper"}
+              ? t.dash.toLive
+              : t.dash.toPaper}
         </button>
       </div>
 
       <div className="mt-5 flex flex-wrap items-end gap-3 border-t border-red-500/20 pt-5">
         <label className="block text-sm">
-          <span className="text-red-200/55">Riesgo %</span>
+          <span className="text-red-200/55">{t.dash.risk}</span>
           <input
             type="number"
             step="0.05"
@@ -137,7 +138,7 @@ export function BotAdminControls({
               : "border border-red-500/25 bg-red-500/5 text-red-300/35"
           }`}
         >
-          {busy === "risk" ? "…" : "Guardar riesgo"}
+          {busy === "risk" ? "…" : t.dash.saveRisk}
         </button>
       </div>
     </section>

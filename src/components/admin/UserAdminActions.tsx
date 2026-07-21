@@ -6,6 +6,8 @@ import { ROLES, roleLabel, type Role } from "@/lib/roles";
 import { isAdult, parseDateOfBirth } from "@/lib/identity";
 import { useToast } from "@/components/ui/Toast";
 import { Select } from "@/components/ui/Select";
+import { useT } from "@/components/i18n/T";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
 type UserShape = {
   id: string;
@@ -29,6 +31,8 @@ export function UserAdminActions({
   canRoles: boolean;
   isSelf: boolean;
 }) {
+  const t = useT();
+  const { locale } = useLanguage();
   const router = useRouter();
   const { toast } = useToast();
   const [firstName, setFirstName] = useState(user.first_name ?? "");
@@ -72,17 +76,15 @@ export function UserAdminActions({
     if (!res.ok) {
       toast({
         tone: "error",
-        title: "No se pudo completar la acción",
-        message: data.error ?? "Ocurrió un error inesperado",
+        title: t.admin.actionError,
+        message: data.error ?? t.admin.unexpectedError,
       });
       return false;
     }
     toast({
       tone: "success",
       title:
-        label === "save"
-          ? "Información actualizada con éxito"
-          : "Acción completada",
+        label === "save" ? t.admin.updatedOk : t.admin.actionDone,
       message: data.message,
     });
     if (data.redirect) {
@@ -101,16 +103,16 @@ export function UserAdminActions({
       if (!dob) {
         toast({
           tone: "error",
-          title: "Datos inválidos",
-          message: "Fecha de nacimiento inválida",
+          title: t.admin.invalidData,
+          message: t.admin.invalidDob,
         });
         return;
       }
       if (!isAdult(dob)) {
         toast({
           tone: "error",
-          title: "Datos inválidos",
-          message: "Debe ser mayor de 18 años",
+          title: t.admin.invalidData,
+          message: t.admin.mustBe18,
         });
         return;
       }
@@ -144,15 +146,13 @@ export function UserAdminActions({
 
   if (!canManage && !canRoles) {
     return (
-      <p className="mt-8 text-sm text-snow/45">
-        Tu rol puede ver este usuario, pero no editarlo ni aplicar acciones.
-      </p>
+      <p className="mt-8 text-sm text-snow/45">{t.admin.readOnlyHint}</p>
     );
   }
 
   return (
     <section className="mt-10 space-y-6">
-      <h2 className="font-display text-xl font-bold text-snow">Editar</h2>
+      <h2 className="font-display text-xl font-bold text-snow">{t.admin.edit}</h2>
 
       {(canManage || canRoles) && (
         <div className="rounded-xl border border-snow/10 bg-slate/30 p-5">
@@ -160,7 +160,7 @@ export function UserAdminActions({
             {canManage && (
               <>
                 <label className="block text-sm">
-                  <span className="text-snow/50">Nombre</span>
+                  <span className="text-snow/50">{t.auth.firstName}</span>
                   <input
                     className={inputClass}
                     value={firstName}
@@ -168,7 +168,7 @@ export function UserAdminActions({
                   />
                 </label>
                 <label className="block text-sm">
-                  <span className="text-snow/50">Apellidos</span>
+                  <span className="text-snow/50">{t.auth.lastName}</span>
                   <input
                     className={inputClass}
                     value={lastName}
@@ -176,7 +176,7 @@ export function UserAdminActions({
                   />
                 </label>
                 <label className="block text-sm sm:col-span-2">
-                  <span className="text-snow/50">Fecha de nacimiento</span>
+                  <span className="text-snow/50">{t.auth.dateOfBirth}</span>
                   <input
                     type="date"
                     className={inputClass}
@@ -188,16 +188,16 @@ export function UserAdminActions({
             )}
             {canRoles && (
               <label className="block text-sm">
-                <span className="text-snow/50">Rol</span>
+                <span className="text-snow/50">{t.admin.role}</span>
                 <Select
                   className="mt-1"
                   value={role}
                   disabled={isSelf}
-                  aria-label="Rol"
+                  aria-label={t.admin.role}
                   onChange={(v) => setRole(v as Role)}
                   options={ROLES.map((r) => ({
                     value: r,
-                    label: roleLabel(r),
+                    label: roleLabel(r, locale),
                   }))}
                 />
               </label>
@@ -213,7 +213,7 @@ export function UserAdminActions({
                 : "border border-snow/15 bg-snow/5 text-snow/40"
             }`}
           >
-            {busy === "save" ? "Guardando…" : "Guardar cambios"}
+            {busy === "save" ? t.dash.saving : t.admin.saveChanges}
           </button>
         </div>
       )}
@@ -231,7 +231,7 @@ export function UserAdminActions({
               )
             }
           >
-            Enviar reset de contraseña
+            {t.admin.resetPassword}
           </ActionBtn>
           <ActionBtn
             busy={busy === "reset_mfa"}
@@ -245,7 +245,7 @@ export function UserAdminActions({
               )
             }
           >
-            Resetear MFA ({user.factors_count})
+            {t.admin.resetMfa.replace("{n}", String(user.factors_count))}
           </ActionBtn>
           {user.status === "active" ? (
             <ActionBtn
@@ -261,7 +261,7 @@ export function UserAdminActions({
                 )
               }
             >
-              Suspender cuenta
+              {t.admin.suspendAccount}
             </ActionBtn>
           ) : (
             <ActionBtn
@@ -275,7 +275,7 @@ export function UserAdminActions({
                 )
               }
             >
-              Reactivar cuenta
+              {t.admin.unsuspendAccount}
             </ActionBtn>
           )}
           <ActionBtn
@@ -285,7 +285,10 @@ export function UserAdminActions({
             onClick={() => {
               if (
                 !window.confirm(
-                  `¿Eliminar permanentemente a ${user.email}? Esta acción no se puede deshacer.`,
+                  t.admin.deleteConfirm.replace(
+                    "{email}",
+                    user.email ?? t.admin.noEmail,
+                  ),
                 )
               ) {
                 return;
@@ -298,7 +301,7 @@ export function UserAdminActions({
               );
             }}
           >
-            Eliminar cuenta
+            {t.admin.deleteAccount}
           </ActionBtn>
         </div>
       )}

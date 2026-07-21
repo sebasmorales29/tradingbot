@@ -1,3 +1,5 @@
+import type { Locale } from "@/lib/i18n/dictionary";
+import { getStrategyCopy } from "@/lib/i18n/strategy-copy";
 import {
   atr,
   atrPercent,
@@ -80,6 +82,7 @@ export type TrendPulseDecision = {
 export type TrendPulseContext = {
   /** Velas del timeframe superior para sesgo de tendencia */
   htfCandles?: Candle[];
+  locale?: Locale;
 };
 
 function scoreFromChecks(checks: DecisionCheck[]): number {
@@ -101,6 +104,7 @@ export function decideTrendPulse(
   params: TrendPulseParams = DEFAULT_TREND_PULSE,
   ctx: TrendPulseContext = {},
 ): TrendPulseDecision {
+  const copy = getStrategyCopy(ctx.locale ?? "es");
   const {
     fast: FAST,
     slow: SLOW,
@@ -121,12 +125,12 @@ export function decideTrendPulse(
       checks: [
         {
           id: "data",
-          label: "Datos",
+          label: copy.dataLabel,
           pass: false,
-          detail: "Insuficientes velas para evaluar",
+          detail: copy.dataDetail,
         },
       ],
-      summary: "Esperando más datos de mercado",
+      summary: copy.waitingData,
     };
   }
 
@@ -151,12 +155,12 @@ export function decideTrendPulse(
       checks: [
         {
           id: "indicators",
-          label: "Indicadores",
+          label: copy.indicatorsLabel,
           pass: false,
-          detail: "Indicadores aún no listos",
+          detail: copy.indicatorsDetail,
         },
       ],
-      summary: "Calentando indicadores",
+      summary: copy.warming,
     };
   }
 
@@ -197,7 +201,7 @@ export function decideTrendPulse(
           pair,
           side: "flat",
           price,
-          reason: "Salida experta — cruce EMA bajista (fin de impulso)",
+          reason: copy.exitBearishReason,
           atr: lastAtr,
           strength: atrPct ?? undefined,
         },
@@ -206,12 +210,12 @@ export function decideTrendPulse(
         checks: [
           {
             id: "bearish_cross",
-            label: "Cruce bajista",
+            label: copy.exitBearishLabel,
             pass: true,
-            detail: "EMA fast cruzó bajo slow",
+            detail: copy.exitBearishDetail,
           },
         ],
-        summary: "Cerrar long: momentum se giró",
+        summary: copy.exitBearishSummary,
       };
     }
 
@@ -221,7 +225,7 @@ export function decideTrendPulse(
           pair,
           side: "flat",
           price,
-          reason: "Salida experta — ruptura bajo EMA lenta + vela bajista",
+          reason: copy.exitStructureReason,
           atr: lastAtr,
           strength: atrPct ?? undefined,
         },
@@ -230,12 +234,12 @@ export function decideTrendPulse(
         checks: [
           {
             id: "structure",
-            label: "Estructura",
+            label: copy.exitStructureLabel,
             pass: true,
-            detail: "Precio perdió la EMA lenta con cierre rojo",
+            detail: copy.exitStructureDetail,
           },
         ],
-        summary: "Cerrar long: estructura rota",
+        summary: copy.exitStructureSummary,
       };
     }
 
@@ -245,7 +249,7 @@ export function decideTrendPulse(
           pair,
           side: "flat",
           price,
-          reason: `Salida experta — RSI agotado (${lastRsi.toFixed(0)}) y bajando`,
+          reason: copy.exitRsiReason(lastRsi.toFixed(0)),
           atr: lastAtr,
           strength: atrPct ?? undefined,
         },
@@ -254,12 +258,12 @@ export function decideTrendPulse(
         checks: [
           {
             id: "rsi_exit",
-            label: "Agotamiento",
+            label: copy.exitRsiLabel,
             pass: true,
-            detail: `RSI ${lastRsi.toFixed(1)} en zona de distribución`,
+            detail: copy.exitRsiDetail(lastRsi.toFixed(1)),
           },
         ],
-        summary: "Cerrar long: toma de ganancias por agotamiento",
+        summary: copy.exitRsiSummary,
       };
     }
 
@@ -270,21 +274,19 @@ export function decideTrendPulse(
       checks: [
         {
           id: "trend_intact",
-          label: "Tendencia",
+          label: copy.holdTrendLabel,
           pass: price > slow,
           detail:
-            price > slow
-              ? "Estructura alcista intacta — dejar correr"
-              : "Cerca de EMA lenta — vigilando",
+            price > slow ? copy.holdTrendOk : copy.holdTrendWatch,
         },
         {
           id: "rsi_hold",
-          label: "RSI",
+          label: copy.holdRsiLabel,
           pass: lastRsi < EXPERT.rsiExitExhaustion,
           detail: `RSI ${lastRsi.toFixed(1)}`,
         },
       ],
-      summary: "Posición abierta — sin señal de salida",
+      summary: copy.holdSummary,
     };
   }
 
@@ -293,25 +295,22 @@ export function decideTrendPulse(
 
   checks.push({
     id: "trigger",
-    label: "Disparador",
+    label: copy.triggerLabel,
     tier: "hard",
     pass: entryTrigger,
     detail: bullishCross
-      ? "Cruce EMA alcista fresco"
+      ? copy.triggerCross
       : pullbackToFast
-        ? "Pullback a EMA rápida en tendencia"
-        : "Sin cruce ni pullback de calidad",
+        ? copy.triggerPullback
+        : copy.triggerNone,
   });
 
   checks.push({
     id: "above_slow",
-    label: "Sobre EMA lenta",
+    label: copy.aboveSlowLabel,
     tier: "hard",
     pass: price > slow,
-    detail:
-      price > slow
-        ? "Precio por encima de la media lenta"
-        : "Precio bajo EMA lenta — sesgo bajista/neutral",
+    detail: price > slow ? copy.aboveSlowOk : copy.aboveSlowFail,
   });
 
   const minAtrEffective = effectiveMinAtrPct(params.timeframe, MIN_ATR_PCT);
@@ -319,26 +318,37 @@ export function decideTrendPulse(
     atrPct != null && atrPct >= minAtrEffective && atrPct <= MAX_ATR_PCT;
   checks.push({
     id: "atr_regime",
-    label: "Régimen volatilidad",
+    label: copy.atrLabel,
     tier: "hard",
     pass: regimeOk,
     detail:
       atrPct == null
-        ? "ATR% no disponible"
+        ? copy.atrMissing
         : regimeOk
-          ? `ATR% ${atrPct.toFixed(2)} — rango operable (≥${minAtrEffective.toFixed(2)} en ${params.timeframe})`
-          : `ATR% ${atrPct.toFixed(2)} fuera de ${minAtrEffective.toFixed(2)}–${MAX_ATR_PCT} (${params.timeframe})`,
+          ? copy.atrOk(
+              atrPct.toFixed(2),
+              minAtrEffective.toFixed(2),
+              params.timeframe,
+            )
+          : copy.atrFail(
+              atrPct.toFixed(2),
+              minAtrEffective.toFixed(2),
+              String(MAX_ATR_PCT),
+              params.timeframe,
+            ),
   });
 
   const rsiOk = lastRsi >= EXPERT.rsiMin && lastRsi <= EXPERT.rsiMax;
   checks.push({
     id: "rsi",
-    label: "RSI sano",
+    label: copy.rsiLabel,
     tier: "soft",
     pass: rsiOk,
     detail: rsiOk
-      ? `RSI ${lastRsi.toFixed(1)} — momentum sin agotar`
-      : `RSI ${lastRsi.toFixed(1)} — ${lastRsi > EXPERT.rsiMax ? "sobrecompra / chase" : "demasiado débil"}`,
+      ? copy.rsiOk(lastRsi.toFixed(1))
+      : lastRsi > EXPERT.rsiMax
+        ? copy.rsiHigh(lastRsi.toFixed(1))
+        : copy.rsiLow(lastRsi.toFixed(1)),
   });
 
   // Volumen de la última vela CERRADA (la en curso suele ir incompleta en live)
@@ -353,38 +363,40 @@ export function decideTrendPulse(
     closedVolSma > 0 && closedVol >= closedVolSma * EXPERT.volumeMult;
   checks.push({
     id: "volume",
-    label: "Volumen",
+    label: copy.volumeLabel,
     tier: "soft",
     pass: volOk,
     detail: volOk
-      ? `Vol. vela cerrada ${(closedVol / closedVolSma).toFixed(2)}× media`
-      : `Vol. vela cerrada flojo (${closedVolSma > 0 ? (closedVol / closedVolSma).toFixed(2) : "—"}×) — sin participación`,
+      ? copy.volumeOk((closedVol / closedVolSma).toFixed(2))
+      : copy.volumeFail(
+          closedVolSma > 0 ? (closedVol / closedVolSma).toFixed(2) : "—",
+        ),
   });
 
   const slopeOk =
     slowSlopePct != null && slowSlopePct >= EXPERT.minSlowSlopePct;
   checks.push({
     id: "slope",
-    label: "Pendiente tendencia",
+    label: copy.slopeLabel,
     tier: "soft",
     pass: slopeOk,
     detail:
       slowSlopePct == null
-        ? "Pendiente no disponible"
+        ? copy.slopeMissing
         : slopeOk
-          ? `EMA lenta subiendo (${slowSlopePct.toFixed(3)}%/barra)`
-          : `EMA lenta plana/bajista (${slowSlopePct.toFixed(3)}%/barra)`,
+          ? copy.slopeOk(slowSlopePct.toFixed(3))
+          : copy.slopeFail(slowSlopePct.toFixed(3)),
   });
 
   const notChasing = extensionAtr <= EXPERT.maxExtensionAtr;
   checks.push({
     id: "extension",
-    label: "No perseguir",
+    label: copy.extensionLabel,
     tier: "hard",
     pass: notChasing,
     detail: notChasing
-      ? `Extensión ${extensionAtr.toFixed(2)} ATR — entrada limpia`
-      : `Precio ${extensionAtr.toFixed(2)} ATR lejos de EMA — chase`,
+      ? copy.extensionOk(extensionAtr.toFixed(2))
+      : copy.extensionFail(extensionAtr.toFixed(2)),
   });
 
   const range = last.high - last.low || 1;
@@ -394,12 +406,10 @@ export function decideTrendPulse(
     closeStrength >= EXPERT.candleCloseStrength;
   checks.push({
     id: "candle",
-    label: "Vela confirmación",
+    label: copy.candleLabel,
     tier: "soft",
     pass: confirmCandle,
-    detail: confirmCandle
-      ? "Cierre alcista con fuerza razonable"
-      : "Vela débil / indecisa — esperar confirmación",
+    detail: confirmCandle ? copy.candleOk : copy.candleFail,
   });
 
   let htfOk = true;
@@ -414,21 +424,19 @@ export function decideTrendPulse(
       htfOk = hf > hs && hp > hs;
       checks.push({
         id: "htf",
-        label: `Sesgo ${higherTimeframe(params.timeframe)}`,
+        label: copy.htfLabel(higherTimeframe(params.timeframe)),
         tier: "hard",
         pass: htfOk,
-        detail: htfOk
-          ? "Timeframe superior alcista — confluencia"
-          : "Timeframe superior no alcista — no pelear la marea",
+        detail: htfOk ? copy.htfOk : copy.htfFail,
       });
     }
   } else {
     checks.push({
       id: "htf",
-      label: "Sesgo HTF",
+      label: copy.htfMissingLabel,
       tier: "hard",
       pass: true,
-      detail: "HTF no cargado — se evalúa solo TF operativo",
+      detail: copy.htfMissingDetail,
     });
   }
 
@@ -443,14 +451,16 @@ export function decideTrendPulse(
   if (canEnter) {
     const softNote =
       softFails === 0
-        ? "checklist completa"
-        : `1 filtro blando omitido (${softChecks
-            .filter((c) => !c.pass)
-            .map((c) => c.label)
-            .join(", ")})`;
+        ? copy.softComplete
+        : copy.softSkipped(
+            softChecks
+              .filter((c) => !c.pass)
+              .map((c) => c.label)
+              .join(", "),
+          );
     const reason = bullishCross
-      ? `Entrada — cruce EMA · RSI ${lastRsi.toFixed(0)} · score ${score} · ${softNote}`
-      : `Entrada — pullback EMA · RSI ${lastRsi.toFixed(0)} · score ${score} · ${softNote}`;
+      ? copy.enterCross(lastRsi.toFixed(0), score, softNote)
+      : copy.enterPullback(lastRsi.toFixed(0), score, softNote);
 
     return {
       signal: {
@@ -478,10 +488,10 @@ export function decideTrendPulse(
     score,
     checks,
     summary: !entryTrigger
-      ? `Sin disparador — mercado en observación · score ${score}`
+      ? copy.noTrigger(score)
       : !hardOk
-        ? `Faltan filtros clave (${failedHard.join(", ")}) — score ${score}`
-        : `Calidad insuficiente (${failedSoft.join(", ")}; máx. 1 fallo blando) — score ${score}`,
+        ? copy.missingHard(failedHard.join(", "), score)
+        : copy.softInsufficient(failedSoft.join(", "), score),
   };
 }
 
