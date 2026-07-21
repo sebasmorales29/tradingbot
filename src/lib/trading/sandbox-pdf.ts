@@ -141,21 +141,30 @@ export function buildSandboxReportHtml(input: SandboxPdfInput): string {
 <style>
   :root {
     --ink: #222831;
+    --ink-elevated: #2a3038;
     --slate: #393e46;
     --pulse: #00adb5;
     --pulse-dim: #008a91;
     --snow: #eeeeee;
+    --snow-soft: rgba(238, 238, 238, 0.72);
+    --snow-muted: rgba(238, 238, 238, 0.45);
+    --border: rgba(238, 238, 238, 0.1);
   }
   * { box-sizing: border-box; }
+  html, body {
+    background: var(--ink) !important;
+  }
   body {
     margin: 0;
     padding: 32px 40px 48px;
     font-family: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-    color: var(--ink);
-    background: #fff;
+    color: var(--snow);
     font-size: 12.5px;
     line-height: 1.45;
     letter-spacing: -0.011em;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    color-adjust: exact;
   }
   .brand {
     display: flex;
@@ -168,7 +177,7 @@ export function buildSandboxReportHtml(input: SandboxPdfInput): string {
     font-size: 22px;
     font-weight: 700;
     letter-spacing: -0.03em;
-    color: var(--ink);
+    color: var(--snow);
   }
   .brand .pulse { color: var(--pulse); }
   .badge {
@@ -176,8 +185,8 @@ export function buildSandboxReportHtml(input: SandboxPdfInput): string {
     margin-left: 8px;
     padding: 2px 8px;
     border-radius: 4px;
-    background: rgba(0,173,181,0.15);
-    color: var(--pulse-dim);
+    background: rgba(0,173,181,0.18);
+    color: var(--pulse);
     font-size: 10px;
     font-weight: 700;
     text-transform: uppercase;
@@ -186,7 +195,7 @@ export function buildSandboxReportHtml(input: SandboxPdfInput): string {
   }
   .subtitle {
     margin: 0 0 24px;
-    color: var(--slate);
+    color: var(--snow-muted);
     font-size: 13px;
   }
   .rule {
@@ -199,9 +208,9 @@ export function buildSandboxReportHtml(input: SandboxPdfInput): string {
     margin: 28px 0 12px;
     font-size: 14px;
     font-weight: 700;
-    color: var(--ink);
+    color: var(--snow);
     letter-spacing: -0.02em;
-    border-bottom: 1px solid rgba(34,40,49,0.12);
+    border-bottom: 1px solid var(--border);
     padding-bottom: 6px;
   }
   .grid {
@@ -210,23 +219,24 @@ export function buildSandboxReportHtml(input: SandboxPdfInput): string {
     gap: 10px;
   }
   .stat {
-    border: 1px solid rgba(34,40,49,0.1);
+    border: 1px solid var(--border);
     border-radius: 8px;
     padding: 10px 12px;
-    background: #fafafa;
+    background: var(--ink-elevated);
   }
   .stat .label {
     display: block;
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: var(--slate);
+    color: var(--snow-muted);
     margin-bottom: 4px;
   }
   .stat .value {
     font-size: 15px;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
+    color: var(--snow);
   }
   .meta {
     display: grid;
@@ -235,11 +245,11 @@ export function buildSandboxReportHtml(input: SandboxPdfInput): string {
     margin-top: 14px;
   }
   .meta div { display: flex; gap: 8px; }
-  .meta .k { color: var(--slate); min-width: 110px; }
+  .meta .k { color: var(--snow-muted); min-width: 110px; }
   .mono { font-variant-numeric: tabular-nums; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; }
-  .pos { color: #059669; }
-  .neg { color: #dc2626; }
-  .muted { color: #6b7280; }
+  .pos { color: #34d399; }
+  .neg { color: #f87171; }
+  .muted { color: var(--snow-muted); }
   .small { font-size: 11px; }
   table {
     width: 100%;
@@ -249,33 +259,36 @@ export function buildSandboxReportHtml(input: SandboxPdfInput): string {
   th, td {
     text-align: left;
     padding: 7px 8px;
-    border-bottom: 1px solid rgba(34,40,49,0.08);
+    border-bottom: 1px solid var(--border);
+    color: var(--snow-soft);
   }
   th {
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    color: var(--slate);
-    background: #f3f4f5;
+    color: var(--snow-muted);
+    background: var(--slate);
   }
   .open-box {
     margin: 10px 0 14px;
     padding: 10px 12px;
     border-radius: 8px;
-    border: 1px solid rgba(5,150,105,0.35);
-    background: rgba(5,150,105,0.06);
+    border: 1px solid rgba(52,211,153,0.35);
+    background: rgba(52,211,153,0.08);
     display: flex;
     flex-direction: column;
     gap: 4px;
+    color: #a7f3d0;
   }
   .events { list-style: none; padding: 0; margin: 0; }
   .events li {
     padding: 6px 0;
-    border-bottom: 1px solid rgba(34,40,49,0.06);
+    border-bottom: 1px solid var(--border);
     display: grid;
     grid-template-columns: 64px 130px 1fr;
     gap: 8px;
     align-items: baseline;
+    color: var(--snow-soft);
   }
   .kind {
     font-size: 9px;
@@ -284,25 +297,35 @@ export function buildSandboxReportHtml(input: SandboxPdfInput): string {
     letter-spacing: 0.04em;
     padding: 2px 5px;
     border-radius: 3px;
-    background: #eee;
+    background: rgba(238,238,238,0.1);
+    color: var(--snow-muted);
     text-align: center;
   }
-  .kind-long { background: rgba(5,150,105,0.15); color: #047857; }
-  .kind-flat, .kind-stop { background: rgba(220,38,38,0.12); color: #b91c1c; }
-  .kind-tp { background: rgba(0,173,181,0.18); color: var(--pulse-dim); }
-  .kind-skip { background: rgba(217,119,6,0.15); color: #b45309; }
+  .kind-long { background: rgba(52,211,153,0.18); color: #6ee7b7; }
+  .kind-flat, .kind-stop { background: rgba(248,113,113,0.18); color: #fca5a5; }
+  .kind-tp { background: rgba(0,173,181,0.22); color: var(--pulse); }
+  .kind-skip { background: rgba(251,191,36,0.18); color: #fcd34d; }
+  .kind-hold { background: rgba(238,238,238,0.08); color: rgba(238,238,238,0.55); }
   .footer {
     margin-top: 36px;
     padding-top: 14px;
-    border-top: 1px solid rgba(34,40,49,0.12);
+    border-top: 1px solid var(--border);
     font-size: 10px;
-    color: #6b7280;
+    color: var(--snow-muted);
   }
   @media print {
+    html, body {
+      background: var(--ink) !important;
+    }
     body { padding: 16px 20px; }
     .no-print { display: none !important; }
     .stat { break-inside: avoid; }
     h2 { break-after: avoid; }
+    * {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      color-adjust: exact !important;
+    }
   }
   .toolbar {
     position: sticky;
@@ -312,8 +335,9 @@ export function buildSandboxReportHtml(input: SandboxPdfInput): string {
     gap: 8px;
     margin: -32px -40px 24px;
     padding: 12px 40px;
-    background: var(--ink);
+    background: #1a1f26;
     color: var(--snow);
+    border-bottom: 1px solid var(--border);
   }
   .toolbar button {
     background: var(--pulse);
