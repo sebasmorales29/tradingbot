@@ -1,7 +1,6 @@
 "use client";
 
-import { ToggleBotButton } from "@/components/dashboard/ToggleBotButton";
-import { BotAutoTick } from "@/components/dashboard/BotAutoTick";
+import { OverviewActions } from "@/components/dashboard/OverviewActions";
 import { useT } from "@/components/i18n/T";
 
 export function StatCard({
@@ -92,7 +91,7 @@ export function OverviewView({
 
   return (
     <div>
-      <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="font-display text-3xl font-bold text-snow">
             {t.dash.navOverview}
@@ -103,10 +102,7 @@ export function OverviewView({
           </p>
         </div>
         {canControlBot && bot && (
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            <BotAutoTick isActive={isActive} />
-            <ToggleBotButton botId={bot.id} isActive={bot.is_active} />
-          </div>
+          <OverviewActions botId={bot.id} isActive={bot.is_active} />
         )}
       </div>
 
