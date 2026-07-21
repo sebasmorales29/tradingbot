@@ -10,11 +10,11 @@ const geist = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "PulseTrade — Bot de trading crypto con disciplina",
+  title: "Keelra — Bot de trading crypto con disciplina",
   description:
     "Automatiza tu operativa en Binance Spot con reglas claras, gestión de riesgo y paper trading antes de capital real. Hecho para operar con método, no con impulso.",
   openGraph: {
-    title: "PulseTrade",
+    title: "Keelra",
     description:
       "Bot de trading crypto: señales, riesgo controlado y panel web.",
     locale: "es_ES",

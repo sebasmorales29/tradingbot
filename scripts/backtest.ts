@@ -91,7 +91,7 @@ async function backtestPair(pair: Pair) {
 }
 
 async function main() {
-  console.log("PulseTrade backtest — Binance Vision public data");
+  console.log("Keelra backtest — Binance Vision public data");
   for (const pair of PAIRS) {
     await backtestPair(pair);
   }

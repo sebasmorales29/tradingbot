@@ -29,14 +29,14 @@ export function AuthShell({ mode, children }: AuthShellProps) {
         <div className="flex items-center gap-3">
           <LanguageToggle />
           <Link href="/" className="font-display text-lg font-extrabold text-snow">
-            Pulse<span className="text-pulse">Trade</span>
+            Keel<span className="text-pulse">ra</span>
           </Link>
         </div>
       </header>
 
       <div className="relative z-10 mx-auto flex w-full max-w-sm flex-1 flex-col items-center justify-center py-12">
         <p className="mb-2 text-xs font-medium uppercase tracking-[0.18em] text-pulse">
-          PulseTrade
+          Keelra
         </p>
         <h1 className="font-display text-3xl font-bold text-snow">{title}</h1>
         <p className="mt-2 mb-8 text-center text-sm leading-relaxed text-snow/60">

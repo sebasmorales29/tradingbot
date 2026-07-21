@@ -5,7 +5,7 @@ import { useToast } from "@/components/ui/Toast";
 import { useT } from "@/components/i18n/T";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import {
-  openSandboxPdfReport,
+  downloadSandboxPdf,
   pdfInputFromLiveState,
   type SandboxPdfLabels,
 } from "@/lib/trading/sandbox-pdf";
@@ -75,9 +75,7 @@ export function SandboxSessionLogs({
   activeState: LiveSandboxState | null;
   activeMarket: SandboxMarket | null;
   activeTickMs: number;
-  /** Incrementar al cerrar sesión para refrescar la lista */
   refreshKey: number;
-  /** false = página propia (sin título duplicado ni borde superior) */
   embedded?: boolean;
 }) {
   const t = useT();
@@ -113,7 +111,7 @@ export function SandboxSessionLogs({
   const exportLive = () => {
     if (!activeState) return;
     try {
-      openSandboxPdfReport(
+      downloadSandboxPdf(
         pdfInputFromLiveState({
           state: activeState,
           market: activeMarket,
@@ -126,7 +124,7 @@ export function SandboxSessionLogs({
     } catch {
       toast({
         tone: "error",
-        title: t.admin.pdfPopupBlocked,
+        title: t.admin.pdfExportError,
       });
     }
   };
@@ -159,7 +157,7 @@ export function SandboxSessionLogs({
       };
       if (!res.ok || !data.log) throw new Error(data.error ?? "error");
       const log = data.log;
-      openSandboxPdfReport({
+      downloadSandboxPdf({
         sessionId: log.sessionId,
         pair: log.pair,
         timeframe: log.timeframe,
@@ -193,9 +191,7 @@ export function SandboxSessionLogs({
 
   return (
     <section
-      className={
-        embedded ? "mt-12 border-t border-snow/10 pt-10" : "mt-8"
-      }
+      className={embedded ? "mt-12 border-t border-snow/10 pt-10" : "mt-8"}
     >
       <div
         className={`flex flex-wrap items-end gap-4 ${
@@ -245,53 +241,80 @@ export function SandboxSessionLogs({
             return (
               <li
                 key={log.id}
-                className="flex flex-col gap-3 rounded-xl border border-snow/10 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                className="rounded-xl border border-snow/10 px-4 py-4"
               >
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                    <span className="font-mono text-xs text-pulse">
-                      {log.sessionId}
-                    </span>
-                    <span className="text-sm font-medium text-snow">
-                      {log.pair} · {log.timeframe}
-                    </span>
-                    <span
-                      className={`text-sm font-semibold tabular-nums ${
-                        log.pnl >= 0 ? "text-emerald-300" : "text-red-300"
-                      }`}
-                    >
-                      {log.pnl >= 0 ? "+" : ""}
-                      {log.pnl.toLocaleString(loc, {
-                        style: "currency",
-                        currency: "USD",
-                        maximumFractionDigits: 2,
-                      })}
-                    </span>
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0 flex-1 space-y-3">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                      <span className="font-mono text-xs text-pulse">
+                        {log.sessionId}
+                      </span>
+                      <span className="text-sm font-medium text-snow">
+                        {log.pair}
+                        <span className="text-snow/35"> · </span>
+                        {log.timeframe}
+                      </span>
+                      <span
+                        className={`text-sm font-semibold tabular-nums ${
+                          log.pnl >= 0 ? "text-emerald-300" : "text-red-300"
+                        }`}
+                      >
+                        {log.pnl >= 0 ? "+" : ""}
+                        {log.pnl.toLocaleString(loc, {
+                          style: "currency",
+                          currency: "USD",
+                          maximumFractionDigits: 2,
+                        })}
+                      </span>
+                    </div>
+
+                    <div className="grid gap-2 text-xs text-snow/45 sm:grid-cols-2">
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wide text-snow/30">
+                          {t.admin.startedAt}
+                        </p>
+                        <p className="mt-0.5 text-snow/65">
+                          {new Date(log.startedAt).toLocaleString(loc)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wide text-snow/30">
+                          {t.admin.endedAt}
+                        </p>
+                        <p className="mt-0.5 text-snow/65">
+                          {new Date(log.endedAt).toLocaleString(loc)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      <span className="rounded-md border border-snow/10 bg-snow/[0.03] px-2 py-1 text-xs tabular-nums text-snow/60">
+                        {log.ticks} {t.admin.ticksLabel.toLowerCase()}
+                      </span>
+                      <span className="rounded-md border border-snow/10 bg-snow/[0.03] px-2 py-1 text-xs tabular-nums text-snow/60">
+                        {log.tradesCount}{" "}
+                        {t.admin.paperTrades.toLowerCase()}
+                      </span>
+                      <span className="rounded-md border border-snow/10 bg-snow/[0.03] px-2 py-1 text-xs tabular-nums text-snow/60">
+                        {t.admin.winRate} {wr == null ? "—" : `${wr}%`}
+                      </span>
+                      <span className="rounded-md border border-snow/10 bg-snow/[0.03] px-2 py-1 font-mono text-[11px] text-snow/40">
+                        {log.id.slice(0, 8)}
+                      </span>
+                    </div>
                   </div>
-                  <p className="mt-1 text-xs text-snow/40">
-                    {new Date(log.startedAt).toLocaleString(loc)} →{" "}
-                    {new Date(log.endedAt).toLocaleString(loc)}
-                    {" · "}
-                    {t.admin.logsMeta
-                      .replace("{ticks}", String(log.ticks))
-                      .replace("{trades}", String(log.tradesCount))
-                      .replace(
-                        "{wr}",
-                        wr == null ? "—" : `${wr}%`,
-                      )
-                      .replace("{id}", log.id.slice(0, 8))}
-                  </p>
+
+                  <button
+                    type="button"
+                    disabled={exportingId === log.id}
+                    onClick={() => void exportLog(log.id)}
+                    className="shrink-0 self-start rounded-lg bg-pulse px-3 py-2 text-sm font-semibold text-ink disabled:opacity-50"
+                  >
+                    {exportingId === log.id
+                      ? t.admin.exportingPdf
+                      : t.admin.exportPdf}
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  disabled={exportingId === log.id}
-                  onClick={() => void exportLog(log.id)}
-                  className="shrink-0 rounded-lg bg-pulse px-3 py-2 text-sm font-semibold text-ink disabled:opacity-50"
-                >
-                  {exportingId === log.id
-                    ? t.admin.exportingPdf
-                    : t.admin.exportPdf}
-                </button>
               </li>
             );
           })}

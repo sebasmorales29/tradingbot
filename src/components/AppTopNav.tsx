@@ -34,7 +34,7 @@ export function AppTopNav({
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-5 md:px-8">
         <div className="flex items-center gap-6">
           <Link href="/" className="font-display text-lg font-bold text-snow">
-            Pulse<span className="text-pulse">Trade</span>
+            Keel<span className="text-pulse">ra</span>
           </Link>
           <nav className="flex items-center gap-4 text-sm">
             <Link

@@ -1,3 +1,4 @@
+import { jsPDF } from "jspdf";
 import type { Locale } from "@/lib/i18n/dictionary";
 import type { LiveSandboxState } from "@/lib/trading/live-sandbox";
 import type { SandboxMarket } from "@/lib/trading/sandbox-session";
@@ -54,13 +55,14 @@ export type SandboxPdfInput = {
   labels: SandboxPdfLabels;
 };
 
-function esc(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
+const INK = [34, 40, 49] as const;
+const ELEVATED = [42, 48, 56] as const;
+const SLATE = [57, 62, 70] as const;
+const PULSE = [0, 173, 181] as const;
+const SNOW = [238, 238, 238] as const;
+const MUTED = [160, 165, 172] as const;
+const POS = [52, 211, 153] as const;
+const NEG = [248, 113, 113] as const;
 
 function money(n: number, locale: Locale): string {
   return n.toLocaleString(locale === "en" ? "en-US" : "es-CR", {
@@ -77,355 +79,348 @@ function dt(iso: string, locale: Locale): string {
   });
 }
 
-function buildLogoSvg(): string {
-  return `<svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-  <rect width="36" height="36" rx="8" fill="#00ADB5"/>
-  <path d="M8 22 L14 14 L19 19 L28 10" stroke="#222831" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-  <circle cx="28" cy="10" r="2.2" fill="#222831"/>
-</svg>`;
+function rgb(
+  doc: jsPDF,
+  color: readonly [number, number, number],
+  mode: "fill" | "draw" | "text",
+) {
+  if (mode === "fill") doc.setFillColor(color[0], color[1], color[2]);
+  else if (mode === "draw") doc.setDrawColor(color[0], color[1], color[2]);
+  else doc.setTextColor(color[0], color[1], color[2]);
 }
 
-/** HTML listo para imprimir / Guardar como PDF con marca PulseTrade. */
-export function buildSandboxReportHtml(input: SandboxPdfInput): string {
+/** Genera y descarga un PDF dark de Keelra (sin diálogo de impresión del navegador). */
+export function downloadSandboxPdf(input: SandboxPdfInput): void {
   const { labels: L, locale, state } = input;
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 14;
+  const contentW = pageW - margin * 2;
+  let y = margin;
+
+  const paintPage = () => {
+    rgb(doc, INK, "fill");
+    doc.rect(0, 0, pageW, pageH, "F");
+  };
+
+  const ensureSpace = (need: number) => {
+    if (y + need <= pageH - margin) return;
+    doc.addPage();
+    paintPage();
+    y = margin;
+  };
+
+  paintPage();
+
+  // Brand mark
+  rgb(doc, PULSE, "fill");
+  doc.roundedRect(margin, y, 9, 9, 1.5, 1.5, "F");
+  rgb(doc, INK, "draw");
+  doc.setLineWidth(0.6);
+  doc.setLineCap("round");
+  doc.setLineJoin("round");
+  doc.line(margin + 2, y + 6.2, margin + 3.8, y + 3.8);
+  doc.line(margin + 3.8, y + 3.8, margin + 5.2, y + 5.2);
+  doc.line(margin + 5.2, y + 5.2, margin + 7.2, y + 2.4);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(18);
+  rgb(doc, SNOW, "text");
+  doc.text("Keel", margin + 12, y + 6.5);
+  const keelW = doc.getTextWidth("Keel");
+  rgb(doc, PULSE, "text");
+  doc.text("ra", margin + 12 + keelW, y + 6.5);
+
+  const badgeX = margin + 12 + keelW + doc.getTextWidth("ra") + 3;
+  rgb(doc, [0, 80, 84], "fill");
+  doc.roundedRect(badgeX, y + 1.5, 14, 5, 1, 1, "F");
+  doc.setFontSize(7);
+  rgb(doc, PULSE, "text");
+  doc.setFont("helvetica", "bold");
+  doc.text(L.paperBadge.toUpperCase(), badgeX + 7, y + 4.8, {
+    align: "center",
+  });
+
+  y += 14;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  rgb(doc, MUTED, "text");
+  doc.text(`${L.reportTitle} · ${L.overview}`, margin, y);
+
+  y += 4;
+  rgb(doc, PULSE, "fill");
+  doc.rect(margin, y, contentW * 0.45, 0.8, "F");
+  y += 8;
+
+  // Stats row
   const closed = state.closedTrades.length;
   const winRate = closed ? Math.round((input.wins / closed) * 100) : null;
-  const pnlClass = input.pnl >= 0 ? "pos" : "neg";
+  const stats = [
+    { label: L.startingEquity, value: money(input.startingEquity, locale) },
+    { label: L.finalEquity, value: money(input.finalEquity, locale) },
+    {
+      label: L.pnl,
+      value: `${input.pnl >= 0 ? "+" : ""}${money(input.pnl, locale)}`,
+      tone: input.pnl >= 0 ? "pos" : "neg",
+    },
+    {
+      label: L.winRate,
+      value: winRate == null ? "—" : `${winRate}%`,
+    },
+  ] as const;
+
+  const gap = 3;
+  const cardW = (contentW - gap * 3) / 4;
+  const cardH = 16;
+  ensureSpace(cardH + 4);
+  stats.forEach((s, i) => {
+    const x = margin + i * (cardW + gap);
+    rgb(doc, ELEVATED, "fill");
+    rgb(doc, SLATE, "draw");
+    doc.setLineWidth(0.2);
+    doc.roundedRect(x, y, cardW, cardH, 1.5, 1.5, "FD");
+    doc.setFontSize(6.5);
+    rgb(doc, MUTED, "text");
+    doc.setFont("helvetica", "normal");
+    doc.text(s.label.toUpperCase(), x + 2.5, y + 5);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    if ("tone" in s && s.tone === "pos") rgb(doc, POS, "text");
+    else if ("tone" in s && s.tone === "neg") rgb(doc, NEG, "text");
+    else rgb(doc, SNOW, "text");
+    doc.text(s.value, x + 2.5, y + 11.5);
+  });
+  y += cardH + 8;
+
+  // Meta
+  const metaLeft: [string, string][] = [
+    [L.sessionId, input.sessionId],
+    [L.risk, `${input.riskPercent}%`],
+    [L.started, dt(input.startedAt, locale)],
+    [L.ticks, String(input.ticks)],
+  ];
+  const metaRight: [string, string][] = [
+    [L.pair, `${input.pair} · ${input.timeframe}`],
+    [L.tickInterval, `${Math.round(input.tickIntervalMs / 1000)}s`],
+    [L.ended, input.endedAt ? dt(input.endedAt, locale) : "—"],
+    [
+      L.trades,
+      `${input.wins + input.losses} (${L.wins} ${input.wins} · ${L.losses} ${input.losses})`,
+    ],
+  ];
+
+  ensureSpace(28);
+  doc.setFontSize(8.5);
+  for (let i = 0; i < 4; i++) {
+    const rowY = y + i * 5.5;
+    rgb(doc, MUTED, "text");
+    doc.setFont("helvetica", "normal");
+    doc.text(metaLeft[i][0], margin, rowY);
+    rgb(doc, SNOW, "text");
+    doc.setFont("helvetica", "bold");
+    doc.text(metaLeft[i][1], margin + 32, rowY, {
+      maxWidth: contentW / 2 - 36,
+    });
+
+    rgb(doc, MUTED, "text");
+    doc.setFont("helvetica", "normal");
+    doc.text(metaRight[i][0], margin + contentW / 2, rowY);
+    rgb(doc, SNOW, "text");
+    doc.setFont("helvetica", "bold");
+    doc.text(metaRight[i][1], margin + contentW / 2 + 32, rowY, {
+      maxWidth: contentW / 2 - 36,
+    });
+  }
+  y += 28;
+
+  // Trades section
+  ensureSpace(12);
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "bold");
+  rgb(doc, SNOW, "text");
+  doc.text(L.tradesSection, margin, y);
+  y += 2;
+  rgb(doc, SLATE, "draw");
+  doc.setLineWidth(0.3);
+  doc.line(margin, y, margin + contentW, y);
+  y += 5;
+
+  if (state.position) {
+    ensureSpace(14);
+    rgb(doc, [20, 50, 42], "fill");
+    rgb(doc, POS, "draw");
+    doc.setLineWidth(0.3);
+    doc.roundedRect(margin, y, contentW, 12, 1.5, 1.5, "FD");
+    doc.setFontSize(8);
+    rgb(doc, POS, "text");
+    doc.setFont("helvetica", "bold");
+    doc.text(L.openPosition, margin + 3, y + 4.5);
+    rgb(doc, SNOW, "text");
+    doc.setFont("helvetica", "normal");
+    doc.text(
+      `${L.entry} ${state.position.entry.toFixed(2)} · ${L.qty} ${state.position.qty.toFixed(6)}`,
+      margin + 3,
+      y + 9,
+    );
+    y += 15;
+  }
+
+  const colX = [
+    margin,
+    margin + 32,
+    margin + 50,
+    margin + 68,
+    margin + 92,
+    margin + 118,
+  ];
+  const headers = [L.ended, L.entry, L.exit, L.qty, "PnL", L.reason];
+
+  ensureSpace(10);
+  rgb(doc, SLATE, "fill");
+  doc.rect(margin, y, contentW, 7, "F");
+  doc.setFontSize(6.5);
+  doc.setFont("helvetica", "bold");
+  rgb(doc, MUTED, "text");
+  headers.forEach((h, i) => {
+    doc.text(h.toUpperCase(), colX[i] + 1.5, y + 4.5);
+  });
+  y += 7;
+
+  if (state.closedTrades.length === 0) {
+    ensureSpace(8);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    rgb(doc, MUTED, "text");
+    doc.text(L.noTrades, margin + 2, y + 5);
+    y += 10;
+  } else {
+    for (const tr of state.closedTrades) {
+      ensureSpace(8);
+      rgb(doc, SLATE, "draw");
+      doc.setLineWidth(0.15);
+      doc.line(margin, y + 7, margin + contentW, y + 7);
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "normal");
+      rgb(doc, SNOW, "text");
+      doc.text(dt(tr.closedAt, locale), colX[0] + 1.5, y + 4.5, {
+        maxWidth: 30,
+      });
+      doc.text(tr.entry.toFixed(2), colX[1] + 1.5, y + 4.5);
+      doc.text(tr.exit.toFixed(2), colX[2] + 1.5, y + 4.5);
+      doc.text(tr.qty.toFixed(5), colX[3] + 1.5, y + 4.5);
+      rgb(doc, tr.pnl >= 0 ? POS : NEG, "text");
+      doc.setFont("helvetica", "bold");
+      doc.text(
+        `${tr.pnl >= 0 ? "+" : ""}${money(tr.pnl, locale)}`,
+        colX[4] + 1.5,
+        y + 4.5,
+      );
+      rgb(doc, MUTED, "text");
+      doc.setFont("helvetica", "normal");
+      doc.text(tr.exitReason, colX[5] + 1.5, y + 4.5, {
+        maxWidth: pageW - margin - colX[5] - 2,
+      });
+      y += 8;
+    }
+  }
+
+  // Events
+  y += 6;
+  ensureSpace(12);
+  doc.setFontSize(11);
+  doc.setFont("helvetica", "bold");
+  rgb(doc, SNOW, "text");
+  doc.text(L.eventsSection, margin, y);
+  y += 2;
+  rgb(doc, SLATE, "draw");
+  doc.setLineWidth(0.3);
+  doc.line(margin, y, margin + contentW, y);
+  y += 6;
+
   const events = [...state.events]
     .filter((e) => e.kind !== "tick")
     .slice(-40)
     .reverse();
 
-  const tradesRows =
-    state.closedTrades.length === 0
-      ? `<tr><td colspan="6" class="muted">${esc(L.noTrades)}</td></tr>`
-      : state.closedTrades
-          .map(
-            (tr) => `<tr>
-      <td>${esc(dt(tr.closedAt, locale))}</td>
-      <td class="mono">${tr.entry.toFixed(2)}</td>
-      <td class="mono">${tr.exit.toFixed(2)}</td>
-      <td class="mono">${tr.qty.toFixed(6)}</td>
-      <td class="mono ${tr.pnl >= 0 ? "pos" : "neg"}">${tr.pnl >= 0 ? "+" : ""}${money(tr.pnl, locale)}</td>
-      <td class="small">${esc(tr.exitReason)}</td>
-    </tr>`,
-          )
-          .join("");
+  if (events.length === 0) {
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    rgb(doc, MUTED, "text");
+    doc.text(L.noEvents, margin, y);
+    y += 8;
+  } else {
+    for (const e of events) {
+      const msgLines = doc.splitTextToSize(
+        e.message,
+        contentW - 28,
+      ) as string[];
+      const blockH = Math.max(10, 5 + msgLines.length * 4);
+      ensureSpace(blockH + 2);
 
-  const openRow = state.position
-    ? `<div class="open-box">
-        <strong>${esc(L.openPosition)}</strong>
-        <span class="mono">${esc(L.entry)} ${state.position.entry.toFixed(2)} · ${esc(L.qty)} ${state.position.qty.toFixed(6)}</span>
-        <p class="small muted">${esc(state.position.entryReason)}</p>
-      </div>`
-    : "";
+      // kind badge
+      const kind = e.kind.toUpperCase();
+      let badgeBg: readonly [number, number, number] = SLATE;
+      let badgeFg: readonly [number, number, number] = MUTED;
+      if (e.kind === "long") {
+        badgeBg = [20, 60, 48];
+        badgeFg = POS;
+      } else if (e.kind === "tp") {
+        badgeBg = [0, 70, 74];
+        badgeFg = PULSE;
+      } else if (e.kind === "flat" || e.kind === "stop") {
+        badgeBg = [70, 30, 30];
+        badgeFg = NEG;
+      } else if (e.kind === "skip") {
+        badgeBg = [70, 55, 20];
+        badgeFg = [252, 211, 77];
+      }
 
-  const eventRows =
-    events.length === 0
-      ? `<li class="muted">${esc(L.noEvents)}</li>`
-      : events
-          .map(
-            (e) => `<li>
-        <span class="kind kind-${esc(e.kind)}">${esc(e.kind)}</span>
-        <span class="muted small">${esc(dt(e.at, locale))}</span>
-        <span>${esc(e.message)}</span>
-      </li>`,
-          )
-          .join("");
+      rgb(doc, badgeBg, "fill");
+      doc.roundedRect(margin, y, 16, 5, 0.8, 0.8, "F");
+      doc.setFontSize(6);
+      doc.setFont("helvetica", "bold");
+      rgb(doc, badgeFg, "text");
+      doc.text(kind, margin + 8, y + 3.5, { align: "center" });
 
-  return `<!DOCTYPE html>
-<html lang="${locale}">
-<head>
-<meta charset="utf-8"/>
-<title>PulseTrade — ${esc(L.reportTitle)}</title>
-<style>
-  :root {
-    --ink: #222831;
-    --ink-elevated: #2a3038;
-    --slate: #393e46;
-    --pulse: #00adb5;
-    --pulse-dim: #008a91;
-    --snow: #eeeeee;
-    --snow-soft: rgba(238, 238, 238, 0.72);
-    --snow-muted: rgba(238, 238, 238, 0.45);
-    --border: rgba(238, 238, 238, 0.1);
-  }
-  * { box-sizing: border-box; }
-  html, body {
-    background: var(--ink) !important;
-  }
-  body {
-    margin: 0;
-    padding: 32px 40px 48px;
-    font-family: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-    color: var(--snow);
-    font-size: 12.5px;
-    line-height: 1.45;
-    letter-spacing: -0.011em;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-    color-adjust: exact;
-  }
-  .brand {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 8px;
-  }
-  .brand h1 {
-    margin: 0;
-    font-size: 22px;
-    font-weight: 700;
-    letter-spacing: -0.03em;
-    color: var(--snow);
-  }
-  .brand .pulse { color: var(--pulse); }
-  .badge {
-    display: inline-block;
-    margin-left: 8px;
-    padding: 2px 8px;
-    border-radius: 4px;
-    background: rgba(0,173,181,0.18);
-    color: var(--pulse);
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    vertical-align: middle;
-  }
-  .subtitle {
-    margin: 0 0 24px;
-    color: var(--snow-muted);
-    font-size: 13px;
-  }
-  .rule {
-    height: 3px;
-    background: linear-gradient(90deg, var(--pulse), transparent);
-    border: 0;
-    margin: 0 0 24px;
-  }
-  h2 {
-    margin: 28px 0 12px;
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--snow);
-    letter-spacing: -0.02em;
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 6px;
-  }
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-  }
-  .stat {
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 10px 12px;
-    background: var(--ink-elevated);
-  }
-  .stat .label {
-    display: block;
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--snow-muted);
-    margin-bottom: 4px;
-  }
-  .stat .value {
-    font-size: 15px;
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
-    color: var(--snow);
-  }
-  .meta {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 6px 24px;
-    margin-top: 14px;
-  }
-  .meta div { display: flex; gap: 8px; }
-  .meta .k { color: var(--snow-muted); min-width: 110px; }
-  .mono { font-variant-numeric: tabular-nums; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; }
-  .pos { color: #34d399; }
-  .neg { color: #f87171; }
-  .muted { color: var(--snow-muted); }
-  .small { font-size: 11px; }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 4px;
-  }
-  th, td {
-    text-align: left;
-    padding: 7px 8px;
-    border-bottom: 1px solid var(--border);
-    color: var(--snow-soft);
-  }
-  th {
-    font-size: 10px;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: var(--snow-muted);
-    background: var(--slate);
-  }
-  .open-box {
-    margin: 10px 0 14px;
-    padding: 10px 12px;
-    border-radius: 8px;
-    border: 1px solid rgba(52,211,153,0.35);
-    background: rgba(52,211,153,0.08);
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    color: #a7f3d0;
-  }
-  .events { list-style: none; padding: 0; margin: 0; }
-  .events li {
-    padding: 6px 0;
-    border-bottom: 1px solid var(--border);
-    display: grid;
-    grid-template-columns: 64px 130px 1fr;
-    gap: 8px;
-    align-items: baseline;
-    color: var(--snow-soft);
-  }
-  .kind {
-    font-size: 9px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    padding: 2px 5px;
-    border-radius: 3px;
-    background: rgba(238,238,238,0.1);
-    color: var(--snow-muted);
-    text-align: center;
-  }
-  .kind-long { background: rgba(52,211,153,0.18); color: #6ee7b7; }
-  .kind-flat, .kind-stop { background: rgba(248,113,113,0.18); color: #fca5a5; }
-  .kind-tp { background: rgba(0,173,181,0.22); color: var(--pulse); }
-  .kind-skip { background: rgba(251,191,36,0.18); color: #fcd34d; }
-  .kind-hold { background: rgba(238,238,238,0.08); color: rgba(238,238,238,0.55); }
-  .footer {
-    margin-top: 36px;
-    padding-top: 14px;
-    border-top: 1px solid var(--border);
-    font-size: 10px;
-    color: var(--snow-muted);
-  }
-  @media print {
-    html, body {
-      background: var(--ink) !important;
-    }
-    body { padding: 16px 20px; }
-    .no-print { display: none !important; }
-    .stat { break-inside: avoid; }
-    h2 { break-after: avoid; }
-    * {
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-      color-adjust: exact !important;
+      doc.setFontSize(7);
+      doc.setFont("helvetica", "normal");
+      rgb(doc, MUTED, "text");
+      doc.text(dt(e.at, locale), margin + 18, y + 3.5);
+
+      rgb(doc, SNOW, "text");
+      doc.setFontSize(8);
+      doc.text(msgLines, margin + 18, y + 8.5);
+      y += blockH;
+
+      rgb(doc, SLATE, "draw");
+      doc.setLineWidth(0.1);
+      doc.line(margin, y - 1, margin + contentW, y - 1);
     }
   }
-  .toolbar {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    display: flex;
-    gap: 8px;
-    margin: -32px -40px 24px;
-    padding: 12px 40px;
-    background: #1a1f26;
-    color: var(--snow);
-    border-bottom: 1px solid var(--border);
-  }
-  .toolbar button {
-    background: var(--pulse);
-    color: var(--ink);
-    border: 0;
-    border-radius: 6px;
-    padding: 8px 14px;
-    font-weight: 700;
-    cursor: pointer;
-    font-size: 13px;
-  }
-  .toolbar button.secondary {
-    background: transparent;
-    color: var(--snow);
-    border: 1px solid rgba(238,238,238,0.25);
-  }
-</style>
-</head>
-<body>
-  <div class="toolbar no-print">
-    <button type="button" onclick="window.print()">${locale === "en" ? "Save as PDF / Print" : "Guardar como PDF / Imprimir"}</button>
-    <button type="button" class="secondary" onclick="window.close()">${locale === "en" ? "Close" : "Cerrar"}</button>
-  </div>
 
-  <div class="brand">
-    ${buildLogoSvg()}
-    <h1>Pulse<span class="pulse">Trade</span><span class="badge">${esc(L.paperBadge)}</span></h1>
-  </div>
-  <p class="subtitle">${esc(L.reportTitle)} · ${esc(L.overview)}</p>
-  <hr class="rule"/>
+  // Footer
+  ensureSpace(16);
+  y = Math.max(y + 4, pageH - margin - 12);
+  rgb(doc, SLATE, "draw");
+  doc.setLineWidth(0.3);
+  doc.line(margin, y, margin + contentW, y);
+  y += 5;
+  doc.setFontSize(7);
+  doc.setFont("helvetica", "normal");
+  rgb(doc, MUTED, "text");
+  doc.text(`${L.generatedAt} ${dt(new Date().toISOString(), locale)}`, margin, y);
+  y += 4;
+  const disc = doc.splitTextToSize(L.disclaimer, contentW) as string[];
+  doc.text(disc, margin, y);
 
-  <div class="grid">
-    <div class="stat"><span class="label">${esc(L.startingEquity)}</span><span class="value">${money(input.startingEquity, locale)}</span></div>
-    <div class="stat"><span class="label">${esc(L.finalEquity)}</span><span class="value">${money(input.finalEquity, locale)}</span></div>
-    <div class="stat"><span class="label">${esc(L.pnl)}</span><span class="value ${pnlClass}">${input.pnl >= 0 ? "+" : ""}${money(input.pnl, locale)}</span></div>
-    <div class="stat"><span class="label">${esc(L.winRate)}</span><span class="value">${winRate == null ? "—" : `${winRate}%`}</span></div>
-  </div>
-
-  <div class="meta">
-    <div><span class="k">${esc(L.sessionId)}</span><span class="mono">${esc(input.sessionId)}</span></div>
-    <div><span class="k">${esc(L.pair)}</span><span>${esc(input.pair)} · ${esc(input.timeframe)}</span></div>
-    <div><span class="k">${esc(L.risk)}</span><span>${input.riskPercent}%</span></div>
-    <div><span class="k">${esc(L.tickInterval)}</span><span>${Math.round(input.tickIntervalMs / 1000)}s</span></div>
-    <div><span class="k">${esc(L.started)}</span><span>${esc(dt(input.startedAt, locale))}</span></div>
-    <div><span class="k">${esc(L.ended)}</span><span>${input.endedAt ? esc(dt(input.endedAt, locale)) : "—"}</span></div>
-    <div><span class="k">${esc(L.ticks)}</span><span>${input.ticks}</span></div>
-    <div><span class="k">${esc(L.trades)}</span><span>${input.wins + input.losses} (${esc(L.wins)} ${input.wins} · ${esc(L.losses)} ${input.losses})</span></div>
-  </div>
-
-  <h2>${esc(L.tradesSection)}</h2>
-  ${openRow}
-  <table>
-    <thead>
-      <tr>
-        <th>${esc(L.ended)}</th>
-        <th>${esc(L.entry)}</th>
-        <th>${esc(L.exit)}</th>
-        <th>${esc(L.qty)}</th>
-        <th>PnL</th>
-        <th>${esc(L.reason)}</th>
-      </tr>
-    </thead>
-    <tbody>${tradesRows}</tbody>
-  </table>
-
-  <h2>${esc(L.eventsSection)}</h2>
-  <ul class="events">${eventRows}</ul>
-
-  <div class="footer">
-    <p>${esc(L.generatedAt)} ${esc(dt(new Date().toISOString(), locale))}</p>
-    <p>${esc(L.disclaimer)}</p>
-  </div>
-</body>
-</html>`;
+  const safeId = input.sessionId.replace(/[^a-zA-Z0-9_-]/g, "").slice(-16);
+  doc.save(`keelra-sandbox-${safeId || "session"}.pdf`);
 }
 
-/** Abre una ventana con el reporte y el diálogo de impresión (Guardar como PDF). */
+/** @deprecated usar downloadSandboxPdf */
 export function openSandboxPdfReport(input: SandboxPdfInput): void {
-  const html = buildSandboxReportHtml(input);
-  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const w = window.open(url, "_blank", "noopener,noreferrer,width=900,height=1000");
-  if (!w) {
-    URL.revokeObjectURL(url);
-    throw new Error("popup-blocked");
-  }
-  // Revocar después de que la ventana cargue el blob
-  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  downloadSandboxPdf(input);
 }
 
 export function pdfInputFromLiveState(opts: {

@@ -14,7 +14,8 @@ import {
   type Locale,
 } from "@/lib/i18n/dictionary";
 
-const STORAGE_KEY = "pulsetrade-locale";
+const STORAGE_KEY = "keelra-locale";
+const LEGACY_STORAGE_KEY = "pulsetrade-locale";
 
 type LanguageContextValue = {
   locale: Locale;
@@ -30,7 +31,9 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const saved = window.localStorage.getItem(STORAGE_KEY);
+    const saved =
+      window.localStorage.getItem(STORAGE_KEY) ??
+      window.localStorage.getItem(LEGACY_STORAGE_KEY);
     if (saved === "es" || saved === "en") {
       setLocaleState(saved);
     }

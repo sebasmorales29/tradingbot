@@ -1,4 +1,4 @@
-# PulseTrade
+# Keelra
 
 Bot de trading crypto (Binance Spot) + producto web con Supabase.
 

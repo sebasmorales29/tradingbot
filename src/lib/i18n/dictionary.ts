@@ -17,7 +17,7 @@ export const dictionaries = {
     how: {
       eyebrow: "Cómo funciona",
       title: "Tres pasos. Cero teatro.",
-      lead: "PulseTrade automatiza lo que un trader disciplinado ya haría a mano — con consistencia y sin emoción.",
+      lead: "Keelra automatiza lo que un trader disciplinado ya haría a mano — con consistencia y sin emoción.",
       steps: [
         {
           n: "01",
@@ -66,7 +66,7 @@ export const dictionaries = {
       register: "Crear cuenta gratis",
       login: "Ya tengo cuenta — Entrar",
       disclaimer:
-        "Aviso: el trading conlleva riesgo de pérdida de capital. Los resultados pasados no garantizan resultados futuros. PulseTrade no ofrece asesoría financiera personalizada ni promete rentabilidad.",
+        "Aviso: el trading conlleva riesgo de pérdida de capital. Los resultados pasados no garantizan resultados futuros. Keelra no ofrece asesoría financiera personalizada ni promete rentabilidad.",
     },
     footer: {
       tagline: "Binance Spot · Swing · Riesgo primero.",
@@ -330,16 +330,16 @@ export const dictionaries = {
       value: "Valor",
       logsTitle: "Logs de sesiones",
       logsLead:
-        "Historial de sesiones paper cerradas. Cada una guarda overview, trades y decisiones — exportables a PDF con la marca PulseTrade.",
+        "Historial de sesiones paper cerradas. Cada una guarda overview, trades y decisiones — exportables a PDF con la marca Keelra.",
       logsLoading: "Cargando historial…",
       logsEmpty:
         "Aún no hay sesiones archivadas. Cierra una sesión paper para que aparezca aquí.",
       logsLoadError: "No se pudo cargar el historial",
       logsMeta: "{ticks} ticks · {trades} trades · WR {wr} · log {id}",
       refreshLogs: "Actualizar",
-      exportPdf: "Exportar PDF",
-      exportLivePdf: "PDF de sesión actual",
-      exportingPdf: "Generando…",
+      exportPdf: "Descargar PDF",
+      exportLivePdf: "Descargar sesión actual",
+      exportingPdf: "Descargando…",
       pdfExportError: "No se pudo exportar el PDF",
       pdfPopupBlocked:
         "Permite ventanas emergentes para abrir el reporte PDF.",
@@ -355,7 +355,7 @@ export const dictionaries = {
       openPositionShort: "Posición abierta",
       noEvents: "Sin eventos relevantes.",
       sandboxPdfDisclaimer:
-        "Paper trading de simulación. No constituye asesoría financiera ni garantiza resultados futuros. PulseTrade — uso interno / evaluación de estrategia.",
+        "Paper trading de simulación. No constituye asesoría financiera ni garantiza resultados futuros. Keelra — uso interno / evaluación de estrategia.",
       generatedAt: "Generado:",
       paperBadge: "Paper",
       entryLabel: "Entry",
@@ -429,7 +429,7 @@ export const dictionaries = {
     how: {
       eyebrow: "How it works",
       title: "Three steps. No theater.",
-      lead: "PulseTrade automates what a disciplined trader would do by hand — consistently, without emotion.",
+      lead: "Keelra automates what a disciplined trader would do by hand — consistently, without emotion.",
       steps: [
         {
           n: "01",
@@ -478,7 +478,7 @@ export const dictionaries = {
       register: "Create free account",
       login: "I already have an account — Log in",
       disclaimer:
-        "Disclaimer: trading involves risk of capital loss. Past results do not guarantee future performance. PulseTrade does not provide personalized financial advice or promise returns.",
+        "Disclaimer: trading involves risk of capital loss. Past results do not guarantee future performance. Keelra does not provide personalized financial advice or promise returns.",
     },
     footer: {
       tagline: "Binance Spot · Swing · Risk first.",
@@ -742,18 +742,18 @@ export const dictionaries = {
       value: "Value",
       logsTitle: "Session logs",
       logsLead:
-        "History of closed paper sessions. Each one stores an overview, trades, and decisions — exportable as a branded PulseTrade PDF.",
+        "History of closed paper sessions. Each one stores an overview, trades, and decisions — exportable as a branded Keelra PDF.",
       logsLoading: "Loading history…",
       logsEmpty:
         "No archived sessions yet. Close a paper session to see it listed here.",
       logsLoadError: "Could not load history",
       logsMeta: "{ticks} ticks · {trades} trades · WR {wr} · log {id}",
       refreshLogs: "Refresh",
-      exportPdf: "Export PDF",
-      exportLivePdf: "PDF of current session",
-      exportingPdf: "Generating…",
+      exportPdf: "Download PDF",
+      exportLivePdf: "Download current session",
+      exportingPdf: "Downloading…",
       pdfExportError: "Could not export PDF",
-      pdfPopupBlocked: "Allow pop-ups to open the PDF report.",
+      pdfPopupBlocked: "Could not download the PDF.",
       sandboxPdfTitle: "Sandbox session report",
       sandboxPdfOverview: "Paper trading overview",
       sessionIdLabel: "Session ID",
@@ -766,7 +766,7 @@ export const dictionaries = {
       openPositionShort: "Open position",
       noEvents: "No relevant events.",
       sandboxPdfDisclaimer:
-        "Simulated paper trading. Not financial advice and does not guarantee future results. PulseTrade — internal use / strategy evaluation.",
+        "Simulated paper trading. Not financial advice and does not guarantee future results. Keelra — internal use / strategy evaluation.",
       generatedAt: "Generated:",
       paperBadge: "Paper",
       entryLabel: "Entry",

@@ -214,6 +214,8 @@ export function localeFromCookieHeader(
   cookieHeader: string | null,
 ): Locale {
   if (!cookieHeader) return "es";
-  const match = cookieHeader.match(/(?:^|;\s*)pulsetrade-locale=(es|en)/);
+  const match = cookieHeader.match(
+    /(?:^|;\s*)(?:keelra-locale|pulsetrade-locale)=(es|en)/,
+  );
   return match?.[1] === "en" ? "en" : "es";
 }

@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Internacionalización (ES / EN)
 
-PulseTrade es bilingüe. El idioma se elige en Ajustes y aplica a **toda** la app (landing, auth, panel y admin).
+Keelra es bilingüe. El idioma se elige en Ajustes y aplica a **toda** la app (landing, auth, panel y admin).
 
 ## Obligatorio en código nuevo o editado
 
@@ -18,7 +18,7 @@ PulseTrade es bilingüe. El idioma se elige en Ajustes y aplica a **toda** la ap
 
 ## Referencia
 
-- Provider: `LanguageProvider` (`pulsetrade-locale` en localStorage + cookie)
+- Provider: `LanguageProvider` (`keelra-locale` en localStorage + cookie)
 - Toggle: `LanguageToggle`
 - Admin namespace: `t.admin.*`
 - Dashboard: `t.dash.*`

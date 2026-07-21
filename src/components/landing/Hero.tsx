@@ -19,8 +19,8 @@ export function Hero() {
       <div className="relative z-10 mx-auto grid w-full max-w-6xl items-center gap-8 px-6 md:grid-cols-[1fr_1.05fr] md:gap-6 md:px-8">
         <div className="max-w-xl">
           <p className="animate-rise font-display text-4xl font-extrabold leading-[0.95] tracking-tight text-snow sm:text-5xl md:text-6xl lg:text-[4.75rem]">
-            Pulse
-            <span className="text-pulse">Trade</span>
+            Keel
+            <span className="text-pulse">ra</span>
           </p>
 
           <h1 className="animate-rise-delay-1 mt-5 font-display text-xl font-semibold leading-snug text-snow sm:text-2xl md:text-3xl">

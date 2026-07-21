@@ -14,7 +14,7 @@ export function Nav() {
           href="#top"
           className="font-display text-lg font-bold tracking-tight text-snow md:text-xl"
         >
-          Pulse<span className="text-pulse">Trade</span>
+          Keel<span className="text-pulse">ra</span>
         </a>
         <div className="flex items-center gap-3 md:gap-5">
           <a
