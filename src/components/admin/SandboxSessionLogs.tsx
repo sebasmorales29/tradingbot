@@ -70,12 +70,15 @@ export function SandboxSessionLogs({
   activeMarket,
   activeTickMs,
   refreshKey,
+  embedded = true,
 }: {
   activeState: LiveSandboxState | null;
   activeMarket: SandboxMarket | null;
   activeTickMs: number;
   /** Incrementar al cerrar sesión para refrescar la lista */
   refreshKey: number;
+  /** false = página propia (sin título duplicado ni borde superior) */
+  embedded?: boolean;
 }) {
   const t = useT();
   const { locale } = useLanguage();
@@ -189,16 +192,26 @@ export function SandboxSessionLogs({
   const loc = locale === "en" ? "en-US" : "es-CR";
 
   return (
-    <section className="mt-12 border-t border-snow/10 pt-10">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h2 className="font-display text-lg font-bold text-snow">
-            {t.admin.logsTitle}
-          </h2>
-          <p className="mt-1 max-w-xl text-sm text-snow/45">
-            {t.admin.logsLead}
-          </p>
-        </div>
+    <section
+      className={
+        embedded ? "mt-12 border-t border-snow/10 pt-10" : "mt-8"
+      }
+    >
+      <div
+        className={`flex flex-wrap items-end gap-4 ${
+          embedded ? "justify-between" : "justify-end"
+        }`}
+      >
+        {embedded && (
+          <div>
+            <h2 className="font-display text-lg font-bold text-snow">
+              {t.admin.logsTitle}
+            </h2>
+            <p className="mt-1 max-w-xl text-sm text-snow/45">
+              {t.admin.logsLead}
+            </p>
+          </div>
+        )}
         <div className="flex flex-wrap gap-2">
           {activeState && (
             <button
