@@ -9,11 +9,18 @@ const SIDEBAR_KEY = "keelra-operator-knowledge-open";
 
 function sourceBadge(
   source: string | undefined,
-  labels: { web: string; chat: string; test: string; other: string },
+  labels: {
+    web: string;
+    chat: string;
+    test: string;
+    sandbox: string;
+    other: string;
+  },
 ) {
   if (source === "web_research") return labels.web;
   if (source === "chat") return labels.chat;
-  if (source === "test_promote") return labels.test;
+  if (source === "test_promote" || source === "test_lab") return labels.test;
+  if (source === "sandbox") return labels.sandbox;
   return labels.other;
 }
 
@@ -85,6 +92,7 @@ export function OperatorLearningView() {
     web: t.admin.operatorSourceWeb,
     chat: t.admin.operatorSourceChat,
     test: t.admin.operatorSourceTest,
+    sandbox: t.admin.operatorSourceSandbox,
     other: t.admin.operatorSourceOther,
   };
 
@@ -129,6 +137,27 @@ export function OperatorLearningView() {
               }`}
             >
               {m.content}
+              {m.role === "user" && !m.knowledge_id && (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() =>
+                    void post({
+                      action: "save_as_lesson",
+                      chatMessageId: m.id,
+                      locale,
+                    })
+                  }
+                  className="mt-3 rounded-md border border-pulse/40 px-2.5 py-1 text-xs font-medium text-pulse transition hover:bg-pulse/10 disabled:opacity-50"
+                >
+                  {t.admin.operatorSaveLesson}
+                </button>
+              )}
+              {m.role === "user" && m.knowledge_id && (
+                <p className="mt-2 text-[11px] text-emerald-300/80">
+                  {t.admin.operatorLessonSaved}
+                </p>
+              )}
             </div>
           ))}
           <div ref={chatEnd} />

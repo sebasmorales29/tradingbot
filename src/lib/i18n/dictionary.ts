@@ -373,14 +373,16 @@ export const dictionaries = {
         "Para reentrenar con histórico: npm run bot:operator-train (luego Sync).",
       operatorChatTitle: "Hablar con el Operador",
       operatorChatLead:
-        "Pregúntale qué sabe o enséñale reglas. Si es una pregunta, analiza su cerebro y te responde; si es una regla, la guarda para siempre.",
+        "Pregunta qué sabe o propone reglas. Nada se aprende solo: si quieres guardarlo, usa “Guardar como lección”. Las pruebas van en Testing.",
       operatorChatEmpty:
-        "Empieza con: “¿qué has aprendido hasta ahora?” o enseña una regla.",
+        "Empieza con: “¿qué has aprendido hasta ahora?”",
       operatorChatPlaceholder:
-        "Pregunta o enséñale… ej. ¿qué sabes? / preferir alcista",
+        "Pregunta o propone una regla… (guardar es opcional)",
       operatorChatSend: "Enviar",
       operatorChatThinking: "Pensando…",
       operatorTeach: "Enseñar",
+      operatorSaveLesson: "Guardar como lección",
+      operatorLessonSaved: "Ya está en el cerebro principal",
       operatorKnowledgeTitle: "Qué sabe ahora",
       operatorKnowledgeLead:
         "Lecciones activas que sesgan cada decisión de todos los bots.",
@@ -389,6 +391,7 @@ export const dictionaries = {
       operatorSourceWeb: "Web",
       operatorSourceChat: "Manual",
       operatorSourceTest: "Prueba",
+      operatorSourceSandbox: "Sandbox",
       operatorSourceOther: "Otro",
       operatorSourceLink: "Ver fuente",
       operatorKnowledgeShow: "Ver lecciones",
@@ -418,7 +421,7 @@ export const dictionaries = {
       operatorTestNav: "Pruebas",
       operatorTestTitle: "Laboratorio de pruebas",
       operatorTestLead:
-        "Prueba ideas e imágenes con el Operador. Si algo sirve, llévalo al cerebro principal.",
+        "Aquí el Operador responde pruebas y preguntas sin aprender solo. Si una prueba sirve, pulsa “Llevar al cerebro principal”.",
       operatorTestEmpty: "Sin pruebas aún. Escribe o adjunta un gráfico.",
       operatorTestPlaceholder: "Describe la prueba o lo que ves en el gráfico…",
       operatorTestSend: "Enviar prueba",
@@ -446,9 +449,16 @@ export const dictionaries = {
       operatorAutoResearchOff: "Investigación automática pausada.",
       sandboxTitle: "Sandbox",
       sandboxLead:
-        "Paper trading en vivo: el bot lee el mercado real, aplica una checklist de calidad y solo opera cuando el setup es limpio. Dinero ficticio — sin tocar cuentas reales. La sesión queda guardada: puedes refrescar o ir a otra vista y sigue operando.",
+        "Prueba del Operador global con mercado real y dinero paper. Usa el mismo cerebro (lecciones + modelo). Al cerrar la sesión, consume la experiencia y la guarda para el futuro.",
+      sandboxOperatorHint:
+        "Par y timeframe definen el escenario. El Operador decide con su conocimiento actual — sin knobs de EMA/ATR.",
+      sandboxSessionClosed: "Sesión sandbox cerrada",
+      sandboxExperienceConsumed:
+        "El Operador consumió la experiencia: {n} lecciones nuevas.",
+      sandboxExperienceEmpty:
+        "Sesión archivada. Sin trades suficientes para nuevas lecciones.",
       sandboxRoleHint:
-        "Tu rol puede operar el sandbox. Los parámetros de estrategia están fijos a la configuración global.",
+        "Tu rol puede operar el sandbox. El cerebro global es el que se pone a prueba.",
       sandboxRestoring: "Restaurando sesión paper…",
       sessionTitle: "Sesión paper",
       pair: "Par",
@@ -953,14 +963,15 @@ export const dictionaries = {
         "To retrain on history: npm run bot:operator-train (then Sync).",
       operatorChatTitle: "Talk to the Operator",
       operatorChatLead:
-        "Ask what it knows or teach it rules. Questions get an analyzed reply; rules are saved permanently.",
-      operatorChatEmpty:
-        "Start with “what have you learned so far?” or teach a rule.",
+        "Ask what it knows or propose rules. Nothing is learned automatically — use “Save as lesson” when you want. Trials belong in Testing.",
+      operatorChatEmpty: "Start with: “what have you learned so far?”",
       operatorChatPlaceholder:
-        "Ask or teach… e.g. what do you know? / prefer uptrend",
+        "Ask or propose a rule… (saving is optional)",
       operatorChatSend: "Send",
       operatorChatThinking: "Thinking…",
       operatorTeach: "Teach",
+      operatorSaveLesson: "Save as lesson",
+      operatorLessonSaved: "Already in the main brain",
       operatorKnowledgeTitle: "What it knows now",
       operatorKnowledgeLead:
         "Active lessons that bias every decision across all bots.",
@@ -969,6 +980,7 @@ export const dictionaries = {
       operatorSourceWeb: "Web",
       operatorSourceChat: "Manual",
       operatorSourceTest: "Test",
+      operatorSourceSandbox: "Sandbox",
       operatorSourceOther: "Other",
       operatorSourceLink: "View source",
       operatorKnowledgeShow: "Show lessons",
@@ -998,7 +1010,7 @@ export const dictionaries = {
       operatorTestNav: "Testing",
       operatorTestTitle: "Testing lab",
       operatorTestLead:
-        "Try ideas and images with the Operator. If something is useful, promote it to the main brain.",
+        "Here the Operator answers trials and questions without learning by itself. If a trial is useful, click “Promote to main brain”.",
       operatorTestEmpty: "No tests yet. Type or attach a chart.",
       operatorTestPlaceholder: "Describe the test or what you see in the chart…",
       operatorTestSend: "Send test",
@@ -1026,9 +1038,16 @@ export const dictionaries = {
       operatorAutoResearchOff: "Automatic research paused.",
       sandboxTitle: "Sandbox",
       sandboxLead:
-        "Live paper trading: the bot reads the real market, applies a quality checklist, and only trades when the setup is clean. Fake money — no real accounts touched. The session is saved: refresh or switch views and it keeps running.",
+        "Live paper test of the global Operator against the real market. Same brain (lessons + model). When the session ends, it consumes that experience for the future.",
+      sandboxOperatorHint:
+        "Pair and timeframe set the scenario. The Operator decides with its current knowledge — no EMA/ATR knobs.",
+      sandboxSessionClosed: "Sandbox session closed",
+      sandboxExperienceConsumed:
+        "Operator consumed the experience: {n} new lessons.",
+      sandboxExperienceEmpty:
+        "Session archived. Not enough trades for new lessons.",
       sandboxRoleHint:
-        "Your role can run the sandbox. Strategy parameters are locked to the global config.",
+        "Your role can run the sandbox. The global brain is what gets tested.",
       sandboxRestoring: "Restoring paper session…",
       sessionTitle: "Paper session",
       pair: "Pair",

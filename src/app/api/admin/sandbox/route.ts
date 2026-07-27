@@ -1,11 +1,8 @@
 import { NextResponse } from "next/server";
 import { getSessionAccess } from "@/lib/auth/session";
 import { localeFromCookieHeader } from "@/lib/i18n/strategy-copy";
-import { higherTimeframe } from "@/lib/trading/indicators";
-import { fetchOHLCV, fetchTickerPrice } from "@/lib/trading/market";
 import {
   createLiveSession,
-  liveSandboxTick,
   type LiveSandboxState,
 } from "@/lib/trading/live-sandbox";
 import {
@@ -160,8 +157,12 @@ export async function POST(request: Request) {
 
   try {
     if (body.action === "stop") {
-      await stopSandboxSession(access.user.id);
-      return NextResponse.json({ ok: true, active: null });
+      const stopped = await stopSandboxSession(access.user.id, { locale });
+      return NextResponse.json({
+        ok: true,
+        active: null,
+        experience: stopped.experience ?? null,
+      });
     }
 
     if (body.action === "patch") {
@@ -228,7 +229,10 @@ export async function POST(request: Request) {
       const previous = await loadSandboxSession(access.user.id);
       if (previous) {
         try {
-          await archiveSandboxSession(access.user.id, previous);
+          await archiveSandboxSession(access.user.id, previous, {
+            locale,
+            consumeExperience: true,
+          });
         } catch (e) {
           console.error("[sandbox-archive-on-start]", e);
         }
@@ -256,32 +260,27 @@ export async function POST(request: Request) {
         prefs,
       });
 
-      const candles = await fetchOHLCV(body.pair, timeframe, 150);
-      const htf = higherTimeframe(timeframe);
-      const htfCandles =
-        htf === timeframe
-          ? undefined
-          : await fetchOHLCV(body.pair, htf, 120);
-      const ticker = await fetchTickerPrice(body.pair);
-      const tick = liveSandboxTick(state, candles, ticker, htfCandles, locale);
-
       await saveSandboxSession({
         userId: access.user.id,
-        state: tick.state,
-        market: tick.market,
-        candles: tick.candles,
+        state,
+        market: null,
+        candles: [],
         tickIntervalMs,
         liveOn: true,
         isActive: true,
       });
 
+      const tick = await runPersistedSandboxTick(access.user.id, { locale });
+
       return NextResponse.json({
         ok: true,
         mode: "live",
         canEdit: access.can("admin_sandbox_edit"),
-        tickIntervalMs,
-        liveOn: true,
-        ...tick,
+        tickIntervalMs: tick.tickIntervalMs,
+        liveOn: tick.liveOn,
+        state: tick.state,
+        market: tick.market,
+        candles: tick.candles,
       });
     }
 

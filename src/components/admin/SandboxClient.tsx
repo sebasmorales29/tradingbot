@@ -35,10 +35,9 @@ function formatTickLabel(ms: number): string {
 
 export function SandboxClient({
   initialDefaults,
-  canEdit,
 }: {
   initialDefaults: Defaults;
-  canEdit: boolean;
+  canEdit?: boolean;
 }) {
   const { toast } = useToast();
   const t = useT();
@@ -59,11 +58,7 @@ export function SandboxClient({
   } = useSandboxSession();
 
   const [pair, setPair] = useState<Pair>(initialDefaults.pair);
-  const [equity, setEquity] = useState(String(initialDefaults.startingEquity));
-  const [risk, setRisk] = useState(String(initialDefaults.riskPercent));
   const [timeframe, setTimeframe] = useState(initialDefaults.timeframe);
-  const [params, setParams] = useState(initialDefaults.params);
-  const [advancedOpen, setAdvancedOpen] = useState(false);
   const logRef = useRef<HTMLUListElement>(null);
   const restoredRef = useRef(false);
 
@@ -72,10 +67,7 @@ export function SandboxClient({
     if (!ready || !state || restoredRef.current) return;
     restoredRef.current = true;
     setPair(state.pair);
-    setEquity(String(state.startingEquity));
-    setRisk(String(state.riskPercent));
     setTimeframe(state.timeframe);
-    setParams(state.params);
   }, [ready, state]);
 
   useEffect(() => {
@@ -84,13 +76,13 @@ export function SandboxClient({
   }, [state?.events.length]);
 
   const markedEquity = useMemo(() => {
-    if (!state || !market) return Number(equity);
+    if (!state || !market) return initialDefaults.startingEquity;
     if (!state.position) return state.equity;
     return (
       state.equity +
       (market.price - state.position.entry) * state.position.qty
     );
-  }, [state, market, equity]);
+  }, [state, market, initialDefaults.startingEquity]);
 
   const pnl = state ? markedEquity - state.startingEquity : 0;
   const wins = state?.closedTrades.filter((t) => t.pnl > 0).length ?? 0;
@@ -160,16 +152,12 @@ export function SandboxClient({
     return out;
   }, [state, candles]);
 
-  const inputClass =
-    "h-11 w-full rounded-lg border border-snow/20 bg-[#2a3038] px-3 text-sm text-snow outline-none ring-pulse focus:ring-2 disabled:opacity-50";
-
   async function onStart() {
     const result = await startSession({
       pair,
-      equity: Number(equity),
-      risk: Number(risk),
+      equity: initialDefaults.startingEquity,
+      risk: initialDefaults.riskPercent,
       timeframe,
-      params: canEdit ? params : undefined,
     });
     if (!result.ok) {
       toast({
@@ -190,10 +178,7 @@ export function SandboxClient({
   }
 
   async function onTick() {
-    const result = await tickOnce({
-      risk: canEdit ? Number(risk) : undefined,
-      params: canEdit ? params : undefined,
-    });
+    const result = await tickOnce();
     if (!result.ok) {
       toast({
         tone: "error",
@@ -201,6 +186,19 @@ export function SandboxClient({
         message: result.error ?? "Error",
       });
     }
+  }
+
+  async function onStop() {
+    const result = await stopSession();
+    const learned = result.experience?.lessonsCreated ?? 0;
+    toast({
+      tone: "success",
+      title: t.admin.sandboxSessionClosed,
+      message:
+        learned > 0
+          ? t.admin.sandboxExperienceConsumed.replace("{n}", String(learned))
+          : t.admin.sandboxExperienceEmpty,
+    });
   }
 
   return (
@@ -212,11 +210,6 @@ export function SandboxClient({
         <p className="mt-2 max-w-2xl text-sm text-snow/60">
           {t.admin.sandboxLead}
         </p>
-        {!canEdit && (
-          <p className="mt-2 text-xs text-amber-300/80">
-            {t.admin.sandboxRoleHint}
-          </p>
-        )}
       </div>
 
       {!ready && (
@@ -227,7 +220,7 @@ export function SandboxClient({
         <h2 className="font-display text-lg font-bold text-snow">
           {t.admin.sessionTitle}
         </h2>
-        <div className="mt-4 grid items-end gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <div className="mt-4 grid items-end gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="min-w-0 text-sm">
             <span className="mb-1.5 block min-h-[2.75rem] leading-snug text-snow/50">
               {t.admin.pair}
@@ -270,30 +263,6 @@ export function SandboxClient({
               options={[...TICK_OPTIONS]}
             />
           </div>
-          <label className="min-w-0 block text-sm">
-            <span className="mb-1.5 block min-h-[2.75rem] leading-snug text-snow/50">
-              {t.admin.startingEquity}
-            </span>
-            <input
-              type="number"
-              className={inputClass}
-              value={equity}
-              disabled={Boolean(state)}
-              onChange={(e) => setEquity(e.target.value)}
-            />
-          </label>
-          <label className="min-w-0 block text-sm">
-            <span className="mb-1.5 block min-h-[2.75rem] leading-snug text-snow/50">
-              {t.admin.riskPct}
-            </span>
-            <input
-              type="number"
-              step="0.05"
-              className={inputClass}
-              value={risk}
-              onChange={(e) => setRisk(e.target.value)}
-            />
-          </label>
           <div className="flex min-w-0 gap-2">
             {!state ? (
               <button
@@ -331,64 +300,7 @@ export function SandboxClient({
           </div>
         </div>
 
-        {canEdit && (
-          <div className="mt-4 border-t border-snow/10 pt-3">
-            <button
-              type="button"
-              onClick={() => setAdvancedOpen((v) => !v)}
-              className="inline-flex items-center gap-1.5 text-sm text-snow/55 transition hover:text-snow"
-              aria-expanded={advancedOpen}
-            >
-              <svg
-                viewBox="0 0 16 16"
-                className={`h-3.5 w-3.5 transition ${
-                  advancedOpen ? "rotate-180" : ""
-                }`}
-                fill="none"
-                aria-hidden
-              >
-                <path
-                  d="M4 6l4 4 4-4"
-                  stroke="currentColor"
-                  strokeWidth="1.75"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              {t.admin.advancedOptions}
-            </button>
-            {advancedOpen && (
-              <div className="mt-3 grid items-end gap-3 sm:grid-cols-3 lg:grid-cols-6">
-                {(
-                  [
-                    ["fast", "EMA fast"],
-                    ["slow", "EMA slow"],
-                    ["atrPeriod", "ATR period"],
-                    ["stopAtr", "Stop ATR"],
-                    ["tpAtr", "TP ATR"],
-                    ["minAtrPct", "Min ATR%"],
-                  ] as const
-                ).map(([key, label]) => (
-                  <label key={key} className="min-w-0 block text-xs">
-                    <span className="mb-1.5 block text-snow/45">{label}</span>
-                    <input
-                      type="number"
-                      step="any"
-                      className={inputClass}
-                      value={params[key]}
-                      onChange={(e) =>
-                        setParams((p) => ({
-                          ...p,
-                          [key]: Number(e.target.value),
-                        }))
-                      }
-                    />
-                  </label>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+        <p className="mt-3 text-xs text-snow/40">{t.admin.sandboxOperatorHint}</p>
 
         {state && (
           <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-snow/10 pt-4 text-xs text-snow/50">
@@ -413,7 +325,7 @@ export function SandboxClient({
             </span>
             <button
               type="button"
-              onClick={() => void stopSession()}
+              onClick={() => void onStop()}
               className="rounded-md border border-red-400/30 px-2.5 py-1 text-red-300 transition hover:bg-red-500/10"
             >
               {t.admin.closeSession}

@@ -53,8 +53,11 @@ function sourceLabel(source: string, locale: "es" | "en"): string {
   if (source === "chat") {
     return locale === "en" ? "manual lesson" : "lección manual";
   }
-  if (source === "test_promote") {
+  if (source === "test_promote" || source === "test_lab") {
     return locale === "en" ? "promoted test" : "prueba promovida";
+  }
+  if (source === "sandbox") {
+    return locale === "en" ? "sandbox experience" : "experiencia sandbox";
   }
   return source;
 }
@@ -136,10 +139,21 @@ function pickHighlights(
   knowledge: OperatorKnowledge[],
   limit = 6,
 ): OperatorKnowledge[] {
-  const manual = knowledge.filter((k) => k.source === "chat" || k.source === "test_promote");
+  const manual = knowledge.filter(
+    (k) =>
+      k.source === "chat" ||
+      k.source === "test_promote" ||
+      k.source === "test_lab" ||
+      k.source === "sandbox",
+  );
   const web = knowledge.filter((k) => k.source === "web_research");
   const other = knowledge.filter(
-    (k) => k.source !== "chat" && k.source !== "web_research" && k.source !== "test_promote",
+    (k) =>
+      k.source !== "chat" &&
+      k.source !== "web_research" &&
+      k.source !== "test_promote" &&
+      k.source !== "test_lab" &&
+      k.source !== "sandbox",
   );
   const out: OperatorKnowledge[] = [];
   for (const list of [manual, web, other]) {
@@ -266,7 +280,7 @@ function composeQuestionReply(input: OperatorChatComposeInput): string {
   return parts.join("\n");
 }
 
-function composeTeachReply(
+function composeTeachHint(
   locale: "es" | "en",
   kind: string,
   effect: KnowledgeEffect,
@@ -274,17 +288,17 @@ function composeTeachReply(
   const keys = Object.keys(effect).filter((k) => k !== "note");
   if (locale === "en") {
     return keys.length
-      ? `Got it — I saved that permanently as “${kind}”. I'll apply: ${keys.join(", ")}. Ask me anytime what I know and I'll summarize it in plain language.`
-      : `Saved permanently as “${kind}”. Tip: clearer rules work better, e.g. “prefer uptrend”, “avoid ETH”, “more careful in range”.`;
+      ? `I understand that as a possible “${kind}” rule. Detected cues: ${keys.join(", ")}.`
+      : `I read that as a possible “${kind}” lesson. Clearer rules work better (e.g. “prefer uptrend”, “avoid ETH”).`;
   }
   return keys.length
-    ? `Entendido — lo guardé para siempre como “${kind}”. Aplicaré: ${keys.join(", ")}. Cuando quieras, pregúntame qué sé y te lo resumo en claro.`
-    : `Guardado para siempre como “${kind}”. Tip: reglas claras funcionan mejor, ej. “preferir alcista”, “evitar ETH”, “más cauteloso en rango”.`;
+    ? `Entiendo eso como una posible regla “${kind}”. Señales detectadas: ${keys.join(", ")}.`
+    : `Leí eso como una posible lección “${kind}”. Reglas claras funcionan mejor (ej. “preferir alcista”, “evitar ETH”).`;
 }
 
 /**
  * Analiza el mensaje + estado del cerebro y compone una respuesta conversacional.
- * Solo persiste conocimiento cuando la intención es enseñar.
+ * Nunca persiste solo: aprender es explícito (botón Guardar / Testing / Sandbox).
  */
 export function composeOperatorChatReply(
   input: OperatorChatComposeInput,
@@ -308,10 +322,15 @@ export function composeOperatorChatReply(
     };
   }
 
+  const tip =
+    input.locale === "en"
+      ? `\n\nIf you want me to keep this permanently, click “Save as lesson” on your message.`
+      : `\n\nSi quieres que lo guarde para siempre, pulsa “Guardar como lección” en tu mensaje.`;
+
   return {
-    intent,
-    reply: composeTeachReply(input.locale, kind, effect),
-    shouldPersist: true,
+    intent: "teach",
+    reply: `${composeTeachHint(input.locale, kind, effect)}${tip}`,
+    shouldPersist: false,
     effect,
     kind,
     title,

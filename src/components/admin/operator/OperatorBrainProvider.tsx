@@ -46,6 +46,7 @@ export type OperatorBrainPayload = {
     id: string;
     role: string;
     content: string;
+    knowledge_id?: string | null;
     created_at: string;
   }>;
   tests: Array<{

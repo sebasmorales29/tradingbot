@@ -13,6 +13,8 @@ import {
 } from "./bot-profile";
 import { decideAsOperator } from "./operator/decide";
 import type { MarketRegime } from "./operator/regime";
+import type { OperatorKnowledge } from "./operator/brain";
+import type { CalibrationDeltas } from "./operator/calibration";
 import type { Candle, Pair } from "./types";
 
 const SLIPPAGE = 0.0005;
@@ -167,7 +169,8 @@ export function createLiveSession(input: {
 }
 
 /**
- * Un tick = el bot evalúa el mercado real ahora (checklist experta).
+ * Un tick = el Operador global evalúa el mercado real ahora
+ * (mismo cerebro: knowledge + calibración + brain on/off).
  */
 export function liveSandboxTick(
   state: LiveSandboxState,
@@ -175,6 +178,11 @@ export function liveSandboxTick(
   tickerPrice: number,
   htfCandles?: Candle[],
   locale?: Locale,
+  operatorCtx?: {
+    knowledge?: OperatorKnowledge[];
+    calibration?: CalibrationDeltas;
+    brainActive?: boolean;
+  },
 ): LiveTickResult {
   const copy = getStrategyCopy(locale ?? "es");
   const next: LiveSandboxState = {
@@ -286,7 +294,15 @@ export function liveSandboxTick(
     candles,
     hasOpen,
     next.params,
-    { htfCandles, locale, policy, prefs },
+    {
+      htfCandles,
+      locale,
+      policy,
+      prefs,
+      knowledge: operatorCtx?.knowledge,
+      calibration: operatorCtx?.calibration,
+      brainActive: operatorCtx?.brainActive,
+    },
   );
 
   next.lastScore = decision.modelScore ?? decision.score;

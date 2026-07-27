@@ -8,6 +8,14 @@ import {
   type LiveTickResult,
 } from "@/lib/trading/live-sandbox";
 import type { DecisionCheck } from "@/lib/trading/strategy/trend-pulse";
+import {
+  loadActiveKnowledge,
+  loadOperatorBrain,
+} from "@/lib/trading/operator/brain";
+import { loadCalibrationDeltas } from "@/lib/trading/operator/calibration";
+import { detectMarketRegime } from "@/lib/trading/operator/regime";
+import { consumeSandboxExperience } from "@/lib/trading/operator/sandbox-experience";
+import type { Pair } from "@/lib/trading/types";
 
 export type SandboxMarket = {
   price: number;
@@ -134,11 +142,12 @@ function markEquityFromState(
   return state.equity + (market.price - state.position.entry) * state.position.qty;
 }
 
-/** Guarda un snapshot en el historial de Logs (no borra la sesión activa). */
+/** Guarda un snapshot en el historial de Logs y consume la experiencia en el cerebro. */
 export async function archiveSandboxSession(
   userId: string,
   session: PersistedSandboxSession,
-): Promise<string> {
+  opts?: { locale?: "es" | "en"; consumeExperience?: boolean },
+): Promise<{ logId: string; experience?: Awaited<ReturnType<typeof consumeSandboxExperience>> }> {
   const admin = createAdminClient();
   const state = normalizeState(session.state);
   const finalEquity = markEquityFromState(state, session.market);
@@ -171,7 +180,20 @@ export async function archiveSandboxSession(
     .single();
 
   if (error) throw new Error(error.message);
-  return data.id as string;
+
+  let experience: Awaited<ReturnType<typeof consumeSandboxExperience>> | undefined;
+  if (opts?.consumeExperience !== false && state.tickCount > 0) {
+    try {
+      experience = await consumeSandboxExperience(admin, state, {
+        locale: opts?.locale ?? "es",
+        createdBy: userId,
+      });
+    } catch (e) {
+      console.error("[sandbox-consume-experience]", e);
+    }
+  }
+
+  return { logId: data.id as string, experience };
 }
 
 export async function listSandboxSessionLogs(
@@ -244,11 +266,21 @@ export async function getSandboxSessionLog(
   };
 }
 
-export async function stopSandboxSession(userId: string): Promise<void> {
+export async function stopSandboxSession(
+  userId: string,
+  opts?: { locale?: "es" | "en" },
+): Promise<{
+  experience?: Awaited<ReturnType<typeof consumeSandboxExperience>>;
+}> {
   const existing = await loadSandboxSession(userId);
+  let experience: Awaited<ReturnType<typeof consumeSandboxExperience>> | undefined;
   if (existing) {
     try {
-      await archiveSandboxSession(userId, existing);
+      const archived = await archiveSandboxSession(userId, existing, {
+        locale: opts?.locale,
+        consumeExperience: true,
+      });
+      experience = archived.experience;
     } catch (e) {
       console.error("[sandbox-archive]", e);
     }
@@ -263,6 +295,8 @@ export async function stopSandboxSession(userId: string): Promise<void> {
       updated_at: new Date().toISOString(),
     })
     .eq("user_id", userId);
+
+  return { experience };
 }
 
 export async function patchSandboxSession(
@@ -317,12 +351,35 @@ export async function runPersistedSandboxTick(
   const htfCandles =
     htf === state.timeframe ? undefined : await fetchOHLCV(state.pair, htf, 120);
   const ticker = await fetchTickerPrice(state.pair);
+
+  const admin = createAdminClient();
+  const [brain, knowledge] = await Promise.all([
+    loadOperatorBrain(admin),
+    loadActiveKnowledge(admin),
+  ]);
+  const regimeReading = detectMarketRegime(
+    candles,
+    state.params.atrPeriod,
+    state.params.fast,
+    state.params.slow,
+  );
+  const calibration = await loadCalibrationDeltas(
+    admin,
+    state.pair as Pair,
+    regimeReading.regime,
+  );
+
   const tick = liveSandboxTick(
     state,
     candles,
     ticker,
     htfCandles,
     overrides?.locale,
+    {
+      knowledge,
+      calibration,
+      brainActive: brain.isActive,
+    },
   );
 
   const tickIntervalMs = existing?.tickIntervalMs ?? 20_000;

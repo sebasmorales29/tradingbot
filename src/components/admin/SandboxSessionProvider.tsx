@@ -53,7 +53,10 @@ type SandboxSessionContextValue = {
     risk?: number;
     params?: TrendPulseParams;
   }) => Promise<{ ok: boolean; error?: string }>;
-  stopSession: () => Promise<void>;
+  stopSession: () => Promise<{
+    ok: true;
+    experience: { lessonsCreated?: number; summary?: string } | null;
+  }>;
 };
 
 const SandboxSessionContext =
@@ -228,15 +231,25 @@ export function SandboxSessionProvider({
   const stopSession = useCallback(async () => {
     setBusy(true);
     try {
-      await fetch("/api/admin/sandbox", {
+      const res = await fetch("/api/admin/sandbox", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "stop" }),
+        body: JSON.stringify({
+          action: "stop",
+          locale: localeRef.current,
+        }),
       });
+      const data = (await res.json().catch(() => ({}))) as {
+        experience?: { lessonsCreated?: number; summary?: string } | null;
+      };
       setState(null);
       setMarket(null);
       setCandles([]);
       setLiveOnState(false);
+      return {
+        ok: true as const,
+        experience: data.experience ?? null,
+      };
     } finally {
       setBusy(false);
     }

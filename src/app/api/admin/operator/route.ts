@@ -92,6 +92,7 @@ export async function POST(request: Request) {
     isActive?: boolean;
     message?: string;
     knowledgeId?: string;
+    chatMessageId?: string;
     locale?: "es" | "en";
     imageData?: string | null;
     testMessageId?: string;
@@ -275,6 +276,83 @@ export async function POST(request: Request) {
     });
   }
 
+  if (body.action === "save_as_lesson" && body.chatMessageId) {
+    const { data: chatMsg, error: chatErr } = await admin
+      .from("operator_chat_messages")
+      .select("id, role, content, knowledge_id")
+      .eq("id", body.chatMessageId)
+      .maybeSingle();
+
+    if (chatErr || !chatMsg || chatMsg.role !== "user") {
+      return NextResponse.json({ error: "Message not found" }, { status: 404 });
+    }
+    if (chatMsg.knowledge_id) {
+      return NextResponse.json({
+        ok: true,
+        knowledgeId: chatMsg.knowledge_id,
+        alreadySaved: true,
+      });
+    }
+
+    const message = String(chatMsg.content ?? "").trim();
+    if (message.length < 3) {
+      return NextResponse.json({ error: "Message too short" }, { status: 400 });
+    }
+
+    const effect = extractEffectFromText(message);
+    const kind = inferKnowledgeKind(message);
+    const title = message.length > 72 ? `${message.slice(0, 69)}…` : message;
+
+    const { data: knowledgeRow, error: kErr } = await admin
+      .from("operator_knowledge")
+      .insert({
+        kind,
+        title,
+        content: message,
+        effect: effect as Json,
+        is_active: true,
+        source: "chat",
+        created_by: access.user.id,
+      })
+      .select("id")
+      .single();
+
+    if (kErr || !knowledgeRow) {
+      return NextResponse.json(
+        { error: kErr?.message ?? "Could not save knowledge" },
+        { status: 500 },
+      );
+    }
+
+    await admin
+      .from("operator_chat_messages")
+      .update({ knowledge_id: knowledgeRow.id })
+      .eq("id", chatMsg.id);
+
+    const effectKeys = Object.keys(effect).filter((k) => k !== "note");
+    const reply =
+      locale === "en"
+        ? effectKeys.length
+          ? `Saved permanently as “${kind}”. I'll apply: ${effectKeys.join(", ")}.`
+          : `Saved permanently as “${kind}”.`
+        : effectKeys.length
+          ? `Guardado para siempre como “${kind}”. Aplicaré: ${effectKeys.join(", ")}.`
+          : `Guardado para siempre como “${kind}”.`;
+
+    await admin.from("operator_chat_messages").insert({
+      role: "assistant",
+      content: reply,
+      knowledge_id: knowledgeRow.id,
+      created_by: access.user.id,
+    });
+
+    return NextResponse.json({
+      ok: true,
+      knowledgeId: knowledgeRow.id,
+      reply,
+    });
+  }
+
   if (body.action === "test_message") {
     const message = (body.message ?? "").trim();
     const imageData =
@@ -297,14 +375,38 @@ export async function POST(request: Request) {
 
     const effect = extractEffectFromText(message || "");
     const effectKeys = Object.keys(effect).filter((k) => k !== "note");
-    const reply =
+    const [brain, knowledge, calibration] = await Promise.all([
+      loadOperatorBrain(admin),
+      loadActiveKnowledge(admin),
+      listCalibration(admin),
+    ]);
+    const model = getOperatorModelInfo();
+    const textForChat = message || (imageData ? "qué ves en esta imagen de prueba?" : "");
+    const composed = composeOperatorChatReply({
+      message: textForChat,
+      locale,
+      brain,
+      knowledge,
+      model,
+      calibration: calibration
+        .filter((c) => c.pair === "*")
+        .map((c) => ({
+          regime: c.regime,
+          tradesCount: c.tradesCount,
+          winRate: c.winRate,
+        })),
+    });
+    const promoteHint =
       locale === "en"
-        ? imageData
-          ? `Test received${message ? ` with note: “${message.slice(0, 120)}”` : ""}. If this chart lesson is useful, click “Promote to main brain”. Detected cues: ${effectKeys.join(", ") || "none yet"}.`
-          : `Test note stored. Detected cues: ${effectKeys.join(", ") || "none yet"}. Promote it if you want it permanent.`
-        : imageData
-          ? `Prueba recibida${message ? ` con nota: “${message.slice(0, 120)}”` : ""}. Si esta lección del gráfico sirve, pulsa “Llevar al cerebro principal”. Señales detectadas: ${effectKeys.join(", ") || "ninguna aún"}.`
-          : `Nota de prueba guardada. Señales: ${effectKeys.join(", ") || "ninguna aún"}. Promuévela si quieres que sea permanente.`;
+        ? `\n\nThis stays in the test lab only. If you want it in the main brain, click “Promote to main brain”.`
+        : `\n\nEsto queda solo en el laboratorio. Si quieres llevarlo al cerebro principal, pulsa “Llevar al cerebro principal”.`;
+    const cueLine =
+      effectKeys.length > 0
+        ? locale === "en"
+          ? `\nDetected rule cues: ${effectKeys.join(", ")}.`
+          : `\nSeñales de regla detectadas: ${effectKeys.join(", ")}.`
+        : "";
+    const reply = `${composed.reply}${cueLine}${promoteHint}`;
 
     await admin.from("operator_test_messages").insert({
       role: "assistant",
