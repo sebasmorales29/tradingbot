@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useOperatorBrain } from "@/components/admin/operator/OperatorBrainProvider";
 import { useT } from "@/components/i18n/T";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
@@ -38,14 +38,23 @@ function extractLink(content: string): string | null {
   return m ? m[0].replace(/[),.;]+$/, "") : null;
 }
 
+type ChatMsg = {
+  id: string;
+  role: string;
+  content: string;
+  knowledge_id?: string | null;
+  created_at: string;
+};
+
 export function OperatorLearningView() {
   const t = useT();
   const { locale } = useLanguage();
   const dateLocale = locale === "en" ? "en-US" : "es-CR";
   const { data, loading, error, busy, post } = useOperatorBrain();
   const [message, setMessage] = useState("");
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const chatEnd = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     try {
@@ -68,6 +77,23 @@ export function OperatorLearningView() {
   useEffect(() => {
     chatEnd.current?.scrollIntoView({ behavior: "smooth" });
   }, [data?.chat?.length]);
+
+  const turns = useMemo(() => {
+    const chat = (data?.chat ?? []) as ChatMsg[];
+    const out: Array<{
+      user: ChatMsg;
+      assistant: ChatMsg | null;
+    }> = [];
+    for (let i = 0; i < chat.length; i++) {
+      const m = chat[i];
+      if (m.role !== "user") continue;
+      const next = chat[i + 1];
+      const assistant =
+        next && next.role === "assistant" ? next : null;
+      out.push({ user: m, assistant });
+    }
+    return out;
+  }, [data?.chat]);
 
   if (loading && !data) {
     return <p className="text-sm text-snow/45">{t.admin.operatorLoading}</p>;
@@ -97,23 +123,17 @@ export function OperatorLearningView() {
   };
 
   return (
-    <div className="relative flex min-h-[min(70vh,720px)] gap-0 overflow-hidden rounded-xl border border-snow/10 bg-slate/30">
-      {/* Chat principal */}
-      <section className="flex min-w-0 flex-1 flex-col">
-        <div className="flex items-start justify-between gap-3 border-b border-snow/10 px-4 py-3 sm:px-5">
-          <div className="min-w-0">
-            <h2 className="font-display text-lg font-bold text-snow">
-              {t.admin.operatorChatTitle}
-            </h2>
-            <p className="mt-0.5 text-xs text-snow/45">
-              {t.admin.operatorChatLead}
-            </p>
-          </div>
+    <div className="relative flex h-[calc(100dvh-9.5rem)] min-h-[420px] gap-0 overflow-hidden rounded-xl border border-snow/10 bg-slate/30">
+      <section className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-snow/10 px-4 py-2.5 sm:px-5">
+          <h2 className="font-display text-base font-bold text-snow sm:text-lg">
+            {t.admin.operatorChatTitle}
+          </h2>
           <button
             type="button"
             onClick={() => setSidebarOpen((v) => !v)}
             aria-pressed={sidebarOpen}
-            className="shrink-0 rounded-lg border border-snow/15 bg-ink/40 px-3 py-2 text-xs font-semibold text-snow/70 transition hover:border-pulse/40 hover:text-pulse"
+            className="shrink-0 rounded-lg border border-snow/15 bg-ink/40 px-3 py-1.5 text-xs font-semibold text-snow/70 transition hover:border-pulse/40 hover:text-pulse"
           >
             {sidebarOpen
               ? t.admin.operatorKnowledgeHide
@@ -121,51 +141,58 @@ export function OperatorLearningView() {
           </button>
         </div>
 
-        <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4 sm:px-6">
-          {data.chat.length === 0 && (
+        <div
+          ref={listRef}
+          className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-6"
+        >
+          {turns.length === 0 && (
             <p className="mx-auto max-w-2xl pt-8 text-center text-sm text-snow/40">
               {t.admin.operatorChatEmpty}
             </p>
           )}
-          {data.chat.map((m) => (
-            <div
-              key={m.id}
-              className={`mx-auto w-full max-w-3xl rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap break-words ${
-                m.role === "user"
-                  ? "bg-pulse/15 text-snow"
-                  : "bg-ink/50 text-snow/85 ring-1 ring-snow/10"
-              }`}
-            >
-              {m.content}
-              {m.role === "user" && !m.knowledge_id && (
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() =>
-                    void post({
-                      action: "save_as_lesson",
-                      chatMessageId: m.id,
-                      locale,
-                    })
-                  }
-                  className="mt-3 rounded-md border border-pulse/40 px-2.5 py-1 text-xs font-medium text-pulse transition hover:bg-pulse/10 disabled:opacity-50"
-                >
-                  {t.admin.operatorSaveLesson}
-                </button>
-              )}
-              {m.role === "user" && m.knowledge_id && (
-                <p className="mt-2 text-[11px] text-emerald-300/80">
-                  {t.admin.operatorLessonSaved}
-                </p>
-              )}
-            </div>
-          ))}
+          {turns.map(({ user, assistant }) => {
+            const saved = Boolean(user.knowledge_id);
+            return (
+              <div key={user.id} className="mx-auto w-full max-w-3xl space-y-2">
+                <div className="rounded-2xl bg-pulse/15 px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap break-words text-snow">
+                  {user.content}
+                </div>
+                {assistant && (
+                  <div className="rounded-2xl bg-ink/50 px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap break-words text-snow/85 ring-1 ring-snow/10">
+                    {assistant.content}
+                  </div>
+                )}
+                <div className="flex items-center justify-end gap-2 px-1">
+                  {saved ? (
+                    <p className="text-[11px] text-emerald-300/80">
+                      {t.admin.operatorLessonSaved}
+                    </p>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={busy || !assistant}
+                      onClick={() =>
+                        void post({
+                          action: "save_as_lesson",
+                          chatMessageId: user.id,
+                          locale,
+                        })
+                      }
+                      className="rounded-md border border-pulse/40 px-3 py-1.5 text-xs font-medium text-pulse transition hover:bg-pulse/10 disabled:opacity-40"
+                    >
+                      {t.admin.operatorSaveLesson}
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
           <div ref={chatEnd} />
         </div>
 
         <form
           onSubmit={(e) => void send(e)}
-          className="border-t border-snow/10 px-4 py-3 sm:px-5"
+          className="shrink-0 border-t border-snow/10 bg-slate/50 px-4 py-3 sm:px-5"
         >
           <div className="mx-auto flex max-w-3xl gap-2">
             <input
@@ -185,18 +212,17 @@ export function OperatorLearningView() {
         </form>
       </section>
 
-      {/* Barra lateral conocimiento */}
       <aside
-        className={`flex shrink-0 flex-col border-l border-snow/10 bg-ink/55 transition-[width,opacity,transform] duration-200 ease-out ${
+        className={`flex min-h-0 shrink-0 flex-col border-l border-snow/10 bg-ink/55 transition-[width,opacity] duration-200 ease-out ${
           sidebarOpen
-            ? "w-full max-w-full opacity-100 sm:w-[min(100%,22rem)]"
+            ? "w-full max-w-full opacity-100 sm:w-[min(100%,20rem)]"
             : "pointer-events-none w-0 max-w-0 overflow-hidden border-l-0 opacity-0"
         }`}
         aria-hidden={!sidebarOpen}
       >
         {sidebarOpen && (
           <>
-            <div className="flex items-start justify-between gap-2 border-b border-snow/10 px-4 py-3">
+            <div className="flex shrink-0 items-start justify-between gap-2 border-b border-snow/10 px-4 py-3">
               <div className="min-w-0">
                 <h2 className="font-display text-base font-bold text-snow">
                   {t.admin.operatorKnowledgeTitle}
@@ -220,7 +246,7 @@ export function OperatorLearningView() {
               </div>
             </div>
 
-            <ul className="flex-1 space-y-2 overflow-y-auto overflow-x-hidden p-3">
+            <ul className="min-h-0 flex-1 space-y-2 overflow-y-auto overflow-x-hidden p-3">
               {data.knowledge.length === 0 && (
                 <li className="px-1 text-sm text-snow/40">
                   {t.admin.operatorKnowledgeEmpty}

@@ -10,6 +10,7 @@ export default function AdminOperatorLearningPage() {
     <AdminOperatorShell
       title={t.admin.operatorLearnNav}
       lead={t.admin.operatorChatLead}
+      compact
     >
       <OperatorLearningView />
     </AdminOperatorShell>

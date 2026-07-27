@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useOperatorBrain } from "@/components/admin/operator/OperatorBrainProvider";
 import { useT } from "@/components/i18n/T";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 
-const MAX_IMAGE_CHARS = 900_000; // ~keep under ~1MB JSON payload
+const MAX_IMAGE_CHARS = 900_000;
 
 async function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -15,6 +15,15 @@ async function fileToDataUrl(file: File): Promise<string> {
     reader.readAsDataURL(file);
   });
 }
+
+type TestMsg = {
+  id: string;
+  role: string;
+  content: string;
+  image_data: string | null;
+  promoted_knowledge_id: string | null;
+  created_at: string;
+};
 
 export function OperatorTestsView() {
   const t = useT();
@@ -29,6 +38,21 @@ export function OperatorTestsView() {
   useEffect(() => {
     chatEnd.current?.scrollIntoView({ behavior: "smooth" });
   }, [data?.tests?.length]);
+
+  const turns = useMemo(() => {
+    const tests = (data?.tests ?? []) as TestMsg[];
+    const out: Array<{ user: TestMsg; assistant: TestMsg | null }> = [];
+    for (let i = 0; i < tests.length; i++) {
+      const m = tests[i];
+      if (m.role !== "user") continue;
+      const next = tests[i + 1];
+      out.push({
+        user: m,
+        assistant: next && next.role === "assistant" ? next : null,
+      });
+    }
+    return out;
+  }, [data?.tests]);
 
   if (loading && !data) {
     return <p className="text-sm text-snow/45">{t.admin.operatorLoading}</p>;
@@ -81,61 +105,65 @@ export function OperatorTestsView() {
   }
 
   return (
-    <div className="space-y-4">
-      <section className="rounded-xl border border-snow/10 bg-slate/30 p-4">
-        <h2 className="font-display text-lg font-bold text-snow">
+    <div className="flex h-[calc(100dvh-9.5rem)] min-h-[420px] flex-col overflow-hidden rounded-xl border border-snow/10 bg-slate/30">
+      <div className="shrink-0 border-b border-snow/10 px-4 py-2.5 sm:px-5">
+        <h2 className="font-display text-base font-bold text-snow sm:text-lg">
           {t.admin.operatorTestTitle}
         </h2>
-        <p className="mt-1 max-w-2xl text-sm text-snow/55">
-          {t.admin.operatorTestLead}
-        </p>
-      </section>
+        <p className="mt-0.5 text-xs text-snow/45">{t.admin.operatorTestLead}</p>
+      </div>
 
-      <section className="flex min-h-[520px] flex-col rounded-xl border border-snow/10 bg-slate/30 p-4">
-        <div className="flex-1 space-y-3 overflow-y-auto rounded-lg border border-snow/10 bg-ink/40 p-3">
-          {data.tests.length === 0 && (
-            <p className="text-sm text-snow/40">{t.admin.operatorTestEmpty}</p>
-          )}
-          {data.tests.map((m) => (
-            <div
-              key={m.id}
-              className={`rounded-lg px-3 py-2 text-sm ${
-                m.role === "user"
-                  ? "ml-4 bg-pulse/15 text-snow"
-                  : "mr-4 bg-snow/[0.06] text-snow/75"
-              }`}
-            >
-              {m.image_data && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={m.image_data}
-                  alt=""
-                  className="mb-2 max-h-56 rounded-md border border-snow/10 object-contain"
-                />
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-6">
+        {turns.length === 0 && (
+          <p className="pt-8 text-center text-sm text-snow/40">
+            {t.admin.operatorTestEmpty}
+          </p>
+        )}
+        {turns.map(({ user, assistant }) => {
+          const promoted = Boolean(user.promoted_knowledge_id);
+          return (
+            <div key={user.id} className="mx-auto w-full max-w-3xl space-y-2">
+              <div className="rounded-2xl bg-pulse/15 px-4 py-3 text-sm text-snow">
+                {user.image_data && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={user.image_data}
+                    alt=""
+                    className="mb-2 max-h-56 rounded-md border border-snow/10 object-contain"
+                  />
+                )}
+                <p className="whitespace-pre-wrap break-words">{user.content}</p>
+              </div>
+              {assistant && (
+                <div className="rounded-2xl bg-ink/50 px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap break-words text-snow/85 ring-1 ring-snow/10">
+                  {assistant.content}
+                </div>
               )}
-              <p>{m.content}</p>
-              {m.role === "user" && !m.promoted_knowledge_id && (
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => void promote(m.id)}
-                  className="mt-2 rounded-md border border-pulse/40 px-2.5 py-1 text-xs font-medium text-pulse transition hover:bg-pulse/10 disabled:opacity-50"
-                >
-                  {t.admin.operatorPromote}
-                </button>
-              )}
-              {m.promoted_knowledge_id && (
-                <p className="mt-2 text-[11px] text-emerald-300/80">
-                  {t.admin.operatorPromoted}
-                </p>
-              )}
+              <div className="flex items-center justify-end gap-2 px-1">
+                {promoted ? (
+                  <p className="text-[11px] text-emerald-300/80">
+                    {t.admin.operatorPromoted}
+                  </p>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={busy || !assistant}
+                    onClick={() => void promote(user.id)}
+                    className="rounded-md border border-pulse/40 px-3 py-1.5 text-xs font-medium text-pulse transition hover:bg-pulse/10 disabled:opacity-40"
+                  >
+                    {t.admin.operatorPromote}
+                  </button>
+                )}
+              </div>
             </div>
-          ))}
-          <div ref={chatEnd} />
-        </div>
+          );
+        })}
+        <div ref={chatEnd} />
+      </div>
 
+      <div className="shrink-0 border-t border-snow/10 bg-slate/50 px-4 py-3 sm:px-5">
         {imageData && (
-          <div className="mt-3 flex items-center gap-3 rounded-lg border border-snow/10 bg-ink/50 p-2">
+          <div className="mx-auto mb-2 flex max-w-3xl items-center gap-3 rounded-lg border border-snow/10 bg-ink/50 p-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={imageData}
@@ -154,12 +182,15 @@ export function OperatorTestsView() {
             </button>
           </div>
         )}
-
-        {(localError || null) && (
-          <p className="mt-2 text-xs text-red-300">{localError}</p>
+        {localError && (
+          <p className="mx-auto mb-2 max-w-3xl text-xs text-red-300">
+            {localError}
+          </p>
         )}
-
-        <form onSubmit={(e) => void send(e)} className="mt-3 flex flex-col gap-2 sm:flex-row">
+        <form
+          onSubmit={(e) => void send(e)}
+          className="mx-auto flex max-w-3xl flex-col gap-2 sm:flex-row"
+        >
           <input
             ref={fileRef}
             type="file"
@@ -170,7 +201,7 @@ export function OperatorTestsView() {
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
-            className="h-11 rounded-lg border border-snow/15 px-3 text-sm text-snow/70 transition hover:text-snow"
+            className="h-12 rounded-xl border border-snow/15 px-3 text-sm text-snow/70 transition hover:text-snow"
           >
             {t.admin.operatorAttachImage}
           </button>
@@ -178,17 +209,17 @@ export function OperatorTestsView() {
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             placeholder={t.admin.operatorTestPlaceholder}
-            className="h-11 flex-1 rounded-lg border border-snow/15 bg-ink/50 px-3 text-sm text-snow outline-none focus:border-pulse/50"
+            className="h-12 min-w-0 flex-1 rounded-xl border border-snow/15 bg-ink/50 px-4 text-sm text-snow outline-none focus:border-pulse/50"
           />
           <button
             type="submit"
             disabled={busy || (!message.trim() && !imageData)}
-            className="h-11 rounded-lg bg-pulse px-4 text-sm font-semibold text-ink disabled:opacity-50"
+            className="h-12 rounded-xl bg-pulse px-5 text-sm font-semibold text-ink disabled:opacity-50"
           >
             {t.admin.operatorTestSend}
           </button>
         </form>
-      </section>
+      </div>
     </div>
   );
 }

@@ -10,6 +10,7 @@ export default function AdminOperatorTestsPage() {
     <AdminOperatorShell
       title={t.admin.operatorTestNav}
       lead={t.admin.operatorTestLead}
+      compact
     >
       <OperatorTestsView />
     </AdminOperatorShell>

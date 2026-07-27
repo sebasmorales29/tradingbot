@@ -279,7 +279,7 @@ export async function POST(request: Request) {
   if (body.action === "save_as_lesson" && body.chatMessageId) {
     const { data: chatMsg, error: chatErr } = await admin
       .from("operator_chat_messages")
-      .select("id, role, content, knowledge_id")
+      .select("id, role, content, knowledge_id, created_at")
       .eq("id", body.chatMessageId)
       .maybeSingle();
 
@@ -294,21 +294,42 @@ export async function POST(request: Request) {
       });
     }
 
-    const message = String(chatMsg.content ?? "").trim();
-    if (message.length < 3) {
+    const userText = String(chatMsg.content ?? "").trim();
+    if (userText.length < 3) {
       return NextResponse.json({ error: "Message too short" }, { status: 400 });
     }
 
-    const effect = extractEffectFromText(message);
-    const kind = inferKnowledgeKind(message);
-    const title = message.length > 72 ? `${message.slice(0, 69)}…` : message;
+    const { data: assistantMsg } = await admin
+      .from("operator_chat_messages")
+      .select("id, content, created_at")
+      .eq("role", "assistant")
+      .gt("created_at", chatMsg.created_at)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    const assistantText = String(assistantMsg?.content ?? "").trim();
+    const content = [
+      locale === "en" ? "Human:" : "Humano:",
+      userText,
+      assistantText
+        ? `${locale === "en" ? "Operator:" : "Operador:"}\n${assistantText}`
+        : null,
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+
+    const effect = extractEffectFromText(`${userText}\n${assistantText}`);
+    const kind = inferKnowledgeKind(userText);
+    const title =
+      userText.length > 72 ? `${userText.slice(0, 69)}…` : userText;
 
     const { data: knowledgeRow, error: kErr } = await admin
       .from("operator_knowledge")
       .insert({
         kind,
         title,
-        content: message,
+        content: content.slice(0, 4000),
         effect: effect as Json,
         is_active: true,
         source: "chat",
@@ -329,15 +350,17 @@ export async function POST(request: Request) {
       .update({ knowledge_id: knowledgeRow.id })
       .eq("id", chatMsg.id);
 
-    const effectKeys = Object.keys(effect).filter((k) => k !== "note");
+    if (assistantMsg?.id) {
+      await admin
+        .from("operator_chat_messages")
+        .update({ knowledge_id: knowledgeRow.id })
+        .eq("id", assistantMsg.id);
+    }
+
     const reply =
       locale === "en"
-        ? effectKeys.length
-          ? `Saved permanently as “${kind}”. I'll apply: ${effectKeys.join(", ")}.`
-          : `Saved permanently as “${kind}”.`
-        : effectKeys.length
-          ? `Guardado para siempre como “${kind}”. Aplicaré: ${effectKeys.join(", ")}.`
-          : `Guardado para siempre como “${kind}”.`;
+        ? `Saved this exchange permanently as “${kind}” — your question and my analysis.`
+        : `Guardé este intercambio para siempre como “${kind}”: tu pregunta y mi análisis.`;
 
     await admin.from("operator_chat_messages").insert({
       role: "assistant",
@@ -428,14 +451,34 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Test message not found" }, { status: 404 });
     }
 
+    const { data: assistantMsg } = await admin
+      .from("operator_test_messages")
+      .select("id, content, created_at")
+      .eq("role", "assistant")
+      .gt("created_at", testMsg.created_at)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    const assistantText = String(assistantMsg?.content ?? "").trim();
     const content = [
+      locale === "en" ? "Human (test):" : "Humano (prueba):",
       testMsg.content,
-      testMsg.image_data ? "[Includes chart/image from test lab]" : null,
+      testMsg.image_data
+        ? locale === "en"
+          ? "[Includes chart/image from test lab]"
+          : "[Incluye gráfico/imagen del laboratorio]"
+        : null,
+      assistantText
+        ? `${locale === "en" ? "Operator:" : "Operador:"}\n${assistantText}`
+        : null,
     ]
       .filter(Boolean)
-      .join("\n");
+      .join("\n\n");
 
-    const effect = extractEffectFromText(testMsg.content);
+    const effect = extractEffectFromText(
+      `${testMsg.content}\n${assistantText}`,
+    );
     if (testMsg.image_data) {
       effect.note = `${effect.note ?? testMsg.content} · image-promoted`;
     }
@@ -450,7 +493,7 @@ export async function POST(request: Request) {
       .insert({
         kind: kind === "note" ? "lesson" : kind,
         title,
-        content,
+        content: content.slice(0, 4000),
         effect: effect as Json,
         is_active: true,
         source: "test_lab",
@@ -476,8 +519,8 @@ export async function POST(request: Request) {
       knowledgeId: knowledgeRow.id,
       message:
         locale === "en"
-          ? "Promoted to main brain."
-          : "Llevado al cerebro principal.",
+          ? "Promoted this exchange (your test + my reply) to the main brain."
+          : "Llevé este intercambio (tu prueba + mi respuesta) al cerebro principal.",
     });
   }
 

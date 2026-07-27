@@ -373,16 +373,16 @@ export const dictionaries = {
         "Para reentrenar con histórico: npm run bot:operator-train (luego Sync).",
       operatorChatTitle: "Hablar con el Operador",
       operatorChatLead:
-        "Pregunta qué sabe o propone reglas. Nada se aprende solo: si quieres guardarlo, usa “Guardar como lección”. Las pruebas van en Testing.",
+        "Conversación humana: pregunta, analiza y decide. Nada se aprende solo. “Guardar como lección” guarda tu mensaje y su respuesta juntos.",
       operatorChatEmpty:
         "Empieza con: “¿qué has aprendido hasta ahora?”",
       operatorChatPlaceholder:
-        "Pregunta o propone una regla… (guardar es opcional)",
+        "Escribe aquí… (la caja queda fija abajo)",
       operatorChatSend: "Enviar",
       operatorChatThinking: "Pensando…",
       operatorTeach: "Enseñar",
-      operatorSaveLesson: "Guardar como lección",
-      operatorLessonSaved: "Ya está en el cerebro principal",
+      operatorSaveLesson: "Guardar intercambio",
+      operatorLessonSaved: "Intercambio guardado en el cerebro",
       operatorKnowledgeTitle: "Qué sabe ahora",
       operatorKnowledgeLead:
         "Lecciones activas que sesgan cada decisión de todos los bots.",
@@ -421,7 +421,7 @@ export const dictionaries = {
       operatorTestNav: "Pruebas",
       operatorTestTitle: "Laboratorio de pruebas",
       operatorTestLead:
-        "Aquí el Operador responde pruebas y preguntas sin aprender solo. Si una prueba sirve, pulsa “Llevar al cerebro principal”.",
+        "Pruebas sin aprender solo. “Llevar al cerebro” guarda tu prueba y la respuesta del Operador juntos.",
       operatorTestEmpty: "Sin pruebas aún. Escribe o adjunta un gráfico.",
       operatorTestPlaceholder: "Describe la prueba o lo que ves en el gráfico…",
       operatorTestSend: "Enviar prueba",
@@ -963,15 +963,14 @@ export const dictionaries = {
         "To retrain on history: npm run bot:operator-train (then Sync).",
       operatorChatTitle: "Talk to the Operator",
       operatorChatLead:
-        "Ask what it knows or propose rules. Nothing is learned automatically — use “Save as lesson” when you want. Trials belong in Testing.",
+        "Human conversation: ask, analyze, decide. Nothing is learned alone. “Save exchange” keeps your message and its reply together.",
       operatorChatEmpty: "Start with: “what have you learned so far?”",
-      operatorChatPlaceholder:
-        "Ask or propose a rule… (saving is optional)",
+      operatorChatPlaceholder: "Type here… (input stays fixed at the bottom)",
       operatorChatSend: "Send",
       operatorChatThinking: "Thinking…",
       operatorTeach: "Teach",
-      operatorSaveLesson: "Save as lesson",
-      operatorLessonSaved: "Already in the main brain",
+      operatorSaveLesson: "Save exchange",
+      operatorLessonSaved: "Exchange saved to the brain",
       operatorKnowledgeTitle: "What it knows now",
       operatorKnowledgeLead:
         "Active lessons that bias every decision across all bots.",
@@ -1010,7 +1009,7 @@ export const dictionaries = {
       operatorTestNav: "Testing",
       operatorTestTitle: "Testing lab",
       operatorTestLead:
-        "Here the Operator answers trials and questions without learning by itself. If a trial is useful, click “Promote to main brain”.",
+        "Trials without auto-learning. “Promote” saves your test and the Operator’s reply together.",
       operatorTestEmpty: "No tests yet. Type or attach a chart.",
       operatorTestPlaceholder: "Describe the test or what you see in the chart…",
       operatorTestSend: "Send test",
