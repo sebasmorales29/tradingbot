@@ -43,24 +43,32 @@ export function OperatorControlView() {
           {t.admin.operatorControlLead}
         </p>
 
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => void toggle()}
-            className={`inline-flex h-12 min-w-[180px] items-center justify-center gap-2 rounded-xl border px-5 text-sm font-semibold transition disabled:opacity-50 ${
-              active
-                ? "border-emerald-500/60 bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25"
-                : "border-snow/20 bg-snow/[0.04] text-snow/50 hover:border-pulse/40 hover:text-pulse"
-            }`}
-          >
-            <span
-              className={`h-2.5 w-2.5 rounded-full ${
-                active ? "bg-emerald-400" : "bg-snow/30"
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-start">
+          <div className="flex flex-col items-stretch gap-1 sm:items-center">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void toggle()}
+              aria-pressed={active}
+              className={`inline-flex h-12 min-w-[200px] items-center justify-center gap-2 rounded-xl border px-5 text-sm font-semibold transition disabled:opacity-50 ${
+                active
+                  ? "border-emerald-500/60 bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25"
+                  : "border-amber-500/50 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20"
               }`}
-            />
-            {active ? t.admin.operatorPowerOn : t.admin.operatorPowerOff}
-          </button>
+            >
+              <span
+                className={`h-2.5 w-2.5 rounded-full ${
+                  active ? "animate-pulse bg-emerald-400" : "bg-amber-300/80"
+                }`}
+              />
+              {active ? t.admin.operatorPowerOn : t.admin.operatorPowerOff}
+            </button>
+            <p className="text-center text-[11px] text-snow/40">
+              {active
+                ? t.admin.operatorPowerHintOn
+                : t.admin.operatorPowerHintOff}
+            </p>
+          </div>
 
           <button
             type="button"

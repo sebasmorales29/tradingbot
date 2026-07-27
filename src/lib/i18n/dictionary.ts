@@ -362,8 +362,8 @@ export const dictionaries = {
       operatorLead:
         "Actívalo para que todos los bots de clientes operen con este conocimiento. Apágalo para pausar entradas nuevas en toda la plataforma.",
       operatorLoading: "Cargando estado del operador…",
-      operatorOn: "Operador activo",
-      operatorOff: "Operador en pausa",
+      operatorOn: "Encendido",
+      operatorOff: "Apagado",
       operatorModel: "Modelo",
       operatorTrained: "Último entrenamiento",
       operatorSamples: "Muestras train",
@@ -394,8 +394,10 @@ export const dictionaries = {
       operatorControlTitle: "Operar el cerebro",
       operatorControlLead:
         "Enciende o apaga el Operador global y actualiza su cerebro con el mercado actual.",
-      operatorPowerOn: "Encendido",
-      operatorPowerOff: "Apagado",
+      operatorPowerOn: "Está encendido",
+      operatorPowerOff: "Está apagado",
+      operatorPowerHintOn: "Clic para apagar",
+      operatorPowerHintOff: "Clic para encender",
       operatorUpdateBrain: "Actualizar cerebro",
       operatorUpdating: "Actualizando…",
       operatorUpdateHint:
@@ -915,8 +917,8 @@ export const dictionaries = {
       operatorLead:
         "Turn it on so every customer bot trades with this knowledge. Turn it off to pause new entries across the platform.",
       operatorLoading: "Loading operator status…",
-      operatorOn: "Operator active",
-      operatorOff: "Operator paused",
+      operatorOn: "On",
+      operatorOff: "Off",
       operatorModel: "Model",
       operatorTrained: "Last trained",
       operatorSamples: "Train samples",
@@ -947,8 +949,10 @@ export const dictionaries = {
       operatorControlTitle: "Operate the brain",
       operatorControlLead:
         "Power the global Operator on/off and refresh its brain with current market data.",
-      operatorPowerOn: "Power on",
-      operatorPowerOff: "Power off",
+      operatorPowerOn: "It is on",
+      operatorPowerOff: "It is off",
+      operatorPowerHintOn: "Click to turn off",
+      operatorPowerHintOff: "Click to turn on",
       operatorUpdateBrain: "Update brain",
       operatorUpdating: "Updating…",
       operatorUpdateHint:
