@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "bot:backtest": "tsx scripts/backtest.ts",
-    "bot:operator-learn": "node --env-file=.env.local --import tsx scripts/operator-learn.ts"
+    "bot:operator-learn": "node --env-file=.env.local --import tsx scripts/operator-learn.ts",
+    "bot:operator-train": "node --import tsx scripts/operator-train.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.3",

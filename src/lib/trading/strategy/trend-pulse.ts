@@ -296,7 +296,7 @@ export function decideTrendPulse(
   }
 
   // —— Checklist de entrada ——
-  const allowTrendRide = (pol?.softFailTolerance ?? 1) >= 2;
+  const allowTrendRide = (pol?.softFailTolerance ?? 1) >= 1;
   const entryTrigger = bullishCross || pullbackToFast || (allowTrendRide && trendRide);
 
   checks.push({

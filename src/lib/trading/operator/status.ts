@@ -39,6 +39,13 @@ function parseMeta(raw: Json | null | undefined): OperatorMeta | null {
     modelVersion: String(o.modelVersion ?? "v1"),
     checklistScore: typeof o.checklistScore === "number" ? o.checklistScore : 0,
     blockedBy: typeof o.blockedBy === "string" ? o.blockedBy : null,
+    entryMode:
+      o.entryMode === "trend_pulse" ||
+      o.entryMode === "opportunity" ||
+      o.entryMode === "exit" ||
+      o.entryMode === "none"
+        ? o.entryMode
+        : "none",
   };
 }
 

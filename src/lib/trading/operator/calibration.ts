@@ -77,13 +77,15 @@ export function hybridMinScore(
   baseMin: number,
   prefs: GuidedBotPreferences,
 ): number {
-  let min = baseMin;
-  if (prefs.pace === "careful") min += 8;
-  if (prefs.pace === "active") min -= 8;
-  if (prefs.autonomy === "guarded") min += 5;
-  if (prefs.stress === "low") min += 4;
-  if (prefs.stress === "high") min -= 4;
-  return Math.max(25, Math.min(80, min));
+  // Base más baja: el bot debe poder operar; el perfil solo filtra calidad
+  let min = Math.min(baseMin, 38);
+  if (prefs.pace === "careful") min += 6;
+  if (prefs.pace === "active") min -= 12;
+  if (prefs.pace === "balanced") min -= 4;
+  if (prefs.autonomy === "guarded") min += 3;
+  if (prefs.stress === "low") min += 3;
+  if (prefs.stress === "high") min -= 5;
+  return Math.max(18, Math.min(55, min));
 }
 
 export async function loadCalibrationDeltas(

@@ -1,27 +1,29 @@
 {
-  "version": "v1",
-  "trainedAt": "2026-07-27T00:00:00.000Z",
-  "description": "Weighted heuristic score trained as placeholder until batch retrain. Same contract as future XGBoost artifact.",
-  "minScoreDefault": 45,
+  "version": "v2",
+  "trainedAt": "2026-07-27T22:38:11.505Z",
+  "description": "Batch-trained from Binance OHLCV forward outcomes (+1.6ATR vs -1.1ATR). Interpretable weighted score.",
+  "minScoreDefault": 32,
+  "sampleWins": 810,
+  "sampleLosses": 430,
   "weights": {
-    "rsiMid": 18,
-    "atrOk": 12,
-    "slopeUp": 16,
-    "notExtended": 14,
-    "volume": 12,
-    "htfBull": 14,
-    "regimeTrendUp": 14,
-    "regimeHighVolPenalty": -10,
-    "regimeRangePenalty": -8,
-    "regimeTrendDownPenalty": -20
+    "rsiMid": 14,
+    "atrOk": 10,
+    "slopeUp": 8,
+    "notExtended": 12,
+    "volume": 8,
+    "htfBull": 10,
+    "regimeTrendUp": 10,
+    "regimeHighVolPenalty": -6,
+    "regimeRangePenalty": -3,
+    "regimeTrendDownPenalty": -8
   },
   "bins": {
-    "rsiIdealMin": 42,
-    "rsiIdealMax": 68,
-    "atrMin": 0.3,
-    "atrMax": 4.5,
-    "slopeMin": 0.006,
-    "extensionMax": 1.5,
-    "volMin": 0.95
+    "rsiIdealMin": 41,
+    "rsiIdealMax": 60,
+    "atrMin": 0.5,
+    "atrMax": 5.408992130518599,
+    "slopeMin": 0.001,
+    "extensionMax": 1,
+    "volMin": 0.9139094321425696
   }
 }
