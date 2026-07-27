@@ -19,6 +19,9 @@ export type OperatorBrainPayload = {
     trainSampleLosses: number;
     notes: string | null;
     updatedAt: string;
+    lastResearchAt: string | null;
+    researchItemsCount: number;
+    autoResearchEnabled: boolean;
   };
   model: {
     version: string;
@@ -51,6 +54,17 @@ export type OperatorBrainPayload = {
     image_data: string | null;
     promoted_knowledge_id: string | null;
     created_at: string;
+  }>;
+  researchRuns: Array<{
+    id: string;
+    started_at: string;
+    finished_at: string | null;
+    sources_ok: number;
+    sources_failed: number;
+    items_seen: number;
+    items_learned: number;
+    summary: string | null;
+    triggered_by: string;
   }>;
 };
 

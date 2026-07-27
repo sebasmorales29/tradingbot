@@ -14,6 +14,7 @@ import {
 } from "@/lib/trading/operator/calibration";
 import { getOperatorModelInfo } from "@/lib/trading/operator/model";
 import { trainOperatorFromMarket } from "@/lib/trading/operator/train";
+import { runOperatorWebResearch } from "@/lib/trading/operator/research";
 import type { Json } from "@/lib/supabase/database.types";
 
 export const runtime = "nodejs";
@@ -44,7 +45,7 @@ export async function GET() {
     listCalibration(supabase),
   ]);
 
-  const [{ data: chat }, testsRes] = await Promise.all([
+  const [{ data: chat }, testsRes, researchRes] = await Promise.all([
     supabase
       .from("operator_chat_messages")
       .select("id, role, content, knowledge_id, created_at")
@@ -57,6 +58,13 @@ export async function GET() {
       )
       .order("created_at", { ascending: true })
       .limit(80),
+    supabase
+      .from("operator_research_runs")
+      .select(
+        "id, started_at, finished_at, sources_ok, sources_failed, items_seen, items_learned, summary, triggered_by",
+      )
+      .order("started_at", { ascending: false })
+      .limit(5),
   ]);
 
   const model = getOperatorModelInfo();
@@ -68,6 +76,7 @@ export async function GET() {
     calibration: calibration.filter((c) => c.pair === "*").slice(0, 8),
     chat: chat ?? [],
     tests: testsRes.error ? [] : testsRes.data ?? [],
+    researchRuns: researchRes.error ? [] : researchRes.data ?? [],
   });
 }
 
@@ -85,6 +94,7 @@ export async function POST(request: Request) {
     locale?: "es" | "en";
     imageData?: string | null;
     testMessageId?: string;
+    autoResearchEnabled?: boolean;
   };
 
   const admin = createAdminClient();
@@ -140,6 +150,42 @@ export async function POST(request: Request) {
         { status: 500 },
       );
     }
+  }
+
+  if (body.action === "research_web") {
+    try {
+      const result = await runOperatorWebResearch(admin, {
+        triggeredBy: "admin",
+        maxLearn: 12,
+      });
+      return NextResponse.json({
+        ok: true,
+        ...result,
+        message:
+          locale === "en"
+            ? `Learned ${result.itemsLearned} items from the web (${result.sourcesOk} sources).`
+            : `Aprendió ${result.itemsLearned} ítems de internet (${result.sourcesOk} fuentes).`,
+      });
+    } catch (e) {
+      return NextResponse.json(
+        { error: e instanceof Error ? e.message : "Research failed" },
+        { status: 500 },
+      );
+    }
+  }
+
+  if (body.action === "toggle_auto_research") {
+    const enabled = Boolean(body.autoResearchEnabled);
+    const { error } = await admin.from("operator_brain").upsert({
+      id: "keelra",
+      auto_research_enabled: enabled,
+      updated_at: new Date().toISOString(),
+      updated_by: access.user.id,
+    });
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    return NextResponse.json({ ok: true, autoResearchEnabled: enabled });
   }
 
   if (body.action === "deactivate_knowledge" && body.knowledgeId) {

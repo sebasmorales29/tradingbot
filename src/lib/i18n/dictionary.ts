@@ -419,6 +419,21 @@ export const dictionaries = {
       operatorTestImageOnly: "(imagen de prueba)",
       operatorPromote: "Llevar al cerebro principal",
       operatorPromoted: "Ya está en el cerebro principal",
+      operatorLastResearch: "Última investigación web",
+      operatorResearchLearned: "Aprendidos en última research",
+      operatorResearchHistory: "Historial de investigación",
+      operatorResearchTitle: "Aprender de internet",
+      operatorResearchLead:
+        "El Operador lee noticias y feeds públicos de trading/crypto, convierte titulares en lecciones permanentes y las aplica a todos los bots.",
+      operatorResearchNow: "Investigar ahora",
+      operatorResearching: "Investigando…",
+      operatorResearchDone: "Investigación web completada.",
+      operatorResearchHint:
+        "Automático cada ~6h (cron). Fuentes: CoinDesk, Cointelegraph, Yahoo BTC/ETH.",
+      operatorAutoResearchEnabled: "Auto-research: ON",
+      operatorAutoResearchDisabled: "Auto-research: OFF",
+      operatorAutoResearchOn: "Investigación automática activada.",
+      operatorAutoResearchOff: "Investigación automática pausada.",
       sandboxTitle: "Sandbox",
       sandboxLead:
         "Paper trading en vivo: el bot lee el mercado real, aplica una checklist de calidad y solo opera cuando el setup es limpio. Dinero ficticio — sin tocar cuentas reales. La sesión queda guardada: puedes refrescar o ir a otra vista y sigue operando.",
@@ -974,6 +989,21 @@ export const dictionaries = {
       operatorTestImageOnly: "(test image)",
       operatorPromote: "Promote to main brain",
       operatorPromoted: "Already in the main brain",
+      operatorLastResearch: "Last web research",
+      operatorResearchLearned: "Learned in last research",
+      operatorResearchHistory: "Research history",
+      operatorResearchTitle: "Learn from the internet",
+      operatorResearchLead:
+        "The Operator reads public trading/crypto news feeds, turns headlines into permanent lessons, and applies them to every bot.",
+      operatorResearchNow: "Research now",
+      operatorResearching: "Researching…",
+      operatorResearchDone: "Web research completed.",
+      operatorResearchHint:
+        "Automatic about every 6h (cron). Sources: CoinDesk, Cointelegraph, Yahoo BTC/ETH.",
+      operatorAutoResearchEnabled: "Auto-research: ON",
+      operatorAutoResearchDisabled: "Auto-research: OFF",
+      operatorAutoResearchOn: "Automatic research enabled.",
+      operatorAutoResearchOff: "Automatic research paused.",
       sandboxTitle: "Sandbox",
       sandboxLead:
         "Live paper trading: the bot reads the real market, applies a quality checklist, and only trades when the setup is clean. Fake money — no real accounts touched. The session is saved: refresh or switch views and it keeps running.",

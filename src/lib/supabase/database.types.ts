@@ -261,6 +261,9 @@ export type Database = {
           notes: string | null;
           updated_at: string;
           updated_by: string | null;
+          last_research_at: string | null;
+          research_items_count: number;
+          auto_research_enabled: boolean;
         };
         Insert: {
           id?: string;
@@ -273,6 +276,9 @@ export type Database = {
           notes?: string | null;
           updated_at?: string;
           updated_by?: string | null;
+          last_research_at?: string | null;
+          research_items_count?: number;
+          auto_research_enabled?: boolean;
         };
         Update: {
           id?: string;
@@ -285,6 +291,9 @@ export type Database = {
           notes?: string | null;
           updated_at?: string;
           updated_by?: string | null;
+          last_research_at?: string | null;
+          research_items_count?: number;
+          auto_research_enabled?: boolean;
         };
         Relationships: [];
       };
@@ -381,6 +390,45 @@ export type Database = {
           promoted_knowledge_id?: string | null;
           created_by?: string | null;
           created_at?: string;
+        };
+        Relationships: [];
+      };
+      operator_research_runs: {
+        Row: {
+          id: string;
+          started_at: string;
+          finished_at: string | null;
+          sources_ok: number;
+          sources_failed: number;
+          items_seen: number;
+          items_learned: number;
+          summary: string | null;
+          error: string | null;
+          triggered_by: string;
+        };
+        Insert: {
+          id?: string;
+          started_at?: string;
+          finished_at?: string | null;
+          sources_ok?: number;
+          sources_failed?: number;
+          items_seen?: number;
+          items_learned?: number;
+          summary?: string | null;
+          error?: string | null;
+          triggered_by?: string;
+        };
+        Update: {
+          id?: string;
+          started_at?: string;
+          finished_at?: string | null;
+          sources_ok?: number;
+          sources_failed?: number;
+          items_seen?: number;
+          items_learned?: number;
+          summary?: string | null;
+          error?: string | null;
+          triggered_by?: string;
         };
         Relationships: [];
       };

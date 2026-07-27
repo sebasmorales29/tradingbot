@@ -18,6 +18,7 @@ export function OperatorControlView() {
   if (!data) return null;
 
   const active = data.brain.isActive;
+  const autoResearch = data.brain.autoResearchEnabled !== false;
 
   async function toggle() {
     setMsg(null);
@@ -30,6 +31,29 @@ export function OperatorControlView() {
     const res = await post({ action: "update_brain" });
     setMsg(
       typeof res.message === "string" ? res.message : t.admin.operatorUpdateDone,
+    );
+  }
+
+  async function researchWeb() {
+    setMsg(null);
+    const res = await post({ action: "research_web" });
+    setMsg(
+      typeof res.message === "string"
+        ? res.message
+        : t.admin.operatorResearchDone,
+    );
+  }
+
+  async function toggleAutoResearch() {
+    setMsg(null);
+    await post({
+      action: "toggle_auto_research",
+      autoResearchEnabled: !autoResearch,
+    });
+    setMsg(
+      !autoResearch
+        ? t.admin.operatorAutoResearchOn
+        : t.admin.operatorAutoResearchOff,
     );
   }
 
@@ -80,10 +104,46 @@ export function OperatorControlView() {
           </button>
         </div>
 
-        {msg && <p className="mt-4 text-sm text-pulse/90">{msg}</p>}
-
         <p className="mt-4 text-xs text-snow/40">{t.admin.operatorUpdateHint}</p>
       </section>
+
+      <section className="rounded-xl border border-pulse/20 bg-gradient-to-br from-slate/40 to-ink/60 p-5">
+        <h2 className="font-display text-xl font-bold text-snow">
+          {t.admin.operatorResearchTitle}
+        </h2>
+        <p className="mt-2 max-w-2xl text-sm text-snow/55">
+          {t.admin.operatorResearchLead}
+        </p>
+
+        <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void researchWeb()}
+            className="inline-flex h-12 items-center justify-center rounded-xl border border-pulse/50 bg-pulse/10 px-5 text-sm font-semibold text-pulse transition hover:bg-pulse hover:text-ink disabled:opacity-50"
+          >
+            {busy ? t.admin.operatorResearching : t.admin.operatorResearchNow}
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void toggleAutoResearch()}
+            className={`inline-flex h-12 items-center justify-center rounded-xl border px-5 text-sm font-semibold transition disabled:opacity-50 ${
+              autoResearch
+                ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-300"
+                : "border-snow/20 text-snow/55"
+            }`}
+          >
+            {autoResearch
+              ? t.admin.operatorAutoResearchEnabled
+              : t.admin.operatorAutoResearchDisabled}
+          </button>
+        </div>
+
+        <p className="mt-3 text-xs text-snow/40">{t.admin.operatorResearchHint}</p>
+      </section>
+
+      {msg && <p className="text-sm text-pulse/90">{msg}</p>}
     </div>
   );
 }

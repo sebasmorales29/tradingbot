@@ -34,6 +34,9 @@ export type OperatorBrain = {
   trainSampleLosses: number;
   notes: string | null;
   updatedAt: string;
+  lastResearchAt: string | null;
+  researchItemsCount: number;
+  autoResearchEnabled: boolean;
 };
 
 type Client = SupabaseClient<Database>;
@@ -89,6 +92,9 @@ export async function loadOperatorBrain(
       trainSampleLosses: 0,
       notes: null,
       updatedAt: new Date().toISOString(),
+      lastResearchAt: null,
+      researchItemsCount: 0,
+      autoResearchEnabled: true,
     };
   }
 
@@ -102,6 +108,9 @@ export async function loadOperatorBrain(
     trainSampleLosses: Number(data.train_sample_losses ?? 0),
     notes: data.notes,
     updatedAt: data.updated_at,
+    lastResearchAt: data.last_research_at ?? null,
+    researchItemsCount: Number(data.research_items_count ?? 0),
+    autoResearchEnabled: data.auto_research_enabled !== false,
   };
 }
 

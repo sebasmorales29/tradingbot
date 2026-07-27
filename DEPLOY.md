@@ -62,6 +62,20 @@ El plan **Hobby** de Vercel solo permite 1 cron al día. Para escanear cada 15 m
 
 El cron diario de Vercel queda como respaldo; cron-job.org es el que mantiene el bot activo de verdad.
 
+### Investigación web del Operador (cada 6 h)
+
+El cerebro global lee feeds públicos (CoinDesk, Cointelegraph, Yahoo BTC/ETH) y guarda lecciones en `operator_knowledge`.
+
+En Hobby, configura un segundo job en cron-job.org:
+
+- **URL:** `https://TU-APP.vercel.app/api/cron/operator-research`
+- **Schedule:** every 6 hours
+- **Header:** `Authorization` = `Bearer TU_CRON_SECRET`
+
+También puedes lanzarlo a mano desde **Admin → Operador → Control → Investigar ahora**.
+
+Migración SQL requerida: `supabase/migrations/20260727250000_operator_web_research.sql`
+
 ## 4. Comprobar
 
 Con el bot **Activo** en el dashboard, espera ~15 min o llama:

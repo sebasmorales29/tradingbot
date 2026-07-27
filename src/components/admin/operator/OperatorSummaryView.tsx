@@ -72,8 +72,41 @@ export function OperatorSummaryView() {
             label={t.admin.operatorKnowledgeCount}
             value={String(data.knowledge.length)}
           />
+          <Stat
+            label={t.admin.operatorLastResearch}
+            value={
+              data.brain.lastResearchAt
+                ? new Date(data.brain.lastResearchAt).toLocaleString(dateLocale)
+                : "—"
+            }
+          />
+          <Stat
+            label={t.admin.operatorResearchLearned}
+            value={String(data.brain.researchItemsCount ?? 0)}
+          />
         </div>
       </section>
+
+      {data.researchRuns && data.researchRuns.length > 0 && (
+        <section className="rounded-xl border border-snow/10 bg-slate/30 p-4">
+          <p className="text-xs uppercase tracking-wide text-snow/40">
+            {t.admin.operatorResearchHistory}
+          </p>
+          <ul className="mt-2 space-y-2 text-sm text-snow/65">
+            {data.researchRuns.map((r) => (
+              <li key={r.id} className="rounded-lg border border-snow/10 px-3 py-2">
+                <p>
+                  {new Date(r.started_at).toLocaleString(dateLocale)} ·{" "}
+                  {r.triggered_by} · +{r.items_learned} / {r.items_seen}
+                </p>
+                {r.summary && (
+                  <p className="mt-1 text-xs text-snow/45">{r.summary}</p>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {data.calibration.length > 0 && (
         <section className="rounded-xl border border-snow/10 bg-slate/30 p-4">
