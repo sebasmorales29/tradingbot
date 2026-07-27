@@ -123,7 +123,7 @@ export function OperatorLearningView() {
   };
 
   return (
-    <div className="relative flex h-[calc(100dvh-9.5rem)] min-h-[420px] gap-0 overflow-hidden rounded-xl border border-snow/10 bg-slate/30">
+    <div className="relative flex h-full min-h-0 flex-1 gap-0 overflow-hidden rounded-xl border border-snow/10 bg-slate/30">
       <section className="flex min-h-0 min-w-0 flex-1 flex-col">
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-snow/10 px-4 py-2.5 sm:px-5">
           <h2 className="font-display text-base font-bold text-snow sm:text-lg">
@@ -192,7 +192,7 @@ export function OperatorLearningView() {
 
         <form
           onSubmit={(e) => void send(e)}
-          className="shrink-0 border-t border-snow/10 bg-slate/50 px-4 py-3 sm:px-5"
+          className="sticky bottom-0 shrink-0 border-t border-snow/10 bg-slate/95 px-4 py-3 backdrop-blur-sm sm:px-5"
         >
           <div className="mx-auto flex max-w-3xl gap-2">
             <input

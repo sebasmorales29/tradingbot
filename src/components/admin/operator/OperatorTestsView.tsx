@@ -105,7 +105,7 @@ export function OperatorTestsView() {
   }
 
   return (
-    <div className="flex h-[calc(100dvh-9.5rem)] min-h-[420px] flex-col overflow-hidden rounded-xl border border-snow/10 bg-slate/30">
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-snow/10 bg-slate/30">
       <div className="shrink-0 border-b border-snow/10 px-4 py-2.5 sm:px-5">
         <h2 className="font-display text-base font-bold text-snow sm:text-lg">
           {t.admin.operatorTestTitle}
@@ -161,7 +161,7 @@ export function OperatorTestsView() {
         <div ref={chatEnd} />
       </div>
 
-      <div className="shrink-0 border-t border-snow/10 bg-slate/50 px-4 py-3 sm:px-5">
+      <div className="sticky bottom-0 shrink-0 border-t border-snow/10 bg-slate/95 px-4 py-3 backdrop-blur-sm sm:px-5">
         {imageData && (
           <div className="mx-auto mb-2 flex max-w-3xl items-center gap-3 rounded-lg border border-snow/10 bg-ink/50 p-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}

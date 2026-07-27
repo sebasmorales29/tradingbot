@@ -19,14 +19,14 @@ export default async function AdminLayout({
 
   return (
     <SandboxSessionProvider enabled={canSandbox}>
-      <div className="min-h-[100svh] bg-ink">
+      <div className="flex min-h-[100svh] flex-col bg-ink">
         <AppTopNav
           email={access.user.email}
           showAdmin={access.can("admin_console")}
           role={access.role}
         />
 
-        <div className="mx-auto flex max-w-6xl flex-col gap-8 px-6 py-8 md:flex-row md:px-8">
+        <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-6 py-6 md:flex-row md:px-8 md:py-8">
           <AdminNav
             canUsers={
               access.can("admin_manage_users") ||
@@ -47,7 +47,7 @@ export default async function AdminLayout({
               access.role === "admin"
             }
           />
-          <div className="min-w-0 flex-1">{children}</div>
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col">{children}</div>
         </div>
       </div>
     </SandboxSessionProvider>
