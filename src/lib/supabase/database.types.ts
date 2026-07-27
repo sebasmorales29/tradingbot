@@ -249,6 +249,111 @@ export type Database = {
         };
         Relationships: [];
       };
+      operator_brain: {
+        Row: {
+          id: string;
+          is_active: boolean;
+          display_name: string;
+          model_version: string;
+          last_trained_at: string | null;
+          train_sample_wins: number;
+          train_sample_losses: number;
+          notes: string | null;
+          updated_at: string;
+          updated_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          is_active?: boolean;
+          display_name?: string;
+          model_version?: string;
+          last_trained_at?: string | null;
+          train_sample_wins?: number;
+          train_sample_losses?: number;
+          notes?: string | null;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Update: {
+          id?: string;
+          is_active?: boolean;
+          display_name?: string;
+          model_version?: string;
+          last_trained_at?: string | null;
+          train_sample_wins?: number;
+          train_sample_losses?: number;
+          notes?: string | null;
+          updated_at?: string;
+          updated_by?: string | null;
+        };
+        Relationships: [];
+      };
+      operator_knowledge: {
+        Row: {
+          id: string;
+          kind: string;
+          title: string;
+          content: string;
+          effect: Json;
+          is_active: boolean;
+          source: string;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          kind?: string;
+          title: string;
+          content: string;
+          effect?: Json;
+          is_active?: boolean;
+          source?: string;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          kind?: string;
+          title?: string;
+          content?: string;
+          effect?: Json;
+          is_active?: boolean;
+          source?: string;
+          created_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      operator_chat_messages: {
+        Row: {
+          id: string;
+          role: string;
+          content: string;
+          knowledge_id: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          role: string;
+          content: string;
+          knowledge_id?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          role?: string;
+          content?: string;
+          knowledge_id?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       operator_calibration: {
         Row: {
           id: string;

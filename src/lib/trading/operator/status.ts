@@ -46,6 +46,9 @@ function parseMeta(raw: Json | null | undefined): OperatorMeta | null {
       o.entryMode === "none"
         ? o.entryMode
         : "none",
+    knowledgeHints: Array.isArray(o.knowledgeHints)
+      ? o.knowledgeHints.filter((x): x is string => typeof x === "string")
+      : [],
   };
 }
 

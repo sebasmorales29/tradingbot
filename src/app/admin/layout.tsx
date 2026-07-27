@@ -41,6 +41,11 @@ export default async function AdminLayout({
               access.can("admin_analytics") || access.can("admin_edit_strategy")
             }
             canSandbox={canSandbox}
+            canOperator={
+              access.can("admin_edit_strategy") ||
+              access.can("admin_analytics") ||
+              access.role === "admin"
+            }
           />
           <div className="min-w-0 flex-1">{children}</div>
         </div>

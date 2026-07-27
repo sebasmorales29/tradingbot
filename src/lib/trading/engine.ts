@@ -12,6 +12,10 @@ import {
 } from "./bot-profile";
 import { loadCalibrationDeltas } from "./operator/calibration";
 import {
+  loadActiveKnowledge,
+  loadOperatorBrain,
+} from "./operator/brain";
+import {
   decideAsOperator,
   formatOperatorReason,
 } from "./operator/decide";
@@ -82,6 +86,10 @@ export async function runBotTick(
 
   const prefs = normalizeGuidedBotPreferences((bot as Record<string, unknown>).preferences);
   const policy = deriveBotPolicy(prefs);
+  const [brain, knowledge] = await Promise.all([
+    loadOperatorBrain(supabase),
+    loadActiveKnowledge(supabase),
+  ]);
 
   const pairs = (
     bot.pairs?.length ? bot.pairs : ["BTC/USDT", "ETH/USDT"]
@@ -205,6 +213,8 @@ export async function runBotTick(
         policy,
         prefs,
         calibration,
+        knowledge,
+        brainActive: brain.isActive,
       },
     );
     const signal = decisionFinal.signal;

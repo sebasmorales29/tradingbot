@@ -263,6 +263,7 @@ export const dictionaries = {
       navBots: "Bots",
       navActivity: "Actividad",
       navSandbox: "Sandbox",
+      navOperator: "Operador",
       navSandboxSession: "Sesión",
       navSandboxLogs: "Logs",
       navSandboxAdvanced: "Avanzado",
@@ -354,6 +355,35 @@ export const dictionaries = {
       strategyReadOnly: "Solo administradores pueden editar la estrategia.",
       strategyNote:
         "Paper · Cron externo. Los cambios afectan a todos los bots en el próximo tick.",
+      operatorTitle: "Operador Keelra",
+      operatorPageLead:
+        "Este es el cerebro del producto que vendes: un solo Operador global. Los clientes solo afinan preferencias; el conocimiento y el modelo son compartidos.",
+      operatorBadge: "Cerebro global",
+      operatorLead:
+        "Actívalo para que todos los bots de clientes operen con este conocimiento. Apágalo para pausar entradas nuevas en toda la plataforma.",
+      operatorLoading: "Cargando estado del operador…",
+      operatorOn: "Operador activo",
+      operatorOff: "Operador en pausa",
+      operatorModel: "Modelo",
+      operatorTrained: "Último entrenamiento",
+      operatorSamples: "Muestras train",
+      operatorKnowledgeCount: "Lecciones activas",
+      operatorSyncModel: "Sincronizar modelo del disco",
+      operatorTrainHint:
+        "Para reentrenar con histórico: npm run bot:operator-train (luego Sync).",
+      operatorChatTitle: "Enseñar al Operador",
+      operatorChatLead:
+        "Lo que escribas se guarda para siempre en el cerebro global. Usa frases claras de regla o mercado.",
+      operatorChatEmpty: "Aún no hay lecciones. Empieza a enseñarle.",
+      operatorChatPlaceholder:
+        "Ej: preferir alcista, evitar ETH, más cauteloso en rango…",
+      operatorTeach: "Enseñar",
+      operatorKnowledgeTitle: "Qué sabe ahora",
+      operatorKnowledgeLead:
+        "Conocimiento permanente que influye en cada decisión de todos los bots.",
+      operatorKnowledgeEmpty: "Sin lecciones activas todavía.",
+      operatorForget: "Olvidar",
+      operatorCalibration: "Calibración por régimen",
       sandboxTitle: "Sandbox",
       sandboxLead:
         "Paper trading en vivo: el bot lee el mercado real, aplica una checklist de calidad y solo opera cuando el setup es limpio. Dinero ficticio — sin tocar cuentas reales. La sesión queda guardada: puedes refrescar o ir a otra vista y sigue operando.",
@@ -753,6 +783,7 @@ export const dictionaries = {
       navBots: "Bots",
       navActivity: "Activity",
       navSandbox: "Sandbox",
+      navOperator: "Operator",
       navSandboxSession: "Session",
       navSandboxLogs: "Logs",
       navSandboxAdvanced: "Advanced",
@@ -844,6 +875,35 @@ export const dictionaries = {
       strategyReadOnly: "Only admins can edit the strategy.",
       strategyNote:
         "Paper · External cron. Changes affect every bot on the next tick.",
+      operatorTitle: "Keelra Operator",
+      operatorPageLead:
+        "This is the product brain you sell: one global Operator. Customers only tune preferences; knowledge and the model are shared.",
+      operatorBadge: "Global brain",
+      operatorLead:
+        "Turn it on so every customer bot trades with this knowledge. Turn it off to pause new entries across the platform.",
+      operatorLoading: "Loading operator status…",
+      operatorOn: "Operator active",
+      operatorOff: "Operator paused",
+      operatorModel: "Model",
+      operatorTrained: "Last trained",
+      operatorSamples: "Train samples",
+      operatorKnowledgeCount: "Active lessons",
+      operatorSyncModel: "Sync model from disk",
+      operatorTrainHint:
+        "To retrain on history: npm run bot:operator-train (then Sync).",
+      operatorChatTitle: "Teach the Operator",
+      operatorChatLead:
+        "Whatever you write is saved forever in the global brain. Use clear rule or market phrases.",
+      operatorChatEmpty: "No lessons yet. Start teaching it.",
+      operatorChatPlaceholder:
+        "E.g. prefer uptrend, avoid ETH, more careful in range…",
+      operatorTeach: "Teach",
+      operatorKnowledgeTitle: "What it knows now",
+      operatorKnowledgeLead:
+        "Permanent knowledge that influences every decision on every bot.",
+      operatorKnowledgeEmpty: "No active lessons yet.",
+      operatorForget: "Forget",
+      operatorCalibration: "Calibration by regime",
       sandboxTitle: "Sandbox",
       sandboxLead:
         "Live paper trading: the bot reads the real market, applies a quality checklist, and only trades when the setup is clean. Fake money — no real accounts touched. The session is saved: refresh or switch views and it keeps running.",

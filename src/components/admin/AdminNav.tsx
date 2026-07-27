@@ -9,7 +9,7 @@ import { useT } from "@/components/i18n/T";
 type NavItem = {
   href: string;
   label: string;
-  key?: "users" | "bots" | "activity" | "sandbox";
+  key?: "users" | "bots" | "activity" | "sandbox" | "operator";
   match: (p: string) => boolean;
 };
 
@@ -19,12 +19,14 @@ export function AdminNav({
   canActivity,
   canStrategy,
   canSandbox,
+  canOperator,
 }: {
   canUsers: boolean;
   canBots: boolean;
   canActivity: boolean;
   canStrategy: boolean;
   canSandbox: boolean;
+  canOperator: boolean;
 }) {
   const t = useT();
   const pathname = usePathname();
@@ -63,6 +65,12 @@ export function AdminNav({
       match: (p) => p.startsWith("/admin/actividad"),
     },
     {
+      href: "/admin/operador",
+      label: t.admin.navOperator,
+      key: "operator",
+      match: (p) => p.startsWith("/admin/operador"),
+    },
+    {
       href: "/admin/sandbox",
       label: t.admin.navSandbox,
       key: "sandbox",
@@ -76,6 +84,7 @@ export function AdminNav({
     if (item.key === "users") return canUsers;
     if (item.key === "bots") return canBots;
     if (item.key === "activity") return canActivity;
+    if (item.key === "operator") return canOperator;
     if (item.key === "sandbox") return canSandbox;
     return true;
   });

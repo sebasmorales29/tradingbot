@@ -9,6 +9,10 @@ import {
 } from "../strategy/trend-pulse";
 import type { Candle, Pair, StrategySignal } from "../types";
 import {
+  applyKnowledgeBias,
+  type OperatorKnowledge,
+} from "./brain";
+import {
   applyCalibrationToPolicy,
   hybridMinScore,
   type CalibrationDeltas,
@@ -30,6 +34,7 @@ export type OperatorMeta = {
   checklistScore: number;
   blockedBy: string | null;
   entryMode: "trend_pulse" | "opportunity" | "exit" | "none";
+  knowledgeHints: string[];
 };
 
 export type OperatorDecision = TrendPulseDecision & {
@@ -47,6 +52,8 @@ export type OperatorContext = {
   policy: BotPolicy;
   prefs: GuidedBotPreferences;
   calibration?: CalibrationDeltas;
+  knowledge?: OperatorKnowledge[];
+  brainActive?: boolean;
 };
 
 function regimeAdjustPolicy(
@@ -204,7 +211,7 @@ export function decideAsOperator(
   }
 
   policy = applyCalibrationToPolicy(policy, cal, ctx.prefs);
-  const minScore = hybridMinScore(cal.minScore, ctx.prefs);
+  let minScore = hybridMinScore(cal.minScore, ctx.prefs);
   const modelInfo = getOperatorModelInfo();
 
   const features = extractOperatorFeatures(
@@ -215,7 +222,59 @@ export function decideAsOperator(
     params.slow,
     params.atrPeriod,
   );
-  const modelScore = features ? scoreSetup(features) : null;
+  let modelScore = features ? scoreSetup(features) : null;
+  const knowledge = ctx.knowledge ?? [];
+  const bias = applyKnowledgeBias(knowledge, {
+    pair,
+    regime: regime.regime,
+    modelScore,
+  });
+  if (modelScore != null) {
+    modelScore = Math.max(0, Math.min(100, modelScore + bias.scoreDelta));
+  }
+  minScore = Math.max(12, Math.min(70, minScore + bias.minScoreDelta));
+  const knowledgeHints = bias.reasons.slice(0, 4);
+
+  // Cerebro global apagado → no nuevas entradas (sí gestiona salidas)
+  if (ctx.brainActive === false && !hasOpenLong) {
+    const idle: TrendPulseDecision = {
+      signal: null,
+      verdict: "hold",
+      score: 0,
+      checks: [
+        {
+          id: "brain_off",
+          label: "Keelra brain",
+          tier: "hard",
+          pass: false,
+          detail: "global operator paused",
+        },
+      ],
+      summary:
+        ctx.locale === "en"
+          ? "Keelra Operator is paused (global brain off)"
+          : "Operador Keelra en pausa (cerebro global apagado)",
+    };
+    return {
+      ...idle,
+      regime,
+      modelScore,
+      minScore,
+      features,
+      meta: {
+        regime: regime.regime,
+        regimeDetail: regime.detail,
+        modelScore,
+        minScore,
+        modelVersion: modelInfo.version,
+        checklistScore: 0,
+        blockedBy: "brain_inactive",
+        entryMode: "none",
+        knowledgeHints,
+      },
+      policyUsed: policy,
+    };
+  }
 
   let decision = decideTrendPulse(pair, candles, hasOpenLong, params, {
     htfCandles: ctx.htfCandles,
@@ -226,7 +285,23 @@ export function decideAsOperator(
   let blockedBy: string | null = null;
   let entryMode: OperatorMeta["entryMode"] = "none";
 
-  if (hasOpenLong) {
+  if (!hasOpenLong && bias.blockPair) {
+    blockedBy = "knowledge_avoid_pair";
+    decision = blockSignal(
+      decision,
+      `Operator skip — taught to avoid ${pair}`,
+      blockedBy,
+      [
+        {
+          id: "knowledge",
+          label: "Knowledge",
+          tier: "hard",
+          pass: false,
+          detail: bias.reasons[0] ?? "avoid pair",
+        },
+      ],
+    );
+  } else if (hasOpenLong) {
     entryMode = decision.signal?.side === "flat" ? "exit" : "none";
   } else if (decision.signal?.side === "long") {
     entryMode = "trend_pulse";
@@ -327,6 +402,7 @@ export function decideAsOperator(
     checklistScore: decision.score,
     blockedBy,
     entryMode,
+    knowledgeHints,
   };
 
   return {
