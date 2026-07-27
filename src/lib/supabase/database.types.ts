@@ -75,6 +75,7 @@ export type Database = {
           risk_percent: number;
           pairs: string[];
           kill_switch: boolean;
+          preferences: Json;
           created_at: string;
           updated_at: string;
         };
@@ -86,6 +87,7 @@ export type Database = {
           risk_percent?: number;
           pairs?: string[];
           kill_switch?: boolean;
+          preferences?: Json;
           created_at?: string;
           updated_at?: string;
         };
@@ -97,6 +99,7 @@ export type Database = {
           risk_percent?: number;
           pairs?: string[];
           kill_switch?: boolean;
+          preferences?: Json;
           created_at?: string;
           updated_at?: string;
         };

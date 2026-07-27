@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { normalizeGuidedBotPreferences } from "@/lib/trading/bot-profile";
+import type { GuidedBotPreferences } from "@/lib/trading/bot-profile";
 
 export type DashboardBot = {
   id: string;
@@ -8,6 +10,7 @@ export type DashboardBot = {
   risk_percent: number;
   pairs: string[];
   kill_switch: boolean;
+  preferences: GuidedBotPreferences;
   created_at: string;
   updated_at: string;
 };
@@ -92,7 +95,12 @@ export async function loadDashboardData(userId: string): Promise<DashboardData> 
     closed.length > 0 ? Math.round((wins / closed.length) * 1000) / 10 : null;
 
   return {
-    bot: bot as DashboardBot | null,
+    bot: bot
+      ? ({
+          ...bot,
+          preferences: normalizeGuidedBotPreferences(bot.preferences),
+        } as DashboardBot)
+      : null,
     trades: tradeList,
     signals: (signals ?? []) as DashboardSignal[],
     equity: Number(equityRows?.[0]?.equity ?? 10_000),

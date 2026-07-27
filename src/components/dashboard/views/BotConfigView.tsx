@@ -1,6 +1,7 @@
 "use client";
 
 import { useT } from "@/components/i18n/T";
+import { BotGuidedProfile } from "@/components/dashboard/BotGuidedProfile";
 import { InfoCard } from "@/components/dashboard/views/OverviewView";
 import type { DashboardBot } from "@/lib/dashboard-data";
 
@@ -25,14 +26,23 @@ export function BotConfigView({
   }
 
   return (
-    <div>
+    <div className="space-y-8">
       <h1 className="font-display text-3xl font-bold text-snow">
         {t.dash.navBot}
       </h1>
       <p className="mt-2 text-sm text-snow/55">{t.dash.configLead}</p>
-      <p className="mt-1 text-xs text-snow/40">{t.dash.transparency}</p>
+      <p className="mt-1 text-xs text-snow/40">{t.dash.configBridge}</p>
 
-      <dl className="mt-8 grid gap-3 text-sm sm:grid-cols-2">
+      <BotGuidedProfile bot={bot} />
+
+      <div>
+        <h2 className="font-display text-xl font-bold text-snow">
+          {t.dash.techTitle}
+        </h2>
+        <p className="mt-2 text-sm text-snow/50">{t.dash.transparency}</p>
+      </div>
+
+      <dl className="grid gap-3 text-sm sm:grid-cols-2">
         <InfoCard
           label={t.dash.status}
           value={bot.is_active ? t.dash.active : t.dash.paused}

@@ -12,7 +12,7 @@ export function ControlView({ bot }: { bot: DashboardBot | null }) {
       <h1 className="font-display text-3xl font-bold text-snow">
         {t.dash.navControl}
       </h1>
-      <p className="mt-2 max-w-xl text-sm text-snow/55">{t.dash.dangerLead}</p>
+      <p className="mt-2 max-w-xl text-sm text-snow/55">{t.dash.comingSoon}</p>
 
       {!bot ? (
         <p className="mt-8 text-sm text-snow/50">{t.dash.emptyText}</p>
