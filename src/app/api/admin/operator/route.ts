@@ -8,14 +8,21 @@ import {
   loadActiveKnowledge,
   loadOperatorBrain,
 } from "@/lib/trading/operator/brain";
-import { listCalibration } from "@/lib/trading/operator/calibration";
+import {
+  listCalibration,
+  recomputeAndUpsertCalibration,
+} from "@/lib/trading/operator/calibration";
 import { getOperatorModelInfo } from "@/lib/trading/operator/model";
+import { trainOperatorFromMarket } from "@/lib/trading/operator/train";
 import type { Json } from "@/lib/supabase/database.types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
-function canManage(access: NonNullable<Awaited<ReturnType<typeof getSessionAccess>>>) {
+function canManage(
+  access: NonNullable<Awaited<ReturnType<typeof getSessionAccess>>>,
+) {
   return (
     access.can("admin_console") &&
     (access.can("admin_edit_strategy") ||
@@ -37,11 +44,20 @@ export async function GET() {
     listCalibration(supabase),
   ]);
 
-  const { data: chat } = await supabase
-    .from("operator_chat_messages")
-    .select("id, role, content, knowledge_id, created_at")
-    .order("created_at", { ascending: true })
-    .limit(80);
+  const [{ data: chat }, testsRes] = await Promise.all([
+    supabase
+      .from("operator_chat_messages")
+      .select("id, role, content, knowledge_id, created_at")
+      .order("created_at", { ascending: true })
+      .limit(80),
+    supabase
+      .from("operator_test_messages")
+      .select(
+        "id, role, content, image_data, promoted_knowledge_id, created_at",
+      )
+      .order("created_at", { ascending: true })
+      .limit(80),
+  ]);
 
   const model = getOperatorModelInfo();
 
@@ -51,6 +67,7 @@ export async function GET() {
     knowledge,
     calibration: calibration.filter((c) => c.pair === "*").slice(0, 8),
     chat: chat ?? [],
+    tests: testsRes.error ? [] : testsRes.data ?? [],
   });
 }
 
@@ -66,6 +83,8 @@ export async function POST(request: Request) {
     message?: string;
     knowledgeId?: string;
     locale?: "es" | "en";
+    imageData?: string | null;
+    testMessageId?: string;
   };
 
   const admin = createAdminClient();
@@ -85,19 +104,42 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, isActive });
   }
 
-  if (body.action === "sync_model") {
-    const model = getOperatorModelInfo();
-    const { error } = await admin.from("operator_brain").upsert({
-      id: "keelra",
-      model_version: model.version,
-      last_trained_at: model.trainedAt,
-      updated_at: new Date().toISOString(),
-      updated_by: access.user.id,
-    });
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+  if (body.action === "update_brain" || body.action === "sync_model") {
+    try {
+      let trained = null as Awaited<
+        ReturnType<typeof trainOperatorFromMarket>
+      > | null;
+      if (body.action === "update_brain") {
+        trained = await trainOperatorFromMarket();
+        await recomputeAndUpsertCalibration(admin);
+      }
+      const model = getOperatorModelInfo();
+      const { error } = await admin.from("operator_brain").upsert({
+        id: "keelra",
+        model_version: trained?.version ?? model.version,
+        last_trained_at: trained?.trainedAt ?? model.trainedAt,
+        train_sample_wins: trained?.sampleWins ?? undefined,
+        train_sample_losses: trained?.sampleLosses ?? undefined,
+        updated_at: new Date().toISOString(),
+        updated_by: access.user.id,
+      });
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+      return NextResponse.json({
+        ok: true,
+        model: trained ?? model,
+        message:
+          locale === "en"
+            ? "Brain updated: model retrained from market history and calibration refreshed."
+            : "Cerebro actualizado: modelo reentrenado con histórico y calibración refrescada.",
+      });
+    } catch (e) {
+      return NextResponse.json(
+        { error: e instanceof Error ? e.message : "Update failed" },
+        { status: 500 },
+      );
     }
-    return NextResponse.json({ ok: true, model });
   }
 
   if (body.action === "deactivate_knowledge" && body.knowledgeId) {
@@ -119,8 +161,7 @@ export async function POST(request: Request) {
 
     const effect = extractEffectFromText(message);
     const kind = inferKnowledgeKind(message);
-    const title =
-      message.length > 72 ? `${message.slice(0, 69)}…` : message;
+    const title = message.length > 72 ? `${message.slice(0, 69)}…` : message;
 
     const { data: knowledgeRow, error: kErr } = await admin
       .from("operator_knowledge")
@@ -154,11 +195,11 @@ export async function POST(request: Request) {
     const reply =
       locale === "en"
         ? effectKeys.length
-          ? `Learned permanently as “${kind}”. I will apply: ${effectKeys.join(", ")}. This knowledge stays in the global Keelra Operator for every customer bot.`
-          : `Saved permanently as “${kind}”. I stored the lesson in my global knowledge. Tip: use phrases like “prefer uptrend”, “avoid ETH”, “be more careful in range” so I can turn them into trading rules.`
+          ? `Learned permanently as “${kind}”. I will apply: ${effectKeys.join(", ")}.`
+          : `Saved permanently as “${kind}”. Tip: use phrases like “prefer uptrend”, “avoid ETH”, “more careful in range”.`
         : effectKeys.length
-          ? `Aprendido para siempre como “${kind}”. Aplicaré: ${effectKeys.join(", ")}. Este conocimiento queda en el Operador Keelra global para todos los bots de clientes.`
-          : `Guardado para siempre como “${kind}”. Tip: usa frases como “preferir alcista”, “evitar ETH”, “más cauteloso en rango” para que lo convierta en reglas de trading.`;
+          ? `Aprendido para siempre como “${kind}”. Aplicaré: ${effectKeys.join(", ")}.`
+          : `Guardado para siempre como “${kind}”. Tip: usa “preferir alcista”, “evitar ETH”, “más cauteloso en rango”.`;
 
     await admin.from("operator_chat_messages").insert({
       role: "assistant",
@@ -167,12 +208,110 @@ export async function POST(request: Request) {
       created_by: access.user.id,
     });
 
+    return NextResponse.json({ ok: true, knowledgeId: knowledgeRow.id, reply });
+  }
+
+  if (body.action === "test_message") {
+    const message = (body.message ?? "").trim();
+    const imageData =
+      typeof body.imageData === "string" && body.imageData.startsWith("data:image/")
+        ? body.imageData
+        : null;
+    if (!message && !imageData) {
+      return NextResponse.json({ error: "Empty test" }, { status: 400 });
+    }
+    if (imageData && imageData.length > 900_000) {
+      return NextResponse.json({ error: "Image too large" }, { status: 400 });
+    }
+
+    await admin.from("operator_test_messages").insert({
+      role: "user",
+      content: message || "(image)",
+      image_data: imageData,
+      created_by: access.user.id,
+    });
+
+    const effect = extractEffectFromText(message || "");
+    const effectKeys = Object.keys(effect).filter((k) => k !== "note");
+    const reply =
+      locale === "en"
+        ? imageData
+          ? `Test received${message ? ` with note: “${message.slice(0, 120)}”` : ""}. If this chart lesson is useful, click “Promote to main brain”. Detected cues: ${effectKeys.join(", ") || "none yet"}.`
+          : `Test note stored. Detected cues: ${effectKeys.join(", ") || "none yet"}. Promote it if you want it permanent.`
+        : imageData
+          ? `Prueba recibida${message ? ` con nota: “${message.slice(0, 120)}”` : ""}. Si esta lección del gráfico sirve, pulsa “Llevar al cerebro principal”. Señales detectadas: ${effectKeys.join(", ") || "ninguna aún"}.`
+          : `Nota de prueba guardada. Señales: ${effectKeys.join(", ") || "ninguna aún"}. Promuévela si quieres que sea permanente.`;
+
+    await admin.from("operator_test_messages").insert({
+      role: "assistant",
+      content: reply,
+      created_by: access.user.id,
+    });
+
+    return NextResponse.json({ ok: true, reply });
+  }
+
+  if (body.action === "promote_test" && body.testMessageId) {
+    const { data: testMsg, error: tErr } = await admin
+      .from("operator_test_messages")
+      .select("*")
+      .eq("id", body.testMessageId)
+      .maybeSingle();
+
+    if (tErr || !testMsg || testMsg.role !== "user") {
+      return NextResponse.json({ error: "Test message not found" }, { status: 404 });
+    }
+
+    const content = [
+      testMsg.content,
+      testMsg.image_data ? "[Includes chart/image from test lab]" : null,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    const effect = extractEffectFromText(testMsg.content);
+    if (testMsg.image_data) {
+      effect.note = `${effect.note ?? testMsg.content} · image-promoted`;
+    }
+    const kind = inferKnowledgeKind(testMsg.content);
+    const title =
+      testMsg.content.length > 60
+        ? `${testMsg.content.slice(0, 57)}…`
+        : testMsg.content || "Test lesson";
+
+    const { data: knowledgeRow, error: kErr } = await admin
+      .from("operator_knowledge")
+      .insert({
+        kind: kind === "note" ? "lesson" : kind,
+        title,
+        content,
+        effect: effect as Json,
+        is_active: true,
+        source: "test_lab",
+        created_by: access.user.id,
+      })
+      .select("id")
+      .single();
+
+    if (kErr || !knowledgeRow) {
+      return NextResponse.json(
+        { error: kErr?.message ?? "Promote failed" },
+        { status: 500 },
+      );
+    }
+
+    await admin
+      .from("operator_test_messages")
+      .update({ promoted_knowledge_id: knowledgeRow.id })
+      .eq("id", testMsg.id);
+
     return NextResponse.json({
       ok: true,
       knowledgeId: knowledgeRow.id,
-      reply,
-      effect,
-      kind,
+      message:
+        locale === "en"
+          ? "Promoted to main brain."
+          : "Llevado al cerebro principal.",
     });
   }
 

@@ -34,11 +34,17 @@ export function AdminNav({
   const sandboxSectionActive =
     pathname.startsWith("/admin/sandbox") ||
     pathname.startsWith("/admin/estrategia");
+  const operatorSectionActive = pathname.startsWith("/admin/operador");
   const [sandboxOpen, setSandboxOpen] = useState(sandboxSectionActive);
+  const [operatorOpen, setOperatorOpen] = useState(operatorSectionActive);
 
   useEffect(() => {
     if (sandboxSectionActive) setSandboxOpen(true);
   }, [sandboxSectionActive]);
+
+  useEffect(() => {
+    if (operatorSectionActive) setOperatorOpen(true);
+  }, [operatorSectionActive]);
 
   const items: NavItem[] = [
     {
@@ -94,9 +100,71 @@ export function AdminNav({
   const logsActive = pathname.startsWith("/admin/sandbox/logs");
   const advancedActive = pathname.startsWith("/admin/estrategia");
 
+  const opSummaryActive =
+    pathname === "/admin/operador" || pathname === "/admin/operador/";
+  const opControlActive = pathname.startsWith("/admin/operador/control");
+  const opLearnActive = pathname.startsWith("/admin/operador/aprender");
+  const opTestActive = pathname.startsWith("/admin/operador/pruebas");
+
   return (
     <nav className="flex shrink-0 flex-row gap-1 overflow-x-auto md:w-44 md:flex-col md:gap-0.5">
       {visible.map((item) => {
+        if (item.key === "operator") {
+          return (
+            <div key={item.href} className="flex shrink-0 flex-col md:w-full">
+              <button
+                type="button"
+                onClick={() => setOperatorOpen((o) => !o)}
+                aria-expanded={operatorOpen}
+                className={`flex items-center justify-between gap-2 whitespace-nowrap rounded-md px-3 py-2 text-left text-sm transition md:rounded-none md:rounded-r-md ${
+                  operatorSectionActive
+                    ? "bg-pulse/10 font-medium text-pulse md:border-l-2 md:border-pulse md:pl-[10px]"
+                    : "text-snow/55 hover:bg-snow/[0.04] hover:text-snow md:border-l-2 md:border-transparent md:pl-[10px]"
+                }`}
+              >
+                <span>{item.label}</span>
+                <svg
+                  viewBox="0 0 16 16"
+                  className={`h-3.5 w-3.5 shrink-0 opacity-70 transition-transform ${
+                    operatorOpen ? "rotate-180" : ""
+                  }`}
+                  aria-hidden
+                >
+                  <path
+                    fill="currentColor"
+                    d="M4.47 6.22a.75.75 0 0 1 1.06 0L8 8.69l2.47-2.47a.75.75 0 1 1 1.06 1.06l-3 3a.75.75 0 0 1-1.06 0l-3-3a.75.75 0 0 1 0-1.06Z"
+                  />
+                </svg>
+              </button>
+              {operatorOpen && (
+                <div className="ml-2 flex flex-row gap-0.5 border-l border-snow/10 pl-2 md:ml-3 md:flex-col">
+                  <SubLink href="/admin/operador" active={opSummaryActive}>
+                    {t.admin.operatorSummaryNav}
+                  </SubLink>
+                  <SubLink
+                    href="/admin/operador/control"
+                    active={opControlActive}
+                  >
+                    {t.admin.operatorControlNav}
+                  </SubLink>
+                  <SubLink
+                    href="/admin/operador/aprender"
+                    active={opLearnActive}
+                  >
+                    {t.admin.operatorLearnNav}
+                  </SubLink>
+                  <SubLink
+                    href="/admin/operador/pruebas"
+                    active={opTestActive}
+                  >
+                    {t.admin.operatorTestNav}
+                  </SubLink>
+                </div>
+              )}
+            </div>
+          );
+        }
+
         if (item.key === "sandbox") {
           return (
             <div key={item.href} className="flex shrink-0 flex-col md:w-full">
@@ -132,37 +200,16 @@ export function AdminNav({
 
               {sandboxOpen && (
                 <div className="ml-2 flex flex-row gap-0.5 border-l border-snow/10 pl-2 md:ml-3 md:flex-col">
-                  <Link
-                    href="/admin/sandbox"
-                    className={`whitespace-nowrap rounded-md px-2.5 py-1.5 text-sm transition ${
-                      sessionActive
-                        ? "font-medium text-pulse"
-                        : "text-snow/50 hover:text-snow"
-                    }`}
-                  >
+                  <SubLink href="/admin/sandbox" active={sessionActive}>
                     {t.admin.navSandboxSession}
-                  </Link>
-                  <Link
-                    href="/admin/sandbox/logs"
-                    className={`whitespace-nowrap rounded-md px-2.5 py-1.5 text-sm transition ${
-                      logsActive
-                        ? "font-medium text-pulse"
-                        : "text-snow/50 hover:text-snow"
-                    }`}
-                  >
+                  </SubLink>
+                  <SubLink href="/admin/sandbox/logs" active={logsActive}>
                     {t.admin.navSandboxLogs}
-                  </Link>
+                  </SubLink>
                   {canStrategy && (
-                    <Link
-                      href="/admin/estrategia"
-                      className={`whitespace-nowrap rounded-md px-2.5 py-1.5 text-sm transition ${
-                        advancedActive
-                          ? "font-medium text-pulse"
-                          : "text-snow/50 hover:text-snow"
-                      }`}
-                    >
+                    <SubLink href="/admin/estrategia" active={advancedActive}>
                       {t.admin.navSandboxAdvanced}
-                    </Link>
+                    </SubLink>
                   )}
                 </div>
               )}
@@ -186,5 +233,26 @@ export function AdminNav({
         );
       })}
     </nav>
+  );
+}
+
+function SubLink({
+  href,
+  active,
+  children,
+}: {
+  href: string;
+  active: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`whitespace-nowrap rounded-md px-2.5 py-1.5 text-sm transition ${
+        active ? "font-medium text-pulse" : "text-snow/50 hover:text-snow"
+      }`}
+    >
+      {children}
+    </Link>
   );
 }

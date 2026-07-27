@@ -354,6 +354,36 @@ export type Database = {
         };
         Relationships: [];
       };
+      operator_test_messages: {
+        Row: {
+          id: string;
+          role: string;
+          content: string;
+          image_data: string | null;
+          promoted_knowledge_id: string | null;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          role: string;
+          content: string;
+          image_data?: string | null;
+          promoted_knowledge_id?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          role?: string;
+          content?: string;
+          image_data?: string | null;
+          promoted_knowledge_id?: string | null;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       operator_calibration: {
         Row: {
           id: string;
