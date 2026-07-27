@@ -9,6 +9,7 @@ import {
   seriesSlope,
   volumeSma,
 } from "../indicators";
+import type { BotPolicy } from "../bot-profile";
 import type { Candle, Pair, StrategySignal } from "../types";
 
 export type TrendPulseParams = {
@@ -83,6 +84,8 @@ export type TrendPulseContext = {
   /** Velas del timeframe superior para sesgo de tendencia */
   htfCandles?: Candle[];
   locale?: Locale;
+  /** Policy derivada del perfil guiado del usuario */
+  policy?: BotPolicy;
 };
 
 function scoreFromChecks(checks: DecisionCheck[]): number {
@@ -105,15 +108,16 @@ export function decideTrendPulse(
   ctx: TrendPulseContext = {},
 ): TrendPulseDecision {
   const copy = getStrategyCopy(ctx.locale ?? "es");
+  const pol = ctx.policy;
   const {
     fast: FAST,
     slow: SLOW,
     atrPeriod: ATR_PERIOD,
-    stopAtr: STOP_ATR,
-    tpAtr: TP_ATR,
     minAtrPct: MIN_ATR_PCT,
     maxAtrPct: MAX_ATR_PCT,
   } = params;
+  const STOP_ATR = pol?.stopAtrMult ?? params.stopAtr;
+  const TP_ATR = pol?.tpAtrMult ?? params.tpAtr;
 
   const checks: DecisionCheck[] = [];
 
@@ -187,13 +191,14 @@ export function decideTrendPulse(
     alignedBull &&
     last.low <= fast * 1.002 &&
     price >= fast &&
-    extensionAtr <= EXPERT.pullbackEntryMaxAtr;
+    extensionAtr <= (pol?.pullbackEntryMaxAtr ?? EXPERT.pullbackEntryMaxAtr);
+  const trendRide = alignedBull && price >= fast && price <= fast * 1.015;
 
   // —— Gestión de posición abierta ——
   if (hasOpenLong) {
     const structureBreak = price < slow && last.close < last.open;
     const rsiExhaust =
-      lastRsi >= EXPERT.rsiExitExhaustion && lastRsi < prevRsi;
+      lastRsi >= (pol?.rsiExitExhaustion ?? EXPERT.rsiExitExhaustion) && lastRsi < prevRsi;
 
     if (bearishCross) {
       return {
@@ -282,7 +287,7 @@ export function decideTrendPulse(
         {
           id: "rsi_hold",
           label: copy.holdRsiLabel,
-          pass: lastRsi < EXPERT.rsiExitExhaustion,
+          pass: lastRsi < (pol?.rsiExitExhaustion ?? EXPERT.rsiExitExhaustion),
           detail: `RSI ${lastRsi.toFixed(1)}`,
         },
       ],
@@ -291,7 +296,8 @@ export function decideTrendPulse(
   }
 
   // —— Checklist de entrada ——
-  const entryTrigger = bullishCross || pullbackToFast;
+  const allowTrendRide = (pol?.softFailTolerance ?? 1) >= 2;
+  const entryTrigger = bullishCross || pullbackToFast || (allowTrendRide && trendRide);
 
   checks.push({
     id: "trigger",
@@ -302,7 +308,9 @@ export function decideTrendPulse(
       ? copy.triggerCross
       : pullbackToFast
         ? copy.triggerPullback
-        : copy.triggerNone,
+        : trendRide
+          ? copy.triggerTrendRide
+          : copy.triggerNone,
   });
 
   checks.push({
@@ -319,7 +327,7 @@ export function decideTrendPulse(
   checks.push({
     id: "atr_regime",
     label: copy.atrLabel,
-    tier: "hard",
+    tier: "soft",
     pass: regimeOk,
     detail:
       atrPct == null
@@ -338,7 +346,7 @@ export function decideTrendPulse(
             ),
   });
 
-  const rsiOk = lastRsi >= EXPERT.rsiMin && lastRsi <= EXPERT.rsiMax;
+  const rsiOk = lastRsi >= (pol?.rsiMin ?? EXPERT.rsiMin) && lastRsi <= (pol?.rsiMax ?? EXPERT.rsiMax);
   checks.push({
     id: "rsi",
     label: copy.rsiLabel,
@@ -346,12 +354,13 @@ export function decideTrendPulse(
     pass: rsiOk,
     detail: rsiOk
       ? copy.rsiOk(lastRsi.toFixed(1))
-      : lastRsi > EXPERT.rsiMax
+      : lastRsi > (pol?.rsiMax ?? EXPERT.rsiMax)
         ? copy.rsiHigh(lastRsi.toFixed(1))
         : copy.rsiLow(lastRsi.toFixed(1)),
   });
 
   // Volumen de la última vela CERRADA (la en curso suele ir incompleta en live)
+  const volMinMult = pol?.volumeMult ?? EXPERT.volumeMult;
   const closedIdx = candles.length >= 2 ? candles.length - 2 : candles.length - 1;
   const closedVol = candles[closedIdx].volume;
   const volBasis = candles.slice(0, closedIdx + 1);
@@ -360,7 +369,7 @@ export function decideTrendPulse(
     ? volSmaClosed[volSmaClosed.length - 1]
     : lastVolSma;
   const volOk =
-    closedVolSma > 0 && closedVol >= closedVolSma * EXPERT.volumeMult;
+    closedVolSma > 0 && closedVol >= closedVolSma * volMinMult;
   checks.push({
     id: "volume",
     label: copy.volumeLabel,
@@ -374,7 +383,7 @@ export function decideTrendPulse(
   });
 
   const slopeOk =
-    slowSlopePct != null && slowSlopePct >= EXPERT.minSlowSlopePct;
+    slowSlopePct != null && slowSlopePct >= (pol?.minSlowSlopePct ?? EXPERT.minSlowSlopePct);
   checks.push({
     id: "slope",
     label: copy.slopeLabel,
@@ -388,7 +397,7 @@ export function decideTrendPulse(
           : copy.slopeFail(slowSlopePct.toFixed(3)),
   });
 
-  const notChasing = extensionAtr <= EXPERT.maxExtensionAtr;
+  const notChasing = extensionAtr <= (pol?.maxExtensionAtr ?? EXPERT.maxExtensionAtr);
   checks.push({
     id: "extension",
     label: copy.extensionLabel,
@@ -403,7 +412,7 @@ export function decideTrendPulse(
   const closeStrength = (last.close - last.low) / range;
   const confirmCandle =
     last.close >= last.open &&
-    closeStrength >= EXPERT.candleCloseStrength;
+    closeStrength >= (pol?.candleCloseStrength ?? EXPERT.candleCloseStrength);
   checks.push({
     id: "candle",
     label: copy.candleLabel,
@@ -445,8 +454,8 @@ export function decideTrendPulse(
   const softChecks = checks.filter((c) => c.tier !== "hard");
   const hardOk = hardChecks.every((c) => c.pass);
   const softFails = softChecks.filter((c) => !c.pass).length;
-  // Modo equilibrado: obligatorios OK + como máximo 1 fallo de calidad
-  const canEnter = hardOk && softFails <= 1;
+  const maxSoftFails = pol?.softFailTolerance ?? 1;
+  const canEnter = hardOk && softFails <= maxSoftFails;
 
   if (canEnter) {
     const softNote =

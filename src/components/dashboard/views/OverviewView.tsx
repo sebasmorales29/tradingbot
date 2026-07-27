@@ -1,7 +1,9 @@
 "use client";
 
 import { OverviewActions } from "@/components/dashboard/OverviewActions";
+import { OperatorStatusPanel } from "@/components/dashboard/OperatorStatusPanel";
 import { useT } from "@/components/i18n/T";
+import type { OperatorStatus } from "@/lib/trading/operator/status";
 
 export function StatCard({
   label,
@@ -72,6 +74,7 @@ export function OverviewView({
   closedTrades,
   pnlTotal,
   winRate,
+  operatorStatus,
 }: {
   canControlBot: boolean;
   bot: {
@@ -79,12 +82,14 @@ export function OverviewView({
     is_active: boolean;
     mode: "paper" | "live";
     risk_percent: number;
+    disclaimer_accepted_at?: string | null;
   } | null;
   equity: number;
   openTrades: number;
   closedTrades: number;
   pnlTotal: number;
   winRate: number | null;
+  operatorStatus: OperatorStatus;
 }) {
   const t = useT();
   const isActive = Boolean(bot?.is_active);
@@ -102,7 +107,7 @@ export function OverviewView({
           </p>
         </div>
         {canControlBot && bot && (
-          <OverviewActions botId={bot.id} isActive={bot.is_active} />
+          <OverviewActions botId={bot.id} isActive={bot.is_active} disclaimerAccepted={bot.disclaimer_accepted_at != null} />
         )}
       </div>
 
@@ -139,6 +144,8 @@ export function OverviewView({
           value={winRate != null ? `${winRate}%` : "—"}
         />
       </div>
+
+      <OperatorStatusPanel status={operatorStatus} />
     </div>
   );
 }

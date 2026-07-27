@@ -24,9 +24,11 @@ function friendlyMessage(raw: string | undefined, ok: boolean): string {
 export function OverviewActions({
   botId,
   isActive,
+  disclaimerAccepted = true,
 }: {
   botId: string;
   isActive: boolean;
+  disclaimerAccepted?: boolean;
 }) {
   const t = useT();
   const router = useRouter();
@@ -74,7 +76,7 @@ export function OverviewActions({
         >
           {running ? t.dash.scanning : t.dash.scanNow}
         </button>
-        <ToggleBotButton botId={botId} isActive={isActive} />
+        <ToggleBotButton botId={botId} isActive={isActive} disclaimerAccepted={disclaimerAccepted} />
       </div>
       {lastMsg && (
         <p

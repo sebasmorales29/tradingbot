@@ -17,6 +17,7 @@ export default async function DashboardPage() {
       closedTrades={data.closedTrades}
       pnlTotal={data.pnlTotal}
       winRate={data.winRate}
+      operatorStatus={data.operatorStatus}
     />
   );
 }

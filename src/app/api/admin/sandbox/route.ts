@@ -19,9 +19,14 @@ import {
   stopSandboxSession,
 } from "@/lib/trading/sandbox-session";
 import {
+  normalizeGuidedBotPreferences,
+  deriveBotPolicy,
+} from "@/lib/trading/bot-profile";
+import {
   DEFAULT_TREND_PULSE,
   type TrendPulseParams,
 } from "@/lib/trading/strategy/trend-pulse";
+import { createClient } from "@/lib/supabase/server";
 import {
   loadTrendPulseParams,
   validateTrendPulseParams,
@@ -229,6 +234,17 @@ export async function POST(request: Request) {
         }
       }
 
+      const supabase = await createClient();
+      const { data: botRow } = await supabase
+        .from("bot_configs")
+        .select("preferences")
+        .eq("user_id", access.user.id)
+        .maybeSingle();
+      const prefs = normalizeGuidedBotPreferences(
+        (botRow as Record<string, unknown> | null)?.preferences,
+      );
+      const policy = deriveBotPolicy(prefs);
+
       const state = createLiveSession({
         pair: body.pair,
         timeframe,
@@ -236,6 +252,8 @@ export async function POST(request: Request) {
         riskPercent,
         params: { ...params, timeframe },
         locale,
+        policy,
+        prefs,
       });
 
       const candles = await fetchOHLCV(body.pair, timeframe, 150);

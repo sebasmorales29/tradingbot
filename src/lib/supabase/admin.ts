@@ -10,8 +10,13 @@ export function createAdminClient() {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url || !key) {
+    const missing = [
+      !url && "NEXT_PUBLIC_SUPABASE_URL",
+      !key && "SUPABASE_SERVICE_ROLE_KEY",
+    ].filter(Boolean);
     throw new Error(
-      "Faltan NEXT_PUBLIC_SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY",
+      `Falta en el entorno: ${missing.join(", ")}. ` +
+        `Añádela a .env.local (Supabase → Project Settings → API → service_role).`,
     );
   }
 

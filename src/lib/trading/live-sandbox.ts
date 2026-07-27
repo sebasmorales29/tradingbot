@@ -2,11 +2,17 @@ import type { Locale } from "@/lib/i18n/dictionary";
 import { getStrategyCopy } from "@/lib/i18n/strategy-copy";
 import { atr, atrPercent, higherTimeframe } from "./indicators";
 import {
-  decideTrendPulse,
   type DecisionCheck,
   type TrendPulseParams,
 } from "./strategy/trend-pulse";
 import { sizePosition } from "./risk";
+import {
+  DEFAULT_GUIDED_BOT_PREFERENCES,
+  type BotPolicy,
+  type GuidedBotPreferences,
+} from "./bot-profile";
+import { decideAsOperator } from "./operator/decide";
+import type { MarketRegime } from "./operator/regime";
 import type { Candle, Pair } from "./types";
 
 const SLIPPAGE = 0.0005;
@@ -69,6 +75,10 @@ export type LiveSandboxState = {
   lastAction: string;
   lastScore: number;
   lastChecks: DecisionCheck[];
+  policy?: BotPolicy;
+  prefs?: GuidedBotPreferences;
+  lastRegime?: MarketRegime;
+  lastModelScore?: number | null;
 };
 
 export type LiveTickResult = {
@@ -111,6 +121,8 @@ export function createLiveSession(input: {
   riskPercent: number;
   params: TrendPulseParams;
   locale?: Locale;
+  policy?: BotPolicy;
+  prefs?: GuidedBotPreferences;
 }): LiveSandboxState {
   const copy = getStrategyCopy(input.locale ?? "es");
   const now = new Date().toISOString();
@@ -149,6 +161,8 @@ export function createLiveSession(input: {
     lastAction: copy.sessionCreated,
     lastScore: 0,
     lastChecks: [],
+    policy: input.policy,
+    prefs: input.prefs ?? DEFAULT_GUIDED_BOT_PREFERENCES,
   };
 }
 
@@ -193,14 +207,15 @@ export function liveSandboxTick(
     const atrSeries = atr(candles, next.params.atrPeriod);
     const lastAtr = atrSeries[atrSeries.length - 1];
     if (lastAtr > 0) {
+      const stopMult = next.policy?.stopAtrMult ?? next.params.stopAtr;
       const risk = next.position.entry - next.position.stopLoss;
       const oneR =
         risk > 0
           ? next.position.entry + risk
-          : next.position.entry + lastAtr * next.params.stopAtr;
+          : next.position.entry + lastAtr * stopMult;
       if (price >= oneR) {
         const breakeven = next.position.entry * (1 + SLIPPAGE);
-        const trail = price - next.params.stopAtr * lastAtr;
+        const trail = price - stopMult * lastAtr;
         next.position.stopLoss = Math.max(
           next.position.stopLoss,
           breakeven,
@@ -248,17 +263,37 @@ export function liveSandboxTick(
   }
 
   const hasOpen = Boolean(next.position);
-  const decision = decideTrendPulse(
+  const prefs = next.prefs ?? DEFAULT_GUIDED_BOT_PREFERENCES;
+  const policy =
+    next.policy ??
+    ({
+      rsiMin: 40,
+      rsiMax: 72,
+      rsiExitExhaustion: 80,
+      volumeMult: 1.05,
+      maxExtensionAtr: 1.6,
+      minSlowSlopePct: 0.008,
+      pullbackEntryMaxAtr: 1.0,
+      candleCloseStrength: 0.45,
+      softFailTolerance: 1,
+      stopAtrMult: next.params.stopAtr,
+      tpAtrMult: next.params.tpAtr,
+      maxNotionalPct: 0.25,
+    } satisfies BotPolicy);
+
+  const decision = decideAsOperator(
     next.pair,
     candles,
     hasOpen,
     next.params,
-    { htfCandles, locale },
+    { htfCandles, locale, policy, prefs },
   );
 
-  next.lastScore = decision.score;
+  next.lastScore = decision.modelScore ?? decision.score;
   next.lastChecks = decision.checks;
   next.lastAction = decision.summary;
+  next.lastRegime = decision.regime.regime;
+  next.lastModelScore = decision.modelScore;
 
   const signal = decision.signal;
 
@@ -300,6 +335,7 @@ export function liveSandboxTick(
       price: signal.price,
       stopLoss: signal.stopLoss,
       locale,
+      maxNotionalPct: decision.policyUsed.maxNotionalPct,
     });
 
     if (!sized.allowed) {
@@ -338,7 +374,7 @@ export function liveSandboxTick(
     pushEvent(next, {
       at: nowIso,
       kind: decision.verdict === "skip" ? "skip" : "hold",
-      message: `Tick #${next.tickCount} · score ${decision.score} · ${decision.summary}${
+      message: `Tick #${next.tickCount} · ${decision.regime.regime} · model ${decision.modelScore ?? "—"} · score ${decision.score} · ${decision.summary}${
         failed.length ? ` · falla: ${failed.join(", ")}` : ""
       }`,
       price,

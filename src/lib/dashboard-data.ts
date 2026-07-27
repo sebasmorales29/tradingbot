@@ -2,6 +2,10 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { normalizeGuidedBotPreferences } from "@/lib/trading/bot-profile";
 import type { GuidedBotPreferences } from "@/lib/trading/bot-profile";
+import {
+  loadOperatorStatus,
+  type OperatorStatus,
+} from "@/lib/trading/operator/status";
 
 export type DashboardBot = {
   id: string;
@@ -11,6 +15,7 @@ export type DashboardBot = {
   pairs: string[];
   kill_switch: boolean;
   preferences: GuidedBotPreferences;
+  disclaimer_accepted_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -49,6 +54,7 @@ export type DashboardData = {
   winRate: number | null;
   signalsTotal: number;
   equityHistory: { equity: number; recorded_at: string }[];
+  operatorStatus: OperatorStatus;
 };
 
 export async function loadDashboardData(userId: string): Promise<DashboardData> {
@@ -86,6 +92,8 @@ export async function loadDashboardData(userId: string): Promise<DashboardData> 
     .select("id", { count: "exact", head: true })
     .eq("user_id", userId);
 
+  const operatorStatus = await loadOperatorStatus(supabase, userId);
+
   const tradeList = (trades ?? []) as DashboardTrade[];
   const openList = tradeList.filter((t) => t.status === "open");
   const closed = tradeList.filter((t) => t.status === "closed");
@@ -113,6 +121,7 @@ export async function loadDashboardData(userId: string): Promise<DashboardData> 
       equity: Number(e.equity),
       recorded_at: e.recorded_at,
     })),
+    operatorStatus,
   };
 }
 

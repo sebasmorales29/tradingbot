@@ -4,9 +4,18 @@ import { getStrategyCopy } from "@/lib/i18n/strategy-copy";
 import type { Database } from "@/lib/supabase/database.types";
 import { fetchOHLCV, fetchTickerPrice } from "./market";
 import { atr, higherTimeframe } from "./indicators";
-import { decideTrendPulse } from "./strategy/trend-pulse";
 import { loadTrendPulseParams } from "./strategy/settings";
 import { sizePosition } from "./risk";
+import {
+  normalizeGuidedBotPreferences,
+  deriveBotPolicy,
+} from "./bot-profile";
+import { loadCalibrationDeltas } from "./operator/calibration";
+import {
+  decideAsOperator,
+  formatOperatorReason,
+} from "./operator/decide";
+import { detectMarketRegime } from "./operator/regime";
 import type { Pair } from "./types";
 
 const DEFAULT_EQUITY = 10_000;
@@ -71,6 +80,9 @@ export async function runBotTick(
     };
   }
 
+  const prefs = normalizeGuidedBotPreferences((bot as Record<string, unknown>).preferences);
+  const policy = deriveBotPolicy(prefs);
+
   const pairs = (
     bot.pairs?.length ? bot.pairs : ["BTC/USDT", "ETH/USDT"]
   ) as Pair[];
@@ -105,10 +117,11 @@ export async function runBotTick(
       const lastAtr = atrSeries[atrSeries.length - 1];
       if (lastAtr > 0) {
         const risk = entry - stop;
-        const oneR = risk > 0 ? entry + risk : entry + lastAtr * strategyParams.stopAtr;
+        const stopMult = policy.stopAtrMult;
+        const oneR = risk > 0 ? entry + risk : entry + lastAtr * stopMult;
         if (price >= oneR) {
           const breakeven = entry * (1 + SLIPPAGE);
-          const trail = price - strategyParams.stopAtr * lastAtr;
+          const trail = price - stopMult * lastAtr;
           const nextStop = Math.max(stop, breakeven, trail);
           if (nextStop > stop + lastAtr * 0.05) {
             stop = nextStop;
@@ -170,14 +183,44 @@ export async function runBotTick(
       .eq("status", "open");
 
     const hasOpenLong = (count ?? 0) > 0;
-    const decision = decideTrendPulse(
+    const regimeReading = detectMarketRegime(
+      candles,
+      strategyParams.atrPeriod,
+      strategyParams.fast,
+      strategyParams.slow,
+    );
+    const calibration = await loadCalibrationDeltas(
+      supabase,
+      pair,
+      regimeReading.regime,
+    );
+    const decisionFinal = decideAsOperator(
       pair,
       candles,
       hasOpenLong,
       strategyParams,
-      { htfCandles, locale },
+      {
+        htfCandles,
+        locale,
+        policy,
+        prefs,
+        calibration,
+      },
     );
-    const signal = decision.signal;
+    const signal = decisionFinal.signal;
+    if (!signal && decisionFinal.verdict === "skip" && decisionFinal.meta.blockedBy) {
+      signals += 1;
+      await supabase.from("signals").insert({
+        user_id: userId,
+        pair,
+        side: "flat",
+        reason: formatOperatorReason(decisionFinal),
+        price: candles[candles.length - 1]?.close ?? null,
+        strength: decisionFinal.modelScore,
+        meta: decisionFinal.meta as unknown as import("@/lib/supabase/database.types").Json,
+      });
+      continue;
+    }
     if (!signal) continue;
 
     signals += 1;
@@ -185,8 +228,10 @@ export async function runBotTick(
       user_id: userId,
       pair: signal.pair,
       side: signal.side,
-      reason: `${signal.reason} · score ${decision.score}`,
+      reason: formatOperatorReason(decisionFinal),
       price: signal.price,
+      strength: decisionFinal.modelScore,
+      meta: decisionFinal.meta as unknown as import("@/lib/supabase/database.types").Json,
     });
 
     if (signal.side === "flat" && hasOpenLong) {
@@ -228,6 +273,7 @@ export async function runBotTick(
         price: signal.price,
         stopLoss: signal.stopLoss,
         locale,
+        maxNotionalPct: decisionFinal.policyUsed.maxNotionalPct,
       });
 
       if (!sized.allowed) continue;

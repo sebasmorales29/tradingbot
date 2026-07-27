@@ -76,6 +76,7 @@ export type Database = {
           pairs: string[];
           kill_switch: boolean;
           preferences: Json;
+          disclaimer_accepted_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -88,6 +89,7 @@ export type Database = {
           pairs?: string[];
           kill_switch?: boolean;
           preferences?: Json;
+          disclaimer_accepted_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -100,6 +102,7 @@ export type Database = {
           pairs?: string[];
           kill_switch?: boolean;
           preferences?: Json;
+          disclaimer_accepted_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -144,6 +147,7 @@ export type Database = {
           reason: string | null;
           price: number | null;
           strength: number | null;
+          meta: Json;
           created_at: string;
         };
         Insert: {
@@ -154,6 +158,7 @@ export type Database = {
           reason?: string | null;
           price?: number | null;
           strength?: number | null;
+          meta?: Json;
           created_at?: string;
         };
         Update: {
@@ -164,6 +169,7 @@ export type Database = {
           reason?: string | null;
           price?: number | null;
           strength?: number | null;
+          meta?: Json;
           created_at?: string;
         };
         Relationships: [];
@@ -240,6 +246,51 @@ export type Database = {
           equity?: number;
           mode?: "paper" | "live";
           recorded_at?: string;
+        };
+        Relationships: [];
+      };
+      operator_calibration: {
+        Row: {
+          id: string;
+          pair: string;
+          regime: string;
+          trades_count: number;
+          wins: number;
+          losses: number;
+          win_rate: number | null;
+          expectancy: number | null;
+          soft_fail_delta: number;
+          volume_mult_delta: number;
+          min_score: number;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          pair: string;
+          regime: string;
+          trades_count?: number;
+          wins?: number;
+          losses?: number;
+          win_rate?: number | null;
+          expectancy?: number | null;
+          soft_fail_delta?: number;
+          volume_mult_delta?: number;
+          min_score?: number;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          pair?: string;
+          regime?: string;
+          trades_count?: number;
+          wins?: number;
+          losses?: number;
+          win_rate?: number | null;
+          expectancy?: number | null;
+          soft_fail_delta?: number;
+          volume_mult_delta?: number;
+          min_score?: number;
+          updated_at?: string;
         };
         Relationships: [];
       };

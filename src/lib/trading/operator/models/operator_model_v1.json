@@ -1,0 +1,27 @@
+{
+  "version": "v1",
+  "trainedAt": "2026-07-27T00:00:00.000Z",
+  "description": "Weighted heuristic score trained as placeholder until batch retrain. Same contract as future XGBoost artifact.",
+  "minScoreDefault": 45,
+  "weights": {
+    "rsiMid": 18,
+    "atrOk": 12,
+    "slopeUp": 16,
+    "notExtended": 14,
+    "volume": 12,
+    "htfBull": 14,
+    "regimeTrendUp": 14,
+    "regimeHighVolPenalty": -10,
+    "regimeRangePenalty": -8,
+    "regimeTrendDownPenalty": -20
+  },
+  "bins": {
+    "rsiIdealMin": 42,
+    "rsiIdealMax": 68,
+    "atrMin": 0.3,
+    "atrMax": 4.5,
+    "slopeMin": 0.006,
+    "extensionMax": 1.5,
+    "volMin": 0.95
+  }
+}

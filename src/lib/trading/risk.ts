@@ -9,6 +9,8 @@ export type RiskConfig = {
   price: number;
   stopLoss: number;
   locale?: "es" | "en";
+  /** Max fraction of equity in a single position (default 0.25) */
+  maxNotionalPct?: number;
 };
 
 export type PositionSizeResult = {
@@ -47,8 +49,7 @@ export function sizePosition(cfg: RiskConfig): PositionSizeResult {
   const riskAmount = (cfg.equity * cfg.riskPercent) / 100;
   let qty = riskAmount / stopDistance;
 
-  // Cap: never use more than 25% of equity in one spot position notional
-  const maxNotional = cfg.equity * 0.25;
+  const maxNotional = cfg.equity * (cfg.maxNotionalPct ?? 0.25);
   const notional = qty * cfg.price;
   if (notional > maxNotional) {
     qty = maxNotional / cfg.price;
