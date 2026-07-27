@@ -9,7 +9,7 @@ import { useT } from "@/components/i18n/T";
 type NavItem = {
   href: string;
   label: string;
-  key?: "users" | "bots" | "activity" | "strategy" | "sandbox";
+  key?: "users" | "bots" | "activity" | "sandbox";
   match: (p: string) => boolean;
 };
 
@@ -29,7 +29,9 @@ export function AdminNav({
   const t = useT();
   const pathname = usePathname();
   const sandbox = useSandboxSessionOptional();
-  const sandboxSectionActive = pathname.startsWith("/admin/sandbox");
+  const sandboxSectionActive =
+    pathname.startsWith("/admin/sandbox") ||
+    pathname.startsWith("/admin/estrategia");
   const [sandboxOpen, setSandboxOpen] = useState(sandboxSectionActive);
 
   useEffect(() => {
@@ -64,13 +66,8 @@ export function AdminNav({
       href: "/admin/sandbox",
       label: t.admin.navSandbox,
       key: "sandbox",
-      match: (p) => p.startsWith("/admin/sandbox"),
-    },
-    {
-      href: "/admin/estrategia",
-      label: t.admin.navStrategy,
-      key: "strategy",
-      match: (p) => p.startsWith("/admin/estrategia"),
+      match: (p) =>
+        p.startsWith("/admin/sandbox") || p.startsWith("/admin/estrategia"),
     },
   ];
 
@@ -79,7 +76,6 @@ export function AdminNav({
     if (item.key === "users") return canUsers;
     if (item.key === "bots") return canBots;
     if (item.key === "activity") return canActivity;
-    if (item.key === "strategy") return canStrategy;
     if (item.key === "sandbox") return canSandbox;
     return true;
   });
@@ -87,6 +83,7 @@ export function AdminNav({
   const showLive = Boolean(sandbox?.state) && Boolean(sandbox?.liveOn);
   const sessionActive = pathname === "/admin/sandbox";
   const logsActive = pathname.startsWith("/admin/sandbox/logs");
+  const advancedActive = pathname.startsWith("/admin/estrategia");
 
   return (
     <nav className="flex shrink-0 flex-row gap-1 overflow-x-auto md:w-44 md:flex-col md:gap-0.5">
@@ -146,6 +143,18 @@ export function AdminNav({
                   >
                     {t.admin.navSandboxLogs}
                   </Link>
+                  {canStrategy && (
+                    <Link
+                      href="/admin/estrategia"
+                      className={`whitespace-nowrap rounded-md px-2.5 py-1.5 text-sm transition ${
+                        advancedActive
+                          ? "font-medium text-pulse"
+                          : "text-snow/50 hover:text-snow"
+                      }`}
+                    >
+                      {t.admin.navSandboxAdvanced}
+                    </Link>
+                  )}
                 </div>
               )}
             </div>

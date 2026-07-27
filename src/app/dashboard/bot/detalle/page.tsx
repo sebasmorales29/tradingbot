@@ -2,13 +2,13 @@ import {
   loadDashboardData,
   requireDashboardUser,
 } from "@/lib/dashboard-data";
-import { BotConfigView } from "@/components/dashboard/views/BotConfigView";
+import { BotDetailsView } from "@/components/dashboard/views/BotDetailsView";
 
-export default async function DashboardBotPage() {
+export default async function DashboardBotDetailsPage() {
   const access = await requireDashboardUser();
   const data = await loadDashboardData(access.user.id);
 
   return (
-    <BotConfigView bot={data.bot} />
+    <BotDetailsView bot={data.bot} signalsTotal={data.signalsTotal} />
   );
 }

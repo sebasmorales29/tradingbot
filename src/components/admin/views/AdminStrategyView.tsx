@@ -14,10 +14,15 @@ export function AdminStrategyView({
   const t = useT();
   return (
     <div>
-      <h1 className="font-display text-3xl font-bold text-snow">
+      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-300/80">
+        {t.admin.strategyBadge}
+      </p>
+      <h1 className="mt-2 font-display text-3xl font-bold text-snow">
         {t.admin.strategyTitle}
       </h1>
-      <p className="mt-2 text-snow/60">{t.admin.strategyLead}</p>
+      <p className="mt-2 max-w-2xl text-sm leading-relaxed text-snow/60">
+        {t.admin.strategyLead}
+      </p>
       <StrategyEditor initial={initial} canEdit={canEdit} />
     </div>
   );

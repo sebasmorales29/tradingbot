@@ -29,8 +29,12 @@ function ChoiceGroup<T extends string>({
 }) {
   return (
     <div>
-      <p className="mb-3 text-sm font-medium text-snow">{label}</p>
-      <div className="grid gap-2 sm:grid-cols-3">
+      <p className="mb-2 text-sm font-medium text-snow">{label}</p>
+      <div
+        className={`grid gap-2 ${
+          options.length === 2 ? "sm:grid-cols-2" : "sm:grid-cols-3"
+        }`}
+      >
         {options.map((opt) => {
           const active = opt.value === value;
           return (
@@ -38,16 +42,20 @@ function ChoiceGroup<T extends string>({
               key={opt.value}
               type="button"
               onClick={() => onChange(opt.value)}
-              className={`rounded-xl border px-4 py-3 text-left transition ${
+              className={`rounded-lg border px-3 py-2.5 text-left transition ${
                 active
                   ? "border-pulse bg-pulse/10 ring-1 ring-pulse/30"
                   : "border-snow/10 bg-slate/35 hover:border-snow/25 hover:bg-snow/[0.03]"
               }`}
             >
-              <p className={`text-sm font-semibold ${active ? "text-pulse" : "text-snow"}`}>
+              <p
+                className={`text-sm font-semibold ${
+                  active ? "text-pulse" : "text-snow"
+                }`}
+              >
                 {opt.title}
               </p>
-              <p className="mt-1 text-xs leading-relaxed text-snow/50">
+              <p className="mt-0.5 text-[11px] leading-snug text-snow/45">
                 {opt.detail}
               </p>
             </button>
@@ -164,16 +172,16 @@ export function BotGuidedProfile({ bot }: { bot: DashboardBot }) {
   ];
 
   return (
-    <section className="rounded-2xl border border-pulse/20 bg-gradient-to-br from-slate/55 to-ink/70 p-5 sm:p-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <section className="rounded-xl border border-pulse/20 bg-gradient-to-br from-slate/55 to-ink/70 p-4 sm:p-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-pulse">
             {t.dash.guidedBadge}
           </p>
-          <h2 className="mt-2 font-display text-2xl font-bold text-snow">
+          <h2 className="mt-1 font-display text-xl font-bold text-snow">
             {t.dash.guidedTitle}
           </h2>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-snow/55">
+          <p className="mt-1 max-w-xl text-xs leading-relaxed text-snow/50">
             {t.dash.guidedLead}
           </p>
         </div>
@@ -181,13 +189,13 @@ export function BotGuidedProfile({ bot }: { bot: DashboardBot }) {
           type="button"
           disabled={!dirty || saving}
           onClick={() => void save()}
-          className="inline-flex h-11 items-center justify-center rounded-lg bg-pulse px-5 text-sm font-semibold text-ink transition hover:bg-pulse-dim hover:text-snow disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex h-10 shrink-0 items-center justify-center rounded-lg bg-pulse px-4 text-sm font-semibold text-ink transition hover:bg-pulse-dim hover:text-snow disabled:cursor-not-allowed disabled:opacity-50"
         >
           {saving ? t.dash.saving : t.dash.guidedSave}
         </button>
       </div>
 
-      <div className="mt-6 grid gap-6">
+      <div className="mt-4 grid gap-4">
         <ChoiceGroup
           label={t.dash.questionPace}
           value={prefs.pace}
@@ -214,41 +222,28 @@ export function BotGuidedProfile({ bot }: { bot: DashboardBot }) {
         />
       </div>
 
-      <div className="mt-6 rounded-xl border border-snow/10 bg-ink/45 p-4">
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-snow/35">
+      <div className="mt-4 rounded-lg border border-snow/10 bg-ink/45 px-3 py-3">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-snow/35">
           {t.dash.keelraWillDo}
         </p>
-        <div className="mt-3 grid gap-3 sm:grid-cols-3">
-          <div className="rounded-lg border border-snow/10 px-3 py-3">
-            <p className="text-[11px] uppercase tracking-wide text-snow/35">
-              {t.dash.risk}
-            </p>
-            <p className="mt-1 text-sm font-semibold text-snow">
-              {derived.riskPercent}%
-            </p>
-          </div>
-          <div className="rounded-lg border border-snow/10 px-3 py-3">
-            <p className="text-[11px] uppercase tracking-wide text-snow/35">
-              {t.dash.pairs}
-            </p>
-            <p className="mt-1 text-sm font-semibold text-snow">
-              {derived.pairs.join(" · ")}
-            </p>
-          </div>
-          <div className="rounded-lg border border-snow/10 px-3 py-3">
-            <p className="text-[11px] uppercase tracking-wide text-snow/35">
-              {t.dash.guidedModeLabel}
-            </p>
-            <p className="mt-1 text-sm font-semibold text-snow">
+        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-snow/75">
+          <span>
+            {t.dash.risk}:{" "}
+            <strong className="text-snow">{derived.riskPercent}%</strong>
+          </span>
+          <span>
+            {t.dash.pairs}:{" "}
+            <strong className="text-snow">{derived.pairs.join(" · ")}</strong>
+          </span>
+          <span>
+            {t.dash.guidedModeLabel}:{" "}
+            <strong className="text-snow">
               {prefs.autonomy === "guarded"
                 ? t.dash.guidedModeGuarded
                 : t.dash.guidedModeStandard}
-            </p>
-          </div>
+            </strong>
+          </span>
         </div>
-        <p className="mt-3 text-sm leading-relaxed text-snow/50">
-          {t.dash.guidedDisclaimer}
-        </p>
       </div>
     </section>
   );
