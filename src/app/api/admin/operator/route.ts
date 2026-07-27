@@ -15,6 +15,7 @@ import {
 import { getOperatorModelInfo } from "@/lib/trading/operator/model";
 import { trainOperatorFromMarket } from "@/lib/trading/operator/train";
 import { runOperatorWebResearch } from "@/lib/trading/operator/research";
+import { composeOperatorChatReply } from "@/lib/trading/operator/chat";
 import type { Json } from "@/lib/supabase/database.types";
 
 export const runtime = "nodejs";
@@ -199,62 +200,79 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true });
   }
 
-  if (body.action === "teach") {
+  if (body.action === "teach" || body.action === "chat") {
     const message = (body.message ?? "").trim();
     if (message.length < 3) {
       return NextResponse.json({ error: "Message too short" }, { status: 400 });
     }
 
-    const effect = extractEffectFromText(message);
-    const kind = inferKnowledgeKind(message);
-    const title = message.length > 72 ? `${message.slice(0, 69)}…` : message;
+    const [brain, knowledge, calibration] = await Promise.all([
+      loadOperatorBrain(admin),
+      loadActiveKnowledge(admin),
+      listCalibration(admin),
+    ]);
+    const model = getOperatorModelInfo();
+    const composed = composeOperatorChatReply({
+      message,
+      locale,
+      brain,
+      knowledge,
+      model,
+      calibration: calibration
+        .filter((c) => c.pair === "*")
+        .map((c) => ({
+          regime: c.regime,
+          tradesCount: c.tradesCount,
+          winRate: c.winRate,
+        })),
+    });
 
-    const { data: knowledgeRow, error: kErr } = await admin
-      .from("operator_knowledge")
-      .insert({
-        kind,
-        title,
-        content: message,
-        effect: effect as Json,
-        is_active: true,
-        source: "chat",
-        created_by: access.user.id,
-      })
-      .select("id")
-      .single();
+    let knowledgeId: string | null = null;
 
-    if (kErr || !knowledgeRow) {
-      return NextResponse.json(
-        { error: kErr?.message ?? "Could not save knowledge" },
-        { status: 500 },
-      );
+    if (composed.shouldPersist) {
+      const { data: knowledgeRow, error: kErr } = await admin
+        .from("operator_knowledge")
+        .insert({
+          kind: composed.kind,
+          title: composed.title,
+          content: message,
+          effect: composed.effect as Json,
+          is_active: true,
+          source: "chat",
+          created_by: access.user.id,
+        })
+        .select("id")
+        .single();
+
+      if (kErr || !knowledgeRow) {
+        return NextResponse.json(
+          { error: kErr?.message ?? "Could not save knowledge" },
+          { status: 500 },
+        );
+      }
+      knowledgeId = knowledgeRow.id;
     }
 
     await admin.from("operator_chat_messages").insert({
       role: "user",
       content: message,
-      knowledge_id: knowledgeRow.id,
+      knowledge_id: knowledgeId,
       created_by: access.user.id,
     });
-
-    const effectKeys = Object.keys(effect).filter((k) => k !== "note");
-    const reply =
-      locale === "en"
-        ? effectKeys.length
-          ? `Learned permanently as “${kind}”. I will apply: ${effectKeys.join(", ")}.`
-          : `Saved permanently as “${kind}”. Tip: use phrases like “prefer uptrend”, “avoid ETH”, “more careful in range”.`
-        : effectKeys.length
-          ? `Aprendido para siempre como “${kind}”. Aplicaré: ${effectKeys.join(", ")}.`
-          : `Guardado para siempre como “${kind}”. Tip: usa “preferir alcista”, “evitar ETH”, “más cauteloso en rango”.`;
 
     await admin.from("operator_chat_messages").insert({
       role: "assistant",
-      content: reply,
-      knowledge_id: knowledgeRow.id,
+      content: composed.reply,
+      knowledge_id: knowledgeId,
       created_by: access.user.id,
     });
 
-    return NextResponse.json({ ok: true, knowledgeId: knowledgeRow.id, reply });
+    return NextResponse.json({
+      ok: true,
+      intent: composed.intent,
+      knowledgeId,
+      reply: composed.reply,
+    });
   }
 
   if (body.action === "test_message") {

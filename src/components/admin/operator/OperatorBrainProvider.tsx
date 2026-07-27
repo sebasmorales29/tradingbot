@@ -34,6 +34,7 @@ export type OperatorBrainPayload = {
     title: string;
     content: string;
     effect: Record<string, unknown>;
+    source?: string;
     createdAt: string;
   }>;
   calibration: Array<{

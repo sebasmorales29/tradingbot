@@ -371,18 +371,26 @@ export const dictionaries = {
       operatorSyncModel: "Sincronizar modelo del disco",
       operatorTrainHint:
         "Para reentrenar con histórico: npm run bot:operator-train (luego Sync).",
-      operatorChatTitle: "Enseñar al Operador",
+      operatorChatTitle: "Hablar con el Operador",
       operatorChatLead:
-        "Lo que escribas se guarda para siempre en el cerebro global. Usa frases claras de regla o mercado.",
-      operatorChatEmpty: "Aún no hay lecciones. Empieza a enseñarle.",
+        "Pregúntale qué sabe o enséñale reglas. Si es una pregunta, analiza su cerebro y te responde; si es una regla, la guarda para siempre.",
+      operatorChatEmpty:
+        "Empieza con: “¿qué has aprendido hasta ahora?” o enseña una regla.",
       operatorChatPlaceholder:
-        "Ej: preferir alcista, evitar ETH, más cauteloso en rango…",
+        "Pregunta o enséñale… ej. ¿qué sabes? / preferir alcista",
+      operatorChatSend: "Enviar",
+      operatorChatThinking: "Pensando…",
       operatorTeach: "Enseñar",
       operatorKnowledgeTitle: "Qué sabe ahora",
       operatorKnowledgeLead:
-        "Conocimiento permanente que influye en cada decisión de todos los bots.",
+        "Lecciones activas que sesgan cada decisión de todos los bots.",
       operatorKnowledgeEmpty: "Sin lecciones activas todavía.",
       operatorForget: "Olvidar",
+      operatorSourceWeb: "Web",
+      operatorSourceChat: "Manual",
+      operatorSourceTest: "Prueba",
+      operatorSourceOther: "Otro",
+      operatorSourceLink: "Ver fuente",
       operatorCalibration: "Calibración por régimen",
       operatorSummaryNav: "Resumen",
       operatorSummaryTitle: "Resumen del Operador",
@@ -941,18 +949,26 @@ export const dictionaries = {
       operatorSyncModel: "Sync model from disk",
       operatorTrainHint:
         "To retrain on history: npm run bot:operator-train (then Sync).",
-      operatorChatTitle: "Teach the Operator",
+      operatorChatTitle: "Talk to the Operator",
       operatorChatLead:
-        "Whatever you write is saved forever in the global brain. Use clear rule or market phrases.",
-      operatorChatEmpty: "No lessons yet. Start teaching it.",
+        "Ask what it knows or teach it rules. Questions get an analyzed reply; rules are saved permanently.",
+      operatorChatEmpty:
+        "Start with “what have you learned so far?” or teach a rule.",
       operatorChatPlaceholder:
-        "E.g. prefer uptrend, avoid ETH, more careful in range…",
+        "Ask or teach… e.g. what do you know? / prefer uptrend",
+      operatorChatSend: "Send",
+      operatorChatThinking: "Thinking…",
       operatorTeach: "Teach",
       operatorKnowledgeTitle: "What it knows now",
       operatorKnowledgeLead:
-        "Permanent knowledge that influences every decision on every bot.",
+        "Active lessons that bias every decision across all bots.",
       operatorKnowledgeEmpty: "No active lessons yet.",
       operatorForget: "Forget",
+      operatorSourceWeb: "Web",
+      operatorSourceChat: "Manual",
+      operatorSourceTest: "Test",
+      operatorSourceOther: "Other",
+      operatorSourceLink: "View source",
       operatorCalibration: "Calibration by regime",
       operatorSummaryNav: "Summary",
       operatorSummaryTitle: "Operator summary",
