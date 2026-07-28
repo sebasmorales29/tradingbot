@@ -12,30 +12,67 @@ export type ResearchFeed = {
   id: string;
   name: string;
   url: string;
+  track: "news" | "education";
 };
 
-/** Fuentes públicas RSS (sin scrape agresivo). */
+/**
+ * Fuentes públicas RSS.
+ * - news: tape / titulares al día
+ * - education: teoría, métodos, conceptos, cómo operar
+ */
 export const TRADING_RESEARCH_FEEDS: ResearchFeed[] = [
   {
     id: "coindesk",
     name: "CoinDesk",
     url: "https://www.coindesk.com/arc/outboundfeeds/rss/",
+    track: "news",
   },
   {
     id: "cointelegraph",
     name: "Cointelegraph",
     url: "https://cointelegraph.com/rss",
+    track: "news",
   },
   {
     id: "yahoo-btc",
     name: "Yahoo Finance BTC",
     url: "https://feeds.finance.yahoo.com/rss/2.0/headline?s=BTC-USD&region=US&lang=en-US",
+    track: "news",
   },
   {
     id: "yahoo-eth",
     name: "Yahoo Finance ETH",
     url: "https://feeds.finance.yahoo.com/rss/2.0/headline?s=ETH-USD&region=US&lang=en-US",
+    track: "news",
   },
+  {
+    id: "babypips",
+    name: "BabyPips",
+    url: "https://www.babypips.com/feed",
+    track: "education",
+  },
+  {
+    id: "investopedia",
+    name: "Investopedia",
+    url: "https://www.investopedia.com/feedbuilder/feed/getfeed?feedName=rss_articles",
+    track: "education",
+  },
+];
+
+/** Temario rotativo: teoría / métodos / psicología / riesgo. */
+export const TRADING_CURRICULUM_TOPICS: string[] = [
+  "trend following trading strategy risk management",
+  "support resistance false breakout technical analysis",
+  "bull market bear market how to trade",
+  "position sizing stop loss ATR trading",
+  "EMA crossover pullback entry strategy",
+  "range trading vs trend trading discipline",
+  "trading psychology FOMO revenge trading",
+  "crypto market structure liquidity sweeps",
+  "risk reward ratio expectancy trading",
+  "high volatility trading caution methods",
+  "higher timeframe confluence trading",
+  "spot trading long only crypto strategy",
 ];
 
 export type ResearchItem = {
@@ -45,6 +82,7 @@ export type ResearchItem = {
   summary: string;
   link: string;
   publishedAt: string | null;
+  track: "news" | "education";
 };
 
 export type ResearchRunResult = {
@@ -75,10 +113,14 @@ function tagContent(block: string, tag: string): string {
   return m ? decodeXml(m[1]) : "";
 }
 
-function parseRssItems(xml: string, feed: ResearchFeed): ResearchItem[] {
+function parseRssItems(
+  xml: string,
+  feed: Pick<ResearchFeed, "id" | "name" | "track">,
+  limit = 12,
+): ResearchItem[] {
   const chunks = xml.split(/<item[\s>]/i).slice(1);
   const items: ResearchItem[] = [];
-  for (const chunk of chunks.slice(0, 12)) {
+  for (const chunk of chunks.slice(0, limit)) {
     const title = tagContent(chunk, "title");
     if (!title) continue;
     const description =
@@ -95,6 +137,7 @@ function parseRssItems(xml: string, feed: ResearchFeed): ResearchItem[] {
       summary: description.slice(0, 500),
       link: link.slice(0, 400),
       publishedAt: pub || null,
+      track: feed.track,
     });
   }
   return items;
@@ -103,7 +146,7 @@ function parseRssItems(xml: string, feed: ResearchFeed): ResearchItem[] {
 async function fetchFeed(feed: ResearchFeed): Promise<ResearchItem[]> {
   const res = await fetch(feed.url, {
     headers: {
-      "User-Agent": "KeelraOperatorResearch/1.0",
+      "User-Agent": "KeelraOperatorResearch/1.0 (+training)",
       Accept: "application/rss+xml, application/xml, text/xml, */*",
     },
     signal: AbortSignal.timeout(12_000),
@@ -115,9 +158,74 @@ async function fetchFeed(feed: ResearchFeed): Promise<ResearchItem[]> {
   return parseRssItems(xml, feed);
 }
 
-function sentimentEffect(text: string): KnowledgeEffect {
+async function fetchCurriculumTopic(topic: string): Promise<ResearchItem[]> {
+  const url = `https://news.google.com/rss/search?q=${encodeURIComponent(
+    topic,
+  )}&hl=en-US&gl=US&ceid=US:en`;
+  const res = await fetch(url, {
+    headers: {
+      "User-Agent": "KeelraOperatorResearch/1.0 (+curriculum)",
+      Accept: "application/rss+xml, application/xml, text/xml, */*",
+    },
+    signal: AbortSignal.timeout(12_000),
+  });
+  if (!res.ok) {
+    throw new Error(`curriculum HTTP ${res.status}`);
+  }
+  const xml = await res.text();
+  return parseRssItems(
+    xml,
+    {
+      id: `curriculum-${normalizeTitleKey(topic).slice(0, 24)}`,
+      name: `Curriculum: ${topic}`,
+      track: "education",
+    },
+    8,
+  );
+}
+
+function todaysCurriculumTopics(count = 3): string[] {
+  const day = Math.floor(Date.now() / 86_400_000);
+  const out: string[] = [];
+  for (let i = 0; i < count; i++) {
+    out.push(
+      TRADING_CURRICULUM_TOPICS[
+        (day + i * 3) % TRADING_CURRICULUM_TOPICS.length
+      ],
+    );
+  }
+  return out;
+}
+
+function sentimentEffect(text: string, track: "news" | "education"): KnowledgeEffect {
   const base = extractEffectFromText(text);
   const t = text.toLowerCase();
+
+  if (track === "education") {
+    if (/\b(trend following|uptrend|alcista|higher high|pullback entry)\b/i.test(t)) {
+      base.preferRegime = base.preferRegime ?? "trend_up";
+      base.scoreDelta = (base.scoreDelta ?? 0) + 2;
+    }
+    if (/\b(downtrend|bajista|lower low|short bias|risk.?off)\b/i.test(t)) {
+      base.avoidRegime = base.avoidRegime ?? "trend_down";
+      base.minScoreDelta = (base.minScoreDelta ?? 0) + 2;
+    }
+    if (/\b(range|sideways|chop|mean reversion)\b/i.test(t)) {
+      base.avoidRegime = base.avoidRegime ?? "range";
+      base.minScoreDelta = (base.minScoreDelta ?? 0) + 3;
+      base.scoreDelta = (base.scoreDelta ?? 0) - 2;
+    }
+    if (/\b(volatility|atr|high vol|widening)\b/i.test(t)) {
+      base.avoidRegime = base.avoidRegime ?? "high_vol";
+      base.minScoreDelta = (base.minScoreDelta ?? 0) + 2;
+    }
+    if (/\b(risk management|position size|stop loss|expectancy|discipline|fomo)\b/i.test(t)) {
+      base.minScoreDelta = (base.minScoreDelta ?? 0) + 2;
+      base.scoreDelta = (base.scoreDelta ?? 0) - 1;
+    }
+    base.note = `[curriculum] ${text.slice(0, 220)}`;
+    return base;
+  }
 
   const bull =
     /\b(rally|surge|soar|bull|all-time high|ath|adoption|etf approval|rate cut|risk-on)\b/i.test(
@@ -166,16 +274,109 @@ function normalizeTitleKey(title: string): string {
     .slice(0, 80);
 }
 
+function inferResearchKind(
+  text: string,
+  track: "news" | "education",
+): string {
+  if (track === "education") {
+    const t = text.toLowerCase();
+    if (/\b(strategy|estrateg|method|método|setup|system)\b/i.test(t)) {
+      return "strategy";
+    }
+    if (/\b(risk|stop|sizing|expectancy|disciplina|psychology|fomo)\b/i.test(t)) {
+      return "rule";
+    }
+    if (/\b(definition|what is|concepto|terminolog|glossary)\b/i.test(t)) {
+      return "lesson";
+    }
+    return "strategy";
+  }
+  const kind = inferKnowledgeKind(text);
+  return kind === "note" ? "market" : kind;
+}
+
 /**
- * Lee internet (RSS de trading/crypto), convierte titulares en lecciones
- * permanentes del cerebro global Keelra.
+ * Distila un ítem educativo a lección accionable (si hay Groq/OpenAI).
+ * Si falla, usa título+resumen crudo.
+ */
+async function distillLesson(item: ResearchItem): Promise<string | null> {
+  const key = process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY;
+  if (!key || item.track !== "education") return null;
+
+  const usingGroq = Boolean(process.env.GROQ_API_KEY);
+  const baseUrl = usingGroq
+    ? "https://api.groq.com/openai/v1"
+    : process.env.OPENAI_BASE_URL || "https://api.openai.com/v1";
+  const model =
+    process.env.GROQ_MODEL ||
+    process.env.OPENAI_MODEL ||
+    (usingGroq ? "llama-3.3-70b-versatile" : "gpt-4o-mini");
+
+  try {
+    const res = await fetch(`${baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model,
+        temperature: 0.3,
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are Keelra Operator training itself. Convert the article into a permanent trading lesson: (1) concept in 1 line, (2) when to apply, (3) when NOT to apply, (4) operational rule for Spot long-only crypto. Max 180 words. No hype.",
+          },
+          {
+            role: "user",
+            content: `Title: ${item.title}\nSummary: ${item.summary}\nSource: ${item.sourceName}`,
+          },
+        ],
+      }),
+      signal: AbortSignal.timeout(20_000),
+    });
+    if (!res.ok) return null;
+    const json = (await res.json()) as {
+      choices?: Array<{ message?: { content?: string } }>;
+    };
+    return json.choices?.[0]?.message?.content?.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+function prioritizeItems(items: ResearchItem[]): ResearchItem[] {
+  const education = items.filter((i) => i.track === "education");
+  const news = items.filter((i) => i.track === "news");
+  // ~65% educación / teoría, ~35% noticias de mercado
+  const out: ResearchItem[] = [];
+  let e = 0;
+  let n = 0;
+  while (e < education.length || n < news.length) {
+    for (let i = 0; i < 2 && e < education.length; i++) {
+      out.push(education[e++]);
+    }
+    if (n < news.length) out.push(news[n++]);
+  }
+  return out;
+}
+
+/**
+ * Entrenamiento web del Operador:
+ * teoría + métodos + terminología + tape, convertidos en lecciones permanentes.
  */
 export async function runOperatorWebResearch(
   supabase: Client,
-  opts?: { triggeredBy?: string; maxLearn?: number },
+  opts?: {
+    triggeredBy?: string;
+    maxLearn?: number;
+    focus?: "all" | "news" | "education";
+  },
 ): Promise<ResearchRunResult> {
   const triggeredBy = opts?.triggeredBy ?? "manual";
-  const maxLearn = opts?.maxLearn ?? 8;
+  const maxLearn = opts?.maxLearn ?? 12;
+  const focus = opts?.focus ?? "all";
 
   const { data: runRow } = await supabase
     .from("operator_research_runs")
@@ -190,7 +391,12 @@ export async function runOperatorWebResearch(
   let sourcesFailed = 0;
   const collected: ResearchItem[] = [];
 
-  for (const feed of TRADING_RESEARCH_FEEDS) {
+  const feeds = TRADING_RESEARCH_FEEDS.filter((f) => {
+    if (focus === "all") return true;
+    return f.track === focus;
+  });
+
+  for (const feed of feeds) {
     try {
       const items = await fetchFeed(feed);
       collected.push(...items);
@@ -200,12 +406,24 @@ export async function runOperatorWebResearch(
     }
   }
 
+  if (focus === "all" || focus === "education") {
+    for (const topic of todaysCurriculumTopics(3)) {
+      try {
+        const items = await fetchCurriculumTopic(topic);
+        collected.push(...items);
+        sourcesOk += 1;
+      } catch {
+        sourcesFailed += 1;
+      }
+    }
+  }
+
   const { data: existing } = await supabase
     .from("operator_knowledge")
     .select("title")
     .eq("source", "web_research")
     .order("created_at", { ascending: false })
-    .limit(200);
+    .limit(300);
 
   const seen = new Set(
     (existing ?? []).map((r) => normalizeTitleKey(String(r.title))),
@@ -213,29 +431,40 @@ export async function runOperatorWebResearch(
 
   const learnedTitles: string[] = [];
   let itemsLearned = 0;
+  const ordered = prioritizeItems(collected);
 
-  for (const item of collected) {
+  for (const item of ordered) {
     if (itemsLearned >= maxLearn) break;
     const key = normalizeTitleKey(item.title);
     if (!key || seen.has(key)) continue;
     seen.add(key);
 
+    const distilled = await distillLesson(item);
     const body = [
+      item.track === "education" ? "[TRAINING / THEORY]" : "[MARKET TAPE]",
       item.title,
-      item.summary,
-      item.link ? `Source: ${item.sourceName} · ${item.link}` : `Source: ${item.sourceName}`,
+      distilled || item.summary,
+      item.link
+        ? `Source: ${item.sourceName} · ${item.link}`
+        : `Source: ${item.sourceName}`,
       item.publishedAt ? `Published: ${item.publishedAt}` : null,
     ]
       .filter(Boolean)
       .join("\n");
 
-    const effect = sentimentEffect(`${item.title}. ${item.summary}`);
-    const kind = inferKnowledgeKind(`${item.title} ${item.summary}`) || "market";
+    const effect = sentimentEffect(
+      `${item.title}. ${distilled || item.summary}`,
+      item.track,
+    );
+    const kind = inferResearchKind(
+      `${item.title} ${distilled || item.summary}`,
+      item.track,
+    );
 
     const { error } = await supabase.from("operator_knowledge").insert({
-      kind: kind === "note" ? "market" : kind,
+      kind,
       title: item.title.slice(0, 120),
-      content: body.slice(0, 2000),
+      content: body.slice(0, 2500),
       effect: effect as Json,
       is_active: true,
       source: "web_research",
@@ -247,7 +476,9 @@ export async function runOperatorWebResearch(
     }
   }
 
-  const summary = `Web research: ${sourcesOk} feeds ok, ${sourcesFailed} failed, saw ${collected.length}, learned ${itemsLearned}.`;
+  const eduSeen = collected.filter((i) => i.track === "education").length;
+  const newsSeen = collected.filter((i) => i.track === "news").length;
+  const summary = `Training research: ${sourcesOk} sources ok (${sourcesFailed} failed). Saw ${collected.length} (edu ${eduSeen} / news ${newsSeen}), learned ${itemsLearned}.`;
 
   if (runRow?.id) {
     await supabase
@@ -267,6 +498,7 @@ export async function runOperatorWebResearch(
     id: "keelra",
     last_research_at: new Date().toISOString(),
     research_items_count: itemsLearned,
+    notes: summary.slice(0, 500),
     updated_at: new Date().toISOString(),
   });
 

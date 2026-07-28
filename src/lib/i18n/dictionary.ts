@@ -438,12 +438,12 @@ export const dictionaries = {
       operatorResearchHistory: "Historial de investigación",
       operatorResearchTitle: "Aprender de internet",
       operatorResearchLead:
-        "El Operador lee noticias y feeds públicos de trading/crypto, convierte titulares en lecciones permanentes y las aplica a todos los bots.",
+        "Entrena al Operador con teoría, métodos, conceptos y tape de mercado. Prioriza aprendizaje profundo y lo convierte en lecciones permanentes para todos los bots.",
       operatorResearchNow: "Investigar ahora",
       operatorResearching: "Investigando…",
-      operatorResearchDone: "Investigación web completada.",
+      operatorResearchDone: "Investigación / entrenamiento web completado.",
       operatorResearchHint:
-        "Automático cada ~6h (cron). Fuentes: CoinDesk, Cointelegraph, Yahoo BTC/ETH.",
+        "Automático cada ~6h. Teoría (BabyPips, Investopedia, temario rotativo) + noticias (CoinDesk, Cointelegraph, Yahoo).",
       operatorAutoResearchEnabled: "Auto-research: ON",
       operatorAutoResearchDisabled: "Auto-research: OFF",
       operatorAutoResearchOn: "Investigación automática activada.",
@@ -1027,12 +1027,12 @@ export const dictionaries = {
       operatorResearchHistory: "Research history",
       operatorResearchTitle: "Learn from the internet",
       operatorResearchLead:
-        "The Operator reads public trading/crypto news feeds, turns headlines into permanent lessons, and applies them to every bot.",
+        "Trains the Operator on theory, methods, concepts, and market tape. Prioritizes deep learning and turns it into permanent lessons for every bot.",
       operatorResearchNow: "Research now",
       operatorResearching: "Researching…",
-      operatorResearchDone: "Web research completed.",
+      operatorResearchDone: "Web research / training completed.",
       operatorResearchHint:
-        "Automatic about every 6h (cron). Sources: CoinDesk, Cointelegraph, Yahoo BTC/ETH.",
+        "Automatic about every 6h. Theory (BabyPips, Investopedia, rotating curriculum) + news (CoinDesk, Cointelegraph, Yahoo).",
       operatorAutoResearchEnabled: "Auto-research: ON",
       operatorAutoResearchDisabled: "Auto-research: OFF",
       operatorAutoResearchOn: "Automatic research enabled.",

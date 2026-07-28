@@ -62,9 +62,13 @@ El plan **Hobby** de Vercel solo permite 1 cron al día. Para escanear cada 15 m
 
 El cron diario de Vercel queda como respaldo; cron-job.org es el que mantiene el bot activo de verdad.
 
-### Investigación web del Operador (cada 6 h)
+### Investigación / entrenamiento web del Operador (cada 6 h)
 
-El cerebro global lee feeds públicos (CoinDesk, Cointelegraph, Yahoo BTC/ETH) y guarda lecciones en `operator_knowledge`.
+El cerebro global se entrena con:
+- **Teoría/métodos:** BabyPips, Investopedia, temario rotativo (estrategias, riesgo, psicología, estructura)
+- **Tape:** CoinDesk, Cointelegraph, Yahoo BTC/ETH
+
+Si hay `GROQ_API_KEY`, distila cada lección educativa a regla accionable antes de guardarla.
 
 En Hobby, configura un segundo job en cron-job.org:
 

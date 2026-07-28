@@ -4,10 +4,11 @@ import { runOperatorWebResearch } from "@/lib/trading/operator/research";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 /**
  * Investigación web periódica del Operador Keelra.
+ * Entrena con teoría/métodos + tape de mercado.
  * Auth: Authorization: Bearer <CRON_SECRET>
  */
 export async function GET(request: NextRequest) {
@@ -54,7 +55,8 @@ async function handle(request: NextRequest) {
 
     const result = await runOperatorWebResearch(admin, {
       triggeredBy: "cron",
-      maxLearn: 10,
+      maxLearn: 14,
+      focus: "all",
     });
 
     return NextResponse.json({ ok: true, ...result });

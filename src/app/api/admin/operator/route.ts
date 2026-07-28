@@ -25,7 +25,7 @@ import type { Json } from "@/lib/supabase/database.types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 function canManage(
   access: NonNullable<Awaited<ReturnType<typeof getSessionAccess>>>,
@@ -163,15 +163,16 @@ export async function POST(request: Request) {
     try {
       const result = await runOperatorWebResearch(admin, {
         triggeredBy: "admin",
-        maxLearn: 12,
+        maxLearn: 14,
+        focus: "all",
       });
       return NextResponse.json({
         ok: true,
         ...result,
         message:
           locale === "en"
-            ? `Learned ${result.itemsLearned} items from the web (${result.sourcesOk} sources).`
-            : `Aprendió ${result.itemsLearned} ítems de internet (${result.sourcesOk} fuentes).`,
+            ? `Trained on ${result.itemsLearned} lessons from the web (${result.sourcesOk} sources: theory + market).`
+            : `Entrenó ${result.itemsLearned} lecciones de internet (${result.sourcesOk} fuentes: teoría + mercado).`,
       });
     } catch (e) {
       return NextResponse.json(
