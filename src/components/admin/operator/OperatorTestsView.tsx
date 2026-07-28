@@ -161,7 +161,7 @@ export function OperatorTestsView() {
         <div ref={chatEnd} />
       </div>
 
-      <div className="sticky bottom-0 shrink-0 border-t border-snow/10 bg-slate/95 px-4 py-3 backdrop-blur-sm sm:px-5">
+      <div className="sticky bottom-0 shrink-0 border-t border-snow/10 bg-slate/95 px-4 py-3 pb-4 backdrop-blur-sm sm:px-5 sm:pb-5">
         {imageData && (
           <div className="mx-auto mb-2 flex max-w-3xl items-center gap-3 rounded-lg border border-snow/10 bg-ink/50 p-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}

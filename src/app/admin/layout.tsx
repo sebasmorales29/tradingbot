@@ -26,7 +26,7 @@ export default async function AdminLayout({
           role={access.role}
         />
 
-        <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-6 py-6 md:flex-row md:px-8 md:py-8">
+        <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-6 py-6 pb-8 md:flex-row md:px-8 md:py-8 md:pb-10">
           <AdminNav
             canUsers={
               access.can("admin_manage_users") ||

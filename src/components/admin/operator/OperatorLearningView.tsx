@@ -192,7 +192,7 @@ export function OperatorLearningView() {
 
         <form
           onSubmit={(e) => void send(e)}
-          className="sticky bottom-0 shrink-0 border-t border-snow/10 bg-slate/95 px-4 py-3 backdrop-blur-sm sm:px-5"
+          className="sticky bottom-0 shrink-0 border-t border-snow/10 bg-slate/95 px-4 py-3 pb-4 backdrop-blur-sm sm:px-5 sm:pb-5"
         >
           <div className="mx-auto flex max-w-3xl gap-2">
             <input

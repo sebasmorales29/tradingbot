@@ -20,7 +20,7 @@ export function AdminOperatorShell({
       <div
         className={
           compact
-            ? "flex h-[calc(100svh-5.5rem)] min-h-0 flex-col"
+            ? "flex h-[calc(100svh-6.5rem)] min-h-0 flex-col pb-3"
             : undefined
         }
       >
