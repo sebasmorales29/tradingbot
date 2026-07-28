@@ -29,10 +29,11 @@ ver → decidir → ejecutar (paper) → medir → moldear → examen/gate → u
 
 Cualquier feature que no empuje esto está fuera de alcance hasta que digamos lo contrario.
 
-## Research automático
+## Conciencia vs LLM
 
-Sirve para marco mental (teoría, métodos, terminología).  
-**No** sustituye experiencia de mercado ni el gate.
+- **Conciencia del bot:** knowledge + modelo + calibración + Trend Pulse + sandbox. Ahí decide y aprende.
+- **Groq/OpenAI:** solo voz e interpretación (chat y destilar texto de fuentes). Nunca sustituye el juicio ni decide trades.
+- Entrenar = foguear paper/research/sandbox y medir. No = “hablar más con el LLM”.
 
 ## Para agentes / equipo
 

@@ -279,15 +279,21 @@ export async function POST(request: Request) {
     }
 
     let reply = planned.reply;
+    const knowledgeForVoice = (freshLessons.length ? freshLessons : knowledge).slice(
+      0,
+      8,
+    );
     const refined = await refineReplyWithLlm({
       locale,
       message,
       draftReply: reply,
-      knowledgeTitles: (freshLessons.length ? freshLessons : knowledge)
-        .slice(0, 8)
-        .map((k) => k.title),
+      knowledgeTitles: knowledgeForVoice.map((k) => k.title),
+      knowledgeSnippets: knowledgeForVoice.map(
+        (k) => `${k.title}: ${k.content.slice(0, 280)}`,
+      ),
       researchSummary: research?.summary,
     });
+    // Groq = voz. Si falla, queda el borrador del cerebro Keelra.
     if (refined) reply = refined;
 
     let knowledgeId: string | null = null;

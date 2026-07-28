@@ -314,7 +314,7 @@ async function distillLesson(item: ResearchItem): Promise<string | null> {
           {
             role: "system",
             content:
-              "You are Keelra Operator training itself. Convert the article into a permanent trading lesson: (1) concept in 1 line, (2) when to apply, (3) when NOT to apply, (4) operational rule for Spot long-only crypto. Max 180 words. No hype.",
+              "You are a FORMATTING layer for Keelra Operator — not the trading brain. Extract ONLY what is in the article into a permanent lesson: (1) concept in 1 line, (2) when to apply, (3) when NOT to apply, (4) operational rule for Spot long-only crypto. Do not invent strategies, numbers, or advice absent from the source. Max 180 words. No hype.",
           },
           {
             role: "user",

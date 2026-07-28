@@ -493,14 +493,18 @@ export function composeOperatorChatReply(input: AgentComposeInput) {
 }
 
 /**
- * Refina la respuesta con un LLM (Groq gratis preferido, o OpenAI).
- * Si falla o no hay key, retorna null y el caller usa el draft local.
+ * Capa de VOZ / interpretación (Groq u OpenAI).
+ * NO es la conciencia del bot: el borrador local (knowledge + oficio + research)
+ * es la fuente de verdad. El LLM solo aclara y comunica ese borrador.
+ * Si falla o no hay key → null y el caller usa el draft.
  */
 export async function refineReplyWithLlm(opts: {
   locale: "es" | "en";
   message: string;
   draftReply: string;
   knowledgeTitles: string[];
+  /** Fragmentos de lecciones (contenido), no solo títulos */
+  knowledgeSnippets?: string[];
   researchSummary?: string;
 }): Promise<string | null> {
   const groqKey = process.env.GROQ_API_KEY;
@@ -517,20 +521,45 @@ export async function refineReplyWithLlm(opts: {
     process.env.OPENAI_MODEL ||
     (usingGroq ? "llama-3.3-70b-versatile" : "gpt-4o-mini");
 
+  const voiceRules =
+    opts.locale === "en"
+      ? `## Voice layer only (CRITICAL)
+You are NOT the trading brain. You are a communications layer for Keelra Operator.
+- The DRAFT below is the Operator's conscience (knowledge, experience, craft). Treat it as ground truth.
+- Rewrite for clarity and natural language ONLY. Preserve every concrete claim, number, lesson, and decision from the draft.
+- Do NOT invent setups, prices, regimes, rules, or opinions that are not in the draft / lessons / research.
+- Do NOT replace Keelra's judgment with generic LLM finance advice.
+- If the draft says "I don't know" or stands aside, keep that stance.
+- Prefer citing lesson titles when relevant.
+- Max ~400 words.`
+      : `## Solo capa de voz (CRÍTICO)
+NO eres la conciencia del bot. Eres la capa de comunicación del Operador Keelra.
+- El BORRADOR de abajo ES la conciencia del Operador (conocimiento, experiencia, maña). Trátalo como verdad.
+- Solo reescribe para claridad y lenguaje natural. Conserva cada afirmación concreta, número, lección y decisión del borrador.
+- NO inventes setups, precios, regímenes, reglas u opiniones que no estén en el borrador / lecciones / research.
+- NO sustituyas el juicio de Keelra por consejo genérico de un LLM.
+- Si el borrador dice "no sé" o se abstiene, mantén esa postura.
+- Prefiere citar títulos de lecciones cuando aporte.
+- Máx ~400 palabras.`;
+
   const system = `${getKeelraOperatorSystemPrompt(opts.locale)}
 
-## Tarea de este turno
-Mejora el borrador local para responder la pregunta del usuario con el estándar Keelra Operator.
-No inventes datos. No sueltes un dump genérico del cerebro salvo que lo pidan.
-Máximo ~400 palabras.`;
+${voiceRules}`;
+
+  const snippets = (opts.knowledgeSnippets ?? []).filter(Boolean).slice(0, 6);
 
   const user = [
     `User question: ${opts.message}`,
-    `Draft answer:\n${opts.draftReply}`,
+    `OPERATOR DRAFT (source of truth — do not contradict):\n${opts.draftReply}`,
     opts.knowledgeTitles.length
-      ? `Relevant lessons:\n${opts.knowledgeTitles.map((t) => `- ${t}`).join("\n")}`
+      ? `Lesson titles on file:\n${opts.knowledgeTitles.map((t) => `- ${t}`).join("\n")}`
       : "",
-    opts.researchSummary ? `Research: ${opts.researchSummary}` : "",
+    snippets.length
+      ? `Lesson excerpts (Operator memory):\n${snippets.map((s, i) => `(${i + 1}) ${s}`).join("\n\n")}`
+      : "",
+    opts.researchSummary
+      ? `Research summary already absorbed by Operator:\n${opts.researchSummary}`
+      : "",
   ]
     .filter(Boolean)
     .join("\n\n");
@@ -544,7 +573,7 @@ Máximo ~400 palabras.`;
       },
       body: JSON.stringify({
         model,
-        temperature: 0.4,
+        temperature: 0.15,
         messages: [
           { role: "system", content: system },
           { role: "user", content: user },

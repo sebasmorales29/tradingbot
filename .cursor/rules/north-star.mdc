@@ -36,6 +36,12 @@ No es un chatbot de teoría. No es “más lecciones = listo”. No promete rent
 - UI o features que no empujen oficio, métricas o go-live.
 - Tratar “conocimiento” como sustituto de edge medido.
 
+## Conciencia vs LLM (Groq)
+
+- **Conciencia:** `operator_knowledge`, score/modelo, calibración, Trend Pulse, sandbox. Decide trades sin LLM.
+- **Groq:** solo capa de voz / destilar texto de fuentes a formato de lección. No inventa juicio ni sustituye el borrador local.
+- Priorizar fogueo (research cron, sandbox con cierre, métricas). No optimizar “que Groq suene más listo”.
+
 ## Research / cron
 
 El research web es **combustible de marco mental** (teoría, métodos, terminología).  
