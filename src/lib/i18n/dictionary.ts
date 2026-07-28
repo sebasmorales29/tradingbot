@@ -237,7 +237,7 @@ export const dictionaries = {
       operator: {
         badge: "Operador Keelra",
         title: "Qué sabe y cómo va",
-        lead: "Lee el régimen del mercado, puntúa cada setup y se calibra con resultados reales. Tu perfil solo limita agresividad.",
+        lead: "Oficio de operador: lee el régimen, puntúa setups, sabe cuándo no entrar y se calibra con resultados reales. Tu perfil solo limita agresividad.",
         modelLabel: "Modelo",
         lastRegime: "Último régimen",
         lastScore: "Score del setup",
@@ -400,8 +400,11 @@ export const dictionaries = {
       operatorCalibration: "Calibración por régimen",
       operatorSummaryNav: "Resumen",
       operatorSummaryTitle: "Resumen del Operador",
+      operatorNorthStarTitle: "Norte del Operador",
+      operatorNorthStarBody:
+        "Objetivo: oficio de trader profesional — cuándo sí, cuándo no, lectura con fundamento, riesgo sagrado, evidencia en paper y gate antes de live/fondeo. No es una enciclopedia ni una promesa de ganancias.",
       operatorSummaryLead:
-        "Vista general del cerebro global que vendes: versión, estado y aprendizaje.",
+        "Cerebro global con oficio: versión, estado y aprendizaje medible. KPI = calidad de decisiones, no cantidad de lecciones.",
       operatorStatus: "Estado",
       operatorUpdated: "Última actualización",
       operatorControlNav: "Control",
@@ -828,7 +831,7 @@ export const dictionaries = {
       operator: {
         badge: "Keelra Operator",
         title: "What it knows and how it is doing",
-        lead: "It reads the market regime, scores each setup, and calibrates from real outcomes. Your guided profile only limits aggressiveness.",
+        lead: "Operator craft: reads regime, scores setups, knows when not to enter, and calibrates from real outcomes. Your guided profile only limits aggressiveness.",
         modelLabel: "Model",
         lastRegime: "Last regime",
         lastScore: "Setup score",
@@ -989,8 +992,11 @@ export const dictionaries = {
       operatorCalibration: "Calibration by regime",
       operatorSummaryNav: "Summary",
       operatorSummaryTitle: "Operator summary",
+      operatorNorthStarTitle: "Operator north star",
+      operatorNorthStarBody:
+        "Goal: professional trader craft — when yes, when no, grounded chart reading, sacred risk, paper evidence, and a gate before live/funded. Not an encyclopedia or a profit promise.",
       operatorSummaryLead:
-        "Overview of the global brain you sell: version, status, and learning.",
+        "Global brain with craft: version, status, and measurable learning. KPI = decision quality, not lesson count.",
       operatorStatus: "Status",
       operatorUpdated: "Last updated",
       operatorControlNav: "Control",

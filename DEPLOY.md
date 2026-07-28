@@ -1,5 +1,7 @@
 # Deploy 24/7 (sin PC encendida)
 
+Norte del producto: [`NORTH_STAR.md`](NORTH_STAR.md) — Operador con oficio, no enciclopedia.
+
 El bot en la nube llama a `/api/cron/tick` cada 15 minutos y procesa todos los usuarios con bot **Activo**.
 
 ## 1. Service Role Key (Supabase)

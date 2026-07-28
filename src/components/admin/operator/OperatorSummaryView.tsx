@@ -41,6 +41,12 @@ export function OperatorSummaryView() {
         <p className="mt-2 max-w-2xl text-sm text-snow/55">
           {t.admin.operatorSummaryLead}
         </p>
+        <div className="mt-4 rounded-lg border border-snow/10 bg-ink/40 px-3 py-3">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-pulse">
+            {t.admin.operatorNorthStarTitle}
+          </p>
+          <p className="mt-1 text-sm text-snow/70">{t.admin.operatorNorthStarBody}</p>
+        </div>
 
         <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <Stat

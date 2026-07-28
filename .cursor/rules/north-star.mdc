@@ -1,0 +1,48 @@
+---
+description: Norte del producto Keelra — operador con oficio, no enciclopedia
+alwaysApply: true
+---
+
+# Norte Keelra (no negociable)
+
+## Objetivo
+
+Construir un **Operador con oficio de trader profesional**: sabe cuándo sí y cuándo no, lee el mercado con fundamento, gestiona riesgo como religión, y solo opera en vivo/fondeo cuando hay evidencia.
+
+No es un chatbot de teoría. No es “más lecciones = listo”. No promete rentabilidad garantizada.
+
+## Lo que SÍ alinea el producto
+
+1. **Ver** — régimen, estructura, volumen, riesgo de cuenta, eventos.
+2. **Decidir** — entrar / no entrar / salir / reducir, con motivo.
+3. **Ejecutar** — paper primero con las mismas reglas que live/fondeo.
+4. **Medir** — expectancy, DD, profit factor, calidad de los “no trade”.
+5. **Moldear** — calibración + lecciones de trades/sandbox/examen (calidad > cantidad de RSS).
+6. **Gate** — el botón live/fondeo solo existe si pasa umbrales.
+7. **Live** — un clic, mismas reglas, capital/fondeo con envelope duro.
+
+## Prioridades de ingeniería (en este orden)
+
+1. Paper profesional + métricas pass/fail (estilo fondeo).
+2. Tick al ritmo del timeframe (no depender de 1×/día).
+3. Envelope de riesgo prop-like (daily DD, max DD, kill).
+4. Go-live gate estricto.
+5. Broker/adapter real (hoy paper; `live` sin fills reales no cuenta como live).
+
+## Qué NO optimizar
+
+- Chat infinito / guardar intercambios mediocres.
+- Spamear research web como KPI.
+- UI o features que no empujen oficio, métricas o go-live.
+- Tratar “conocimiento” como sustituto de edge medido.
+
+## Research / cron
+
+El research web es **combustible de marco mental** (teoría, métodos, terminología).  
+El **gimnasio** es paper + calibración + post-mortem + examen.  
+KPI del cerebro = calidad de decisiones, no conteo de lecciones.
+
+## Comunicación
+
+- Hablar de proceso, riesgo y evidencia — nunca de “hacerse millonario garantizado”.
+- El north star humano está en `NORTH_STAR.md`.

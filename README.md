@@ -2,6 +2,8 @@
 
 Bot de trading crypto (Binance Spot) + producto web con Supabase.
 
+**Norte:** un Operador con oficio de trader profesional (proceso, riesgo, evidencia, gate antes de live/fondeo) — no una enciclopedia. Ver [`NORTH_STAR.md`](NORTH_STAR.md).
+
 ## Arranque
 
 ```bash
