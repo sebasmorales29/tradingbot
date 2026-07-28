@@ -2,6 +2,7 @@ import type { OperatorBrain, OperatorKnowledge, KnowledgeEffect } from "./brain"
 import { extractEffectFromText, inferKnowledgeKind } from "./brain";
 import type { OperatorModelInfo } from "./model";
 import type { ResearchRunResult } from "./research";
+import { getKeelraOperatorSystemPrompt } from "./system-prompt";
 
 export type AgentIntent =
   | "status"
@@ -516,10 +517,12 @@ export async function refineReplyWithLlm(opts: {
     process.env.OPENAI_MODEL ||
     (usingGroq ? "llama-3.3-70b-versatile" : "gpt-4o-mini");
 
-  const system =
-    opts.locale === "en"
-      ? "You are Keelra Operator, a trading agent. Answer the user's question directly, analyze, and be concrete. Do NOT dump a generic brain status unless asked. Use the draft and context; improve clarity. Max ~350 words."
-      : "Eres el Operador Keelra, un agente de trading. Responde la pregunta del usuario de forma directa, analiza y sé concreto. NO sueltes un estado genérico del cerebro salvo que lo pidan. Usa el borrador y el contexto; mejora claridad. Máx ~350 palabras.";
+  const system = `${getKeelraOperatorSystemPrompt(opts.locale)}
+
+## Tarea de este turno
+Mejora el borrador local para responder la pregunta del usuario con el estándar Keelra Operator.
+No inventes datos. No sueltes un dump genérico del cerebro salvo que lo pidan.
+Máximo ~400 palabras.`;
 
   const user = [
     `User question: ${opts.message}`,
