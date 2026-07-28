@@ -492,8 +492,8 @@ export function composeOperatorChatReply(input: AgentComposeInput) {
 }
 
 /**
- * Si hay OPENAI_API_KEY, pide al modelo una respuesta agentica con el contexto.
- * Si falla, retorna null y el caller usa el reply local.
+ * Refina la respuesta con un LLM (Groq gratis preferido, o OpenAI).
+ * Si falla o no hay key, retorna null y el caller usa el draft local.
  */
 export async function refineReplyWithLlm(opts: {
   locale: "es" | "en";
@@ -502,8 +502,19 @@ export async function refineReplyWithLlm(opts: {
   knowledgeTitles: string[];
   researchSummary?: string;
 }): Promise<string | null> {
-  const key = process.env.OPENAI_API_KEY;
+  const groqKey = process.env.GROQ_API_KEY;
+  const openaiKey = process.env.OPENAI_API_KEY;
+  const key = groqKey || openaiKey;
   if (!key) return null;
+
+  const usingGroq = Boolean(groqKey);
+  const baseUrl = usingGroq
+    ? "https://api.groq.com/openai/v1"
+    : process.env.OPENAI_BASE_URL || "https://api.openai.com/v1";
+  const model =
+    process.env.GROQ_MODEL ||
+    process.env.OPENAI_MODEL ||
+    (usingGroq ? "llama-3.3-70b-versatile" : "gpt-4o-mini");
 
   const system =
     opts.locale === "en"
@@ -522,29 +533,34 @@ export async function refineReplyWithLlm(opts: {
     .join("\n\n");
 
   try {
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    const res = await fetch(`${baseUrl}/chat/completions`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${key}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+        model,
         temperature: 0.4,
         messages: [
           { role: "system", content: system },
           { role: "user", content: user },
         ],
       }),
-      signal: AbortSignal.timeout(20_000),
+      signal: AbortSignal.timeout(25_000),
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      const errText = await res.text().catch(() => "");
+      console.error("[operator-llm]", res.status, errText.slice(0, 200));
+      return null;
+    }
     const json = (await res.json()) as {
       choices?: Array<{ message?: { content?: string } }>;
     };
     const text = json.choices?.[0]?.message?.content?.trim();
     return text || null;
-  } catch {
+  } catch (e) {
+    console.error("[operator-llm]", e);
     return null;
   }
 }
