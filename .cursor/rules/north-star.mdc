@@ -39,12 +39,13 @@ No es un chatbot de teoría. No es “más lecciones = listo”. No promete rent
 ## Conciencia vs LLM (Groq)
 
 - **Conciencia:** `operator_knowledge`, score/modelo, calibración, Trend Pulse, sandbox. Decide trades sin LLM.
-- **Groq:** solo capa de voz / destilar texto de fuentes a formato de lección. No inventa juicio ni sustituye el borrador local.
-- Priorizar fogueo (research cron, sandbox con cierre, métricas). No optimizar “que Groq suene más listo”.
+- **Groq ahora:** intermediario humano↔bot + herramienta de estudio. El Operador consulta a la AI, destila fuentes y **guarda** lecciones como suyas (`web_research` / `ai_consult`).
+- Groq no decide trades. Objetivo: el bot madura y responde desde experiencia; la AI sigue siendo instrumento.
+- Priorizar fogueo (research cron con AI consults, sandbox con cierre, métricas).
 
 ## Research / cron
 
-El research web es **combustible de marco mental** (teoría, métodos, terminología).  
+El research web + consultas AI son **combustible de formación**.  
 El **gimnasio** es paper + calibración + post-mortem + examen.  
 KPI del cerebro = calidad de decisiones, no conteo de lecciones.
 

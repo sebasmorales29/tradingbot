@@ -31,9 +31,10 @@ Cualquier feature que no empuje esto está fuera de alcance hasta que digamos lo
 
 ## Conciencia vs LLM
 
-- **Conciencia del bot:** knowledge + modelo + calibración + Trend Pulse + sandbox. Ahí decide y aprende.
-- **Groq/OpenAI:** solo voz e interpretación (chat y destilar texto de fuentes). Nunca sustituye el juicio ni decide trades.
-- Entrenar = foguear paper/research/sandbox y medir. No = “hablar más con el LLM”.
+- **Conciencia del bot:** knowledge + modelo + calibración + Trend Pulse + sandbox. Ahí decide y recuerda.
+- **Groq/OpenAI (ahora):** intermediario contigo + tutor/intérprete. El Operador lo usa para consultar temas, destilar fuentes y comunicarse. Cada lección útil se **guarda en el cerebro del bot**.
+- **Groq no decide trades.** Con el tiempo, el bot responde cada vez más desde su memoria; la AI sigue siendo herramienta, no dueño.
+- Entrenar = research + AI consults + sandbox + métricas.
 
 ## Para agentes / equipo
 

@@ -164,7 +164,9 @@ function explainConcept(message: string, locale: "es" | "en"): string | null {
 function composeStatusReply(input: AgentComposeInput): string {
   const { locale, brain, knowledge, model, calibration } = input;
   const highlights = knowledge.slice(0, 6);
-  const webCount = knowledge.filter((k) => k.source === "web_research").length;
+  const webCount = knowledge.filter(
+    (k) => k.source === "web_research" || k.source === "ai_consult",
+  ).length;
   const active = brain.isActive
     ? locale === "en"
       ? "ON"
@@ -523,23 +525,17 @@ export async function refineReplyWithLlm(opts: {
 
   const voiceRules =
     opts.locale === "en"
-      ? `## Voice layer only (CRITICAL)
-You are NOT the trading brain. You are a communications layer for Keelra Operator.
-- The DRAFT below is the Operator's conscience (knowledge, experience, craft). Treat it as ground truth.
-- Rewrite for clarity and natural language ONLY. Preserve every concrete claim, number, lesson, and decision from the draft.
-- Do NOT invent setups, prices, regimes, rules, or opinions that are not in the draft / lessons / research.
-- Do NOT replace Keelra's judgment with generic LLM finance advice.
-- If the draft says "I don't know" or stands aside, keep that stance.
-- Prefer citing lesson titles when relevant.
+      ? `## Intermediary + study voice (CRITICAL)
+You help the human talk to Keelra Operator and help the Operator interpret clearly.
+- The DRAFT is the Operator's current answer from its own memory/craft. Do not contradict it.
+- Clarify language; you may lightly structure it. Do not invent prices, setups, or rules absent from draft/lessons/research.
+- You are a tutor/bridge while the Operator is still learning — not the owner of its conscience.
 - Max ~400 words.`
-      : `## Solo capa de voz (CRÍTICO)
-NO eres la conciencia del bot. Eres la capa de comunicación del Operador Keelra.
-- El BORRADOR de abajo ES la conciencia del Operador (conocimiento, experiencia, maña). Trátalo como verdad.
-- Solo reescribe para claridad y lenguaje natural. Conserva cada afirmación concreta, número, lección y decisión del borrador.
-- NO inventes setups, precios, regímenes, reglas u opiniones que no estén en el borrador / lecciones / research.
-- NO sustituyas el juicio de Keelra por consejo genérico de un LLM.
-- Si el borrador dice "no sé" o se abstiene, mantén esa postura.
-- Prefiere citar títulos de lecciones cuando aporte.
+      : `## Intermediario + voz de estudio (CRÍTICO)
+Ayudas al humano a hablar con el Operador Keelra y al Operador a interpretarse con claridad.
+- El BORRADOR es la respuesta actual del Operador desde su memoria/oficio. No lo contradigas.
+- Aclara el lenguaje; puedes estructurar un poco. No inventes precios, setups o reglas ausentes del borrador/lecciones/research.
+- Eres puente/tutor mientras el Operador aún aprende — no el dueño de su conciencia.
 - Máx ~400 palabras.`;
 
   const system = `${getKeelraOperatorSystemPrompt(opts.locale)}

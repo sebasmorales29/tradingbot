@@ -11,6 +11,7 @@ function sourceBadge(
   source: string | undefined,
   labels: {
     web: string;
+    ai: string;
     chat: string;
     test: string;
     sandbox: string;
@@ -19,6 +20,7 @@ function sourceBadge(
   },
 ) {
   if (source === "web_research") return labels.web;
+  if (source === "ai_consult") return labels.ai;
   if (source === "chat") return labels.chat;
   if (source === "test_promote" || source === "test_lab") return labels.test;
   if (source === "sandbox") return labels.sandbox;
@@ -118,6 +120,7 @@ export function OperatorLearningView() {
 
   const sourceLabels = {
     web: t.admin.operatorSourceWeb,
+    ai: t.admin.operatorSourceAi,
     chat: t.admin.operatorSourceChat,
     test: t.admin.operatorSourceTest,
     sandbox: t.admin.operatorSourceSandbox,

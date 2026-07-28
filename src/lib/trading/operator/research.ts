@@ -285,7 +285,7 @@ function inferResearchKind(
 
 /**
  * Distila un ítem educativo a lección accionable (si hay Groq/OpenAI).
- * Si falla, usa título+resumen crudo.
+ * El LLM es herramienta del Operador para interpretar la fuente — no inventa el edge.
  */
 async function distillLesson(item: ResearchItem): Promise<string | null> {
   const key = process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY;
@@ -314,7 +314,7 @@ async function distillLesson(item: ResearchItem): Promise<string | null> {
           {
             role: "system",
             content:
-              "You are a FORMATTING layer for Keelra Operator — not the trading brain. Extract ONLY what is in the article into a permanent lesson: (1) concept in 1 line, (2) when to apply, (3) when NOT to apply, (4) operational rule for Spot long-only crypto. Do not invent strategies, numbers, or advice absent from the source. Max 180 words. No hype.",
+              "You are a STUDY TOOL used by Keelra Operator to interpret sources. Extract ONLY what is in the article into a permanent lesson the Operator will own: (1) concept in 1 line, (2) when to apply, (3) when NOT to apply, (4) operational rule for Spot long-only crypto. Do not invent strategies or numbers absent from the source. Max 180 words. No hype.",
           },
           {
             role: "user",
@@ -329,6 +329,70 @@ async function distillLesson(item: ResearchItem): Promise<string | null> {
       choices?: Array<{ message?: { content?: string } }>;
     };
     return json.choices?.[0]?.message?.content?.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * El Operador consulta a la AI (Groq) sobre un tema del temario y se queda
+ * con la lección en su cerebro. La AI enseña/interpreta; la memoria es de Keelra.
+ */
+async function consultAiOnCurriculumTopic(
+  topic: string,
+): Promise<{ title: string; content: string } | null> {
+  const key = process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY;
+  if (!key) return null;
+
+  const usingGroq = Boolean(process.env.GROQ_API_KEY);
+  const baseUrl = usingGroq
+    ? "https://api.groq.com/openai/v1"
+    : process.env.OPENAI_BASE_URL || "https://api.openai.com/v1";
+  const model =
+    process.env.GROQ_MODEL ||
+    process.env.OPENAI_MODEL ||
+    (usingGroq ? "llama-3.3-70b-versatile" : "gpt-4o-mini");
+
+  try {
+    const res = await fetch(`${baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model,
+        temperature: 0.35,
+        messages: [
+          {
+            role: "system",
+            content: `You are a tutoring instrument for Keelra Operator (Spot long-only crypto).
+The Operator is asking you so IT can learn and store the answer as its own craft.
+Teach professional trading craft: when yes, when no, risk, structure.
+Format:
+REGLA: ...
+CUÁNDO APLICA: ...
+CUÁNDO NO: ...
+POR QUÉ: ...
+EFECTO: (más cautela | más permisivo | flat | subir umbral)
+Max 220 words. No get-rich hype. No invent live prices.`,
+          },
+          {
+            role: "user",
+            content: `Operador Keelra consulta para aprender y guardar en su cerebro:\nTema: ${topic}\nEnséñame una lección accionable de oficio.`,
+          },
+        ],
+      }),
+      signal: AbortSignal.timeout(25_000),
+    });
+    if (!res.ok) return null;
+    const json = (await res.json()) as {
+      choices?: Array<{ message?: { content?: string } }>;
+    };
+    const content = json.choices?.[0]?.message?.content?.trim();
+    if (!content) return null;
+    const title = `AI consult: ${topic}`.slice(0, 120);
+    return { title, content: content.slice(0, 2200) };
   } catch {
     return null;
   }
@@ -408,10 +472,10 @@ export async function runOperatorWebResearch(
 
   const { data: existing } = await supabase
     .from("operator_knowledge")
-    .select("title")
-    .eq("source", "web_research")
+    .select("title, source")
+    .in("source", ["web_research", "ai_consult"])
     .order("created_at", { ascending: false })
-    .limit(300);
+    .limit(400);
 
   const seen = new Set(
     (existing ?? []).map((r) => normalizeTitleKey(String(r.title))),
@@ -421,8 +485,13 @@ export async function runOperatorWebResearch(
   let itemsLearned = 0;
   const ordered = prioritizeItems(collected);
 
+  // Reserva cupos para que el Operador consulte a la AI (Groq) y se quede con la lección
+  const aiConsultBudget =
+    focus === "news" ? 0 : Math.min(3, Math.max(1, Math.floor(maxLearn * 0.25)));
+  const feedBudget = Math.max(0, maxLearn - aiConsultBudget);
+
   for (const item of ordered) {
-    if (itemsLearned >= maxLearn) break;
+    if (itemsLearned >= feedBudget) break;
     const key = normalizeTitleKey(item.title);
     if (!key || seen.has(key)) continue;
     seen.add(key);
@@ -464,9 +533,49 @@ export async function runOperatorWebResearch(
     }
   }
 
+  let aiConsults = 0;
+  if (aiConsultBudget > 0 && (focus === "all" || focus === "education")) {
+    for (const topic of todaysCurriculumTopics(aiConsultBudget + 2)) {
+      if (aiConsults >= aiConsultBudget || itemsLearned >= maxLearn) break;
+      const titleKey = normalizeTitleKey(`AI consult: ${topic}`);
+      if (seen.has(titleKey)) continue;
+
+      const lesson = await consultAiOnCurriculumTopic(topic);
+      if (!lesson) {
+        sourcesFailed += 1;
+        continue;
+      }
+      seen.add(titleKey);
+      sourcesOk += 1;
+
+      const effect = sentimentEffect(lesson.content, "education");
+      const kind = inferResearchKind(lesson.content, "education");
+      const content = [
+        "[AI CONSULT — Operador usó la AI como tutor; la lección queda en su cerebro]",
+        lesson.content,
+        `Tema consultado: ${topic}`,
+      ].join("\n");
+
+      const { error } = await supabase.from("operator_knowledge").insert({
+        kind,
+        title: lesson.title,
+        content: content.slice(0, 2500),
+        effect: effect as Json,
+        is_active: true,
+        source: "ai_consult",
+      });
+
+      if (!error) {
+        itemsLearned += 1;
+        aiConsults += 1;
+        learnedTitles.push(lesson.title);
+      }
+    }
+  }
+
   const eduSeen = collected.filter((i) => i.track === "education").length;
   const newsSeen = collected.filter((i) => i.track === "news").length;
-  const summary = `Training research: ${sourcesOk} sources ok (${sourcesFailed} failed). Saw ${collected.length} (edu ${eduSeen} / news ${newsSeen}), learned ${itemsLearned}.`;
+  const summary = `Training research: ${sourcesOk} sources ok (${sourcesFailed} failed). Saw ${collected.length} (edu ${eduSeen} / news ${newsSeen}), learned ${itemsLearned} (AI consults ${aiConsults}).`;
 
   if (runRow?.id) {
     await supabase
