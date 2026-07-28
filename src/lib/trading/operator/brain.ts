@@ -114,28 +114,60 @@ export async function loadOperatorBrain(
   };
 }
 
+export async function countActiveKnowledge(
+  supabase: Client,
+): Promise<number> {
+  const { count, error } = await supabase
+    .from("operator_knowledge")
+    .select("id", { count: "exact", head: true })
+    .eq("is_active", true);
+
+  if (error) return 0;
+  return count ?? 0;
+}
+
+/**
+ * Carga lecciones activas (más recientes primero).
+ * Sin tope artificial de 100: pagina hasta `maxRows` para no truncar el cerebro.
+ */
 export async function loadActiveKnowledge(
   supabase: Client,
+  opts?: { maxRows?: number },
 ): Promise<OperatorKnowledge[]> {
-  const { data, error } = await supabase
-    .from("operator_knowledge")
-    .select("*")
-    .eq("is_active", true)
-    .order("created_at", { ascending: false })
-    .limit(100);
+  const maxRows = opts?.maxRows ?? 2000;
+  const pageSize = 500;
+  const out: OperatorKnowledge[] = [];
+  let from = 0;
 
-  if (error || !data) return [];
+  while (out.length < maxRows) {
+    const to = Math.min(from + pageSize - 1, maxRows - 1);
+    const { data, error } = await supabase
+      .from("operator_knowledge")
+      .select("*")
+      .eq("is_active", true)
+      .order("created_at", { ascending: false })
+      .range(from, to);
 
-  return data.map((row) => ({
-    id: row.id,
-    kind: row.kind,
-    title: row.title,
-    content: row.content,
-    effect: parseEffect(row.effect),
-    isActive: row.is_active,
-    source: row.source,
-    createdAt: row.created_at,
-  }));
+    if (error || !data?.length) break;
+
+    for (const row of data) {
+      out.push({
+        id: row.id,
+        kind: row.kind,
+        title: row.title,
+        content: row.content,
+        effect: parseEffect(row.effect),
+        isActive: row.is_active,
+        source: row.source,
+        createdAt: row.created_at,
+      });
+    }
+
+    if (data.length < pageSize) break;
+    from += pageSize;
+  }
+
+  return out;
 }
 
 export type KnowledgeBias = {

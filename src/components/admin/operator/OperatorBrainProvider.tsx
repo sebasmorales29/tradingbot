@@ -37,6 +37,8 @@ export type OperatorBrainPayload = {
     source?: string;
     createdAt: string;
   }>;
+  /** Conteo real en DB (no truncado) */
+  knowledgeCount?: number;
   calibration: Array<{
     regime: string;
     tradesCount: number;

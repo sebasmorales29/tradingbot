@@ -143,7 +143,7 @@ export function OperatorLearningView() {
           >
             {sidebarOpen
               ? t.admin.operatorKnowledgeHide
-              : `${t.admin.operatorKnowledgeShow} (${data.knowledge.length})`}
+              : `${t.admin.operatorKnowledgeShow} (${data.knowledgeCount ?? data.knowledge.length})`}
           </button>
         </div>
 
@@ -239,7 +239,7 @@ export function OperatorLearningView() {
               </div>
               <div className="flex shrink-0 items-center gap-2">
                 <span className="text-xs tabular-nums text-snow/40">
-                  {data.knowledge.length}
+                  {data.knowledgeCount ?? data.knowledge.length}
                 </span>
                 <button
                   type="button"

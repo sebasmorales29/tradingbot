@@ -194,6 +194,8 @@ export async function trainOperatorFromMarket(options?: {
   timeframe?: string;
   limit?: number;
   outPath?: string;
+  /** Si false, no escribe el JSON (útil en Vercel read-only). */
+  persistFile?: boolean;
 }): Promise<TrainedModelArtifact> {
   const pairs = options?.pairs ?? (["BTC/USDT", "ETH/USDT"] as Pair[]);
   const timeframe = options?.timeframe ?? "4h";
@@ -222,9 +224,18 @@ export async function trainOperatorFromMarket(options?: {
   }
 
   const artifact = trainWeightedModel(all);
-  writeFileSync(outPath, `${JSON.stringify(artifact, null, 2)}\n`, "utf8");
-  console.log(
-    `Wrote ${outPath} · wins=${artifact.sampleWins} losses=${artifact.sampleLosses} minScore=${artifact.minScoreDefault}`,
-  );
+  if (options?.persistFile !== false) {
+    try {
+      writeFileSync(outPath, `${JSON.stringify(artifact, null, 2)}\n`, "utf8");
+      console.log(
+        `Wrote ${outPath} · wins=${artifact.sampleWins} losses=${artifact.sampleLosses} minScore=${artifact.minScoreDefault}`,
+      );
+    } catch (e) {
+      console.warn(
+        "[operator-train] could not persist model file (ok on serverless):",
+        e instanceof Error ? e.message : e,
+      );
+    }
+  }
   return artifact;
 }

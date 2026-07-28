@@ -57,8 +57,10 @@ export function OperatorSummaryView() {
           <Stat
             label={t.admin.operatorTrained}
             value={
-              data.model.trainedAt
-                ? new Date(data.model.trainedAt).toLocaleString(dateLocale)
+              data.brain.lastTrainedAt || data.model.trainedAt
+                ? new Date(
+                    data.brain.lastTrainedAt ?? data.model.trainedAt,
+                  ).toLocaleString(dateLocale)
                 : "—"
             }
           />
@@ -76,7 +78,7 @@ export function OperatorSummaryView() {
           />
           <Stat
             label={t.admin.operatorKnowledgeCount}
-            value={String(data.knowledge.length)}
+            value={String(data.knowledgeCount ?? data.knowledge.length)}
           />
           <Stat
             label={t.admin.operatorLastResearch}

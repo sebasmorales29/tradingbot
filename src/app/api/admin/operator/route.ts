@@ -6,6 +6,7 @@ import {
   extractEffectFromText,
   inferKnowledgeKind,
   loadActiveKnowledge,
+  countActiveKnowledge,
   loadOperatorBrain,
 } from "@/lib/trading/operator/brain";
 import {
@@ -45,9 +46,10 @@ export async function GET() {
   }
 
   const supabase = await createClient();
-  const [brain, knowledge, calibration] = await Promise.all([
+  const [brain, knowledge, knowledgeCount, calibration] = await Promise.all([
     loadOperatorBrain(supabase),
     loadActiveKnowledge(supabase),
+    countActiveKnowledge(supabase),
     listCalibration(supabase),
   ]);
 
@@ -77,8 +79,13 @@ export async function GET() {
 
   return NextResponse.json({
     brain,
-    model,
+    model: {
+      ...model,
+      // La UI debe preferir la fecha de la DB (Update brain / research), no solo el JSON del build
+      trainedAt: brain.lastTrainedAt ?? model.trainedAt,
+    },
     knowledge,
+    knowledgeCount,
     calibration: calibration.filter((c) => c.pair === "*").slice(0, 8),
     chat: chat ?? [],
     tests: testsRes.error ? [] : testsRes.data ?? [],
@@ -126,23 +133,47 @@ export async function POST(request: Request) {
       let trained = null as Awaited<
         ReturnType<typeof trainOperatorFromMarket>
       > | null;
+      let trainWarning: string | null = null;
+
       if (body.action === "update_brain") {
-        trained = await trainOperatorFromMarket();
-        await recomputeAndUpsertCalibration(admin);
+        try {
+          // En Vercel el FS del proyecto es read-only: entrenar en memoria y
+          // persistir metadatos en DB.
+          trained = await trainOperatorFromMarket({ persistFile: false });
+          await recomputeAndUpsertCalibration(admin);
+        } catch (e) {
+          trainWarning = e instanceof Error ? e.message : "train_failed";
+          console.error("[operator-update-brain]", e);
+        }
       }
+
       const model = getOperatorModelInfo();
+      const now = new Date().toISOString();
       const { error } = await admin.from("operator_brain").upsert({
         id: "keelra",
         model_version: trained?.version ?? model.version,
-        last_trained_at: trained?.trainedAt ?? model.trainedAt,
+        last_trained_at: trained?.trainedAt ?? now,
         train_sample_wins: trained?.sampleWins ?? undefined,
         train_sample_losses: trained?.sampleLosses ?? undefined,
-        updated_at: new Date().toISOString(),
+        updated_at: now,
         updated_by: access.user.id,
       });
       if (error) {
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
+
+      if (trainWarning && !trained) {
+        return NextResponse.json({
+          ok: true,
+          partial: true,
+          model,
+          message:
+            locale === "en"
+              ? `Brain timestamp updated, but market train failed: ${trainWarning}`
+              : `Se actualizó la fecha del cerebro, pero el entrenamiento de mercado falló: ${trainWarning}`,
+        });
+      }
+
       return NextResponse.json({
         ok: true,
         model: trained ?? model,
