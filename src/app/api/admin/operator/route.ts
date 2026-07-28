@@ -15,6 +15,11 @@ import {
 import { getOperatorModelInfo } from "@/lib/trading/operator/model";
 import { trainOperatorFromMarket } from "@/lib/trading/operator/train";
 import { runOperatorWebResearch } from "@/lib/trading/operator/research";
+import {
+  finalizeOperatorAgent,
+  planOperatorAgent,
+  refineReplyWithLlm,
+} from "@/lib/trading/operator/agent";
 import { composeOperatorChatReply } from "@/lib/trading/operator/chat";
 import type { Json } from "@/lib/supabase/database.types";
 
@@ -207,51 +212,107 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Message too short" }, { status: 400 });
     }
 
-    const [brain, knowledge, calibration] = await Promise.all([
+    let [brain, knowledge, calibration] = await Promise.all([
       loadOperatorBrain(admin),
       loadActiveKnowledge(admin),
       listCalibration(admin),
     ]);
     const model = getOperatorModelInfo();
-    const composed = composeOperatorChatReply({
+    const cal = calibration
+      .filter((c) => c.pair === "*")
+      .map((c) => ({
+        regime: c.regime,
+        tradesCount: c.tradesCount,
+        winRate: c.winRate,
+      }));
+
+    const baseInput = {
       message,
-      locale,
+      locale: locale as "es" | "en",
       brain,
       knowledge,
       model,
-      calibration: calibration
-        .filter((c) => c.pair === "*")
-        .map((c) => ({
-          regime: c.regime,
-          tradesCount: c.tradesCount,
-          winRate: c.winRate,
-        })),
+      calibration: cal,
+    };
+
+    let planned = planOperatorAgent(baseInput);
+    let research = null as Awaited<
+      ReturnType<typeof runOperatorWebResearch>
+    > | null;
+    let freshLessons = [] as typeof knowledge;
+
+    if (planned.needsResearch) {
+      try {
+        research = await runOperatorWebResearch(admin, {
+          triggeredBy: "chat_agent",
+          maxLearn: 8,
+        });
+        knowledge = await loadActiveKnowledge(admin);
+        brain = await loadOperatorBrain(admin);
+        const before = new Set(
+          baseInput.knowledge.map((k) => k.id),
+        );
+        freshLessons = knowledge.filter((k) => !before.has(k.id));
+        if (!freshLessons.length && research.learnedTitles.length) {
+          freshLessons = knowledge
+            .filter((k) =>
+              research!.learnedTitles.some((t) => k.title.includes(t.slice(0, 40))),
+            )
+            .slice(0, 8);
+        }
+      } catch (e) {
+        console.error("[operator-chat-research]", e);
+      }
+      planned = finalizeOperatorAgent(
+        {
+          ...baseInput,
+          brain,
+          knowledge,
+          research,
+          freshLessons,
+        },
+        "research",
+      );
+    } else {
+      planned = finalizeOperatorAgent(baseInput, planned.intent);
+    }
+
+    let reply = planned.reply;
+    const refined = await refineReplyWithLlm({
+      locale,
+      message,
+      draftReply: reply,
+      knowledgeTitles: (freshLessons.length ? freshLessons : knowledge)
+        .slice(0, 8)
+        .map((k) => k.title),
+      researchSummary: research?.summary,
     });
+    if (refined) reply = refined;
 
     let knowledgeId: string | null = null;
 
-    if (composed.shouldPersist) {
-      const { data: knowledgeRow, error: kErr } = await admin
-        .from("operator_knowledge")
-        .insert({
-          kind: composed.kind,
-          title: composed.title,
-          content: message,
-          effect: composed.effect as Json,
-          is_active: true,
-          source: "chat",
-          created_by: access.user.id,
-        })
-        .select("id")
-        .single();
-
-      if (kErr || !knowledgeRow) {
-        return NextResponse.json(
-          { error: kErr?.message ?? "Could not save knowledge" },
-          { status: 500 },
-        );
+    if (planned.autoLearn && planned.autoLearnContent) {
+      const already = knowledge.some(
+        (k) =>
+          k.source === "agent" &&
+          k.title.slice(0, 40) === (planned.autoLearnTitle ?? "").slice(0, 40),
+      );
+      if (!already) {
+        const { data: knowledgeRow } = await admin
+          .from("operator_knowledge")
+          .insert({
+            kind: planned.kind || "lesson",
+            title: (planned.autoLearnTitle ?? message).slice(0, 120),
+            content: planned.autoLearnContent.slice(0, 2000),
+            effect: planned.effect as Json,
+            is_active: true,
+            source: "agent",
+            created_by: access.user.id,
+          })
+          .select("id")
+          .single();
+        knowledgeId = knowledgeRow?.id ?? null;
       }
-      knowledgeId = knowledgeRow.id;
     }
 
     await admin.from("operator_chat_messages").insert({
@@ -263,16 +324,18 @@ export async function POST(request: Request) {
 
     await admin.from("operator_chat_messages").insert({
       role: "assistant",
-      content: composed.reply,
+      content: reply,
       knowledge_id: knowledgeId,
       created_by: access.user.id,
     });
 
     return NextResponse.json({
       ok: true,
-      intent: composed.intent,
+      intent: planned.intent,
       knowledgeId,
-      reply: composed.reply,
+      reply,
+      researched: Boolean(research),
+      learnedFromResearch: research?.itemsLearned ?? 0,
     });
   }
 

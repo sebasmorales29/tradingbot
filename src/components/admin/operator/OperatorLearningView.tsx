@@ -14,6 +14,7 @@ function sourceBadge(
     chat: string;
     test: string;
     sandbox: string;
+    agent: string;
     other: string;
   },
 ) {
@@ -21,6 +22,7 @@ function sourceBadge(
   if (source === "chat") return labels.chat;
   if (source === "test_promote" || source === "test_lab") return labels.test;
   if (source === "sandbox") return labels.sandbox;
+  if (source === "agent") return labels.agent;
   return labels.other;
 }
 
@@ -119,6 +121,7 @@ export function OperatorLearningView() {
     chat: t.admin.operatorSourceChat,
     test: t.admin.operatorSourceTest,
     sandbox: t.admin.operatorSourceSandbox,
+    agent: t.admin.operatorSourceAgent,
     other: t.admin.operatorSourceOther,
   };
 

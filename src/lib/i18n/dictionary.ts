@@ -373,7 +373,7 @@ export const dictionaries = {
         "Para reentrenar con histórico: npm run bot:operator-train (luego Sync).",
       operatorChatTitle: "Hablar con el Operador",
       operatorChatLead:
-        "Conversación humana: pregunta, analiza y decide. Nada se aprende solo. “Guardar como lección” guarda tu mensaje y su respuesta juntos.",
+        "Habla con el Operador como agente: entiende, investiga en internet si hace falta, analiza y aprende. “Guardar intercambio” conserva pregunta + respuesta.",
       operatorChatEmpty:
         "Empieza con: “¿qué has aprendido hasta ahora?”",
       operatorChatPlaceholder:
@@ -392,6 +392,7 @@ export const dictionaries = {
       operatorSourceChat: "Manual",
       operatorSourceTest: "Prueba",
       operatorSourceSandbox: "Sandbox",
+      operatorSourceAgent: "Agente",
       operatorSourceOther: "Otro",
       operatorSourceLink: "Ver fuente",
       operatorKnowledgeShow: "Ver lecciones",
@@ -963,7 +964,7 @@ export const dictionaries = {
         "To retrain on history: npm run bot:operator-train (then Sync).",
       operatorChatTitle: "Talk to the Operator",
       operatorChatLead:
-        "Human conversation: ask, analyze, decide. Nothing is learned alone. “Save exchange” keeps your message and its reply together.",
+        "Talk to the Operator as an agent: it understands, researches the web when needed, analyzes, and learns. “Save exchange” keeps question + reply.",
       operatorChatEmpty: "Start with: “what have you learned so far?”",
       operatorChatPlaceholder: "Type here… (input stays fixed at the bottom)",
       operatorChatSend: "Send",
@@ -980,6 +981,7 @@ export const dictionaries = {
       operatorSourceChat: "Manual",
       operatorSourceTest: "Test",
       operatorSourceSandbox: "Sandbox",
+      operatorSourceAgent: "Agent",
       operatorSourceOther: "Other",
       operatorSourceLink: "View source",
       operatorKnowledgeShow: "Show lessons",
