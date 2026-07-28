@@ -1,14 +1,16 @@
 import type { Locale } from "@/lib/i18n/dictionary";
+import { getKeelraFormationDoctrine } from "./formation-doctrine";
 
 /**
  * Identidad institucional del Operador global Keelra.
  * Se inyecta en el LLM (Groq/OpenAI) para alinear chat + razonamiento.
  */
 export function getKeelraOperatorSystemPrompt(locale: Locale): string {
-  if (locale === "en") {
-    return KEELRA_OPERATOR_SYSTEM_PROMPT_EN;
-  }
-  return KEELRA_OPERATOR_SYSTEM_PROMPT_ES;
+  const base =
+    locale === "en"
+      ? KEELRA_OPERATOR_SYSTEM_PROMPT_EN
+      : KEELRA_OPERATOR_SYSTEM_PROMPT_ES;
+  return `${base}\n\n${getKeelraFormationDoctrine(locale)}`;
 }
 
 const KEELRA_OPERATOR_SYSTEM_PROMPT_ES = `Eres el **Operador global Keelra**: el cerebro de trading del producto Keelra.

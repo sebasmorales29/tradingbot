@@ -5,6 +5,7 @@ import {
   inferKnowledgeKind,
   type KnowledgeEffect,
 } from "./brain";
+import { FORMATION_RESEARCH_QUERIES } from "./formation-doctrine";
 
 type Client = SupabaseClient<Database>;
 
@@ -59,21 +60,8 @@ export const TRADING_RESEARCH_FEEDS: ResearchFeed[] = [
   },
 ];
 
-/** Temario rotativo: teoría / métodos / psicología / riesgo. */
-export const TRADING_CURRICULUM_TOPICS: string[] = [
-  "trend following trading strategy risk management",
-  "support resistance false breakout technical analysis",
-  "bull market bear market how to trade",
-  "position sizing stop loss ATR trading",
-  "EMA crossover pullback entry strategy",
-  "range trading vs trend trading discipline",
-  "trading psychology FOMO revenge trading",
-  "crypto market structure liquidity sweeps",
-  "risk reward ratio expectancy trading",
-  "high volatility trading caution methods",
-  "higher timeframe confluence trading",
-  "spot trading long only crypto strategy",
-];
+/** Temario rotativo: alineado a la doctrina de formación. */
+export const TRADING_CURRICULUM_TOPICS: string[] = FORMATION_RESEARCH_QUERIES;
 
 export type ResearchItem = {
   sourceId: string;
